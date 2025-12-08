@@ -13,6 +13,7 @@ extern "C" {
 typedef struct node Node;
 
 typedef struct graph{
+    int status;
     float *input;
     float *output;
     float *delta;
@@ -35,6 +36,7 @@ void forward_graph(Graph *g, float *input, int coretype, int subdivision);
 void backward_graph(Graph *g, float rate, int coretype, int subdivision);
 void update_graph(Graph *g, int coretype);
 void save_weights(Graph *g, int coretype, FILE *fp);
+void free_graph(Graph *g, int coretype);
 
 #ifdef __cplusplus
 }

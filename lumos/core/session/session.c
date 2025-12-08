@@ -14,6 +14,7 @@ Session *create_session(Graph *graph, int h, int w, int c, int truth_num, char *
     sess->channel = c;
     sess->truth_num = truth_num;
     sess->weights_path = path;
+    sess->lrscheduler = NULL;
     return sess;
 }
 
@@ -32,20 +33,7 @@ void init_session(Session *sess, char *data_path, char *label_path)
         sess->truth = calloc(sess->subdivision*sess->truth_num, sizeof(float));
         sess->loss = calloc(1, sizeof(float));
     }
-    Graph *g = sess->graph;
-    Node *layer = g->head;
-    Layer *l;
-    for (;;){
-        if (layer){
-            l = layer->l;
-            l->truth = sess->truth;
-            l->loss = sess->loss;
-            l->workspace = sess->workspace;
-        } else {
-            break;
-        }
-        layer = layer->next;
-    }
+    set_graph(sess->graph, sess->workspace, sess->truth, sess->loss);
 }
 
 void bind_train_data(Session *sess, char *path)
@@ -140,6 +128,25 @@ void load_train_data(Session *sess, int index)
     free(input);
 }
 
+void load_train_data_binary(Session *sess, int index)
+{
+    int offset_i = 0;
+    float *input = (float*)calloc(sess->subdivision*sess->width*sess->height*sess->channel, sizeof(float));
+    for (int i = index; i < index + sess->subdivision; ++i){
+        char *data_path = sess->train_data_paths[i];
+        FILE *fp = fopen(data_path, "r");
+        bfget(fp, input + offset_i, sess->height*sess->width*sess->channel);
+        fclose(fp);
+        offset_i += sess->height * sess->width * sess->channel;
+    }
+    if (sess->coretype == GPU){
+        cudaMemcpy(sess->input, input, sess->subdivision*sess->width*sess->height*sess->channel*sizeof(float), cudaMemcpyHostToDevice);
+    } else {
+        memcpy(sess->input, input, sess->subdivision*sess->width*sess->height*sess->channel*sizeof(float));
+    }
+    free(input);
+}
+
 void load_train_label(Session *sess, int index)
 {
     float *truth = calloc(sess->subdivision*sess->truth_num, sizeof(float));
@@ -165,22 +172,27 @@ void load_train_label(Session *sess, int index)
     free(truth);
 }
 
-void train(Session *sess)
+void train(Session *sess, int binary)
 {
     fprintf(stderr, "\nSession Start To Running\n");
     float rate = -sess->learning_rate / (float)sess->batch;
-    float *loss = calloc(1, sizeof(float));
+    float lr_max = rate;
+    float *loss = calloc(2, sizeof(float));
     clock_t start, final;
     double run_time = 0;
+    Graph *g = sess->graph;
+    g->status = 1;
     for (int i = 0; i < sess->epoch; ++i){
         fprintf(stderr, "\n\nEpoch %d/%d\n", i + 1, sess->epoch);
+        loss[0] = 0;
         start = clock();
         int sub_epochs = (int)(sess->train_data_num / sess->batch);
         int sub_batchs = (int)(sess->batch / sess->subdivision);
         for (int j = 0; j < sub_epochs; ++j){
             for (int k = 0; k < sub_batchs; ++k){
                 if (j * sess->batch + k * sess->subdivision + sess->subdivision > sess->train_data_num) break;
-                load_train_data(sess, j * sess->batch + k * sess->subdivision);
+                if (binary) load_train_data_binary(sess, j * sess->batch + k * sess->subdivision);
+                else load_train_data(sess, j * sess->batch + k * sess->subdivision);
                 load_train_label(sess, j * sess->batch + k * sess->subdivision);
                 forward_graph(sess->graph, sess->input, sess->coretype, sess->subdivision);
                 backward_graph(sess->graph, rate, sess->coretype, sess->subdivision);
@@ -188,24 +200,37 @@ void train(Session *sess)
                 run_time = (double)(final - start) / CLOCKS_PER_SEC;
                 if (sess->coretype == CPU) {
                     run_time /= 10;
-                    loss[0] = sess->loss[0];
+                    loss[0] += sess->loss[0];
                 } else{
-                    cudaMemcpy(loss, sess->loss, sizeof(float), cudaMemcpyDeviceToHost);
+                    cudaMemcpy(loss+1, sess->loss, sizeof(float), cudaMemcpyDeviceToHost);
+                    loss[0] += loss[1];
                 }
-                progress_bar(j * sub_batchs + k + 1, sub_epochs * sub_batchs, run_time, loss[0]);
+                progress_bar(j * sub_batchs + k + 1, sub_epochs * sub_batchs, run_time);
             }
             update_graph(sess->graph, sess->coretype);
         }
+        fprintf(stderr, " AvgLoss:%.3f", loss[0]);
+        if ((i+1) % 100 == 0){
+            char str[50];
+            sprintf(str, "./backup/LW_%d", i+1);
+            FILE *fp = fopen(str, "wb");
+            if (fp) {
+                save_weights(sess->graph, sess->coretype, fp);
+                fclose(fp);
+            }
+        }
+        rate = run_lrscheduler(sess->lrscheduler, rate, lr_max, i);
     }
-    FILE *fp = fopen("./LuWeights", "wb");
+    FILE *fp = fopen("./backup/LW_f", "wb");
     if (fp) {
         save_weights(sess->graph, sess->coretype, fp);
         fclose(fp);
     }
+    free_graph(g, sess->coretype);
     fprintf(stderr, "\n\nSession Training Finished\n");
 }
 
-void detect_classification(Session *sess)
+void detect_classification(Session *sess, int binary)
 {
     fprintf(stderr, "\nSession Start To Running\n");
     int num = 0;
@@ -213,6 +238,7 @@ void detect_classification(Session *sess)
     float *detect = NULL;
     float *loss = NULL;
     Graph *g = sess->graph;
+    g->status = 0;
     Node *layer = g->tail;
     Layer *l = layer->l;
     if (sess->coretype == GPU){
@@ -221,7 +247,8 @@ void detect_classification(Session *sess)
         loss = calloc(1, sizeof(float));
     }
     for (int i = 0; i < sess->train_data_num; ++i){
-        load_train_data(sess, i);
+        if (binary) load_train_data_binary(sess, i);
+        else load_train_data(sess, i);
         load_train_label(sess, i);
         forward_graph(sess->graph, sess->input, sess->coretype, sess->subdivision);
         if (sess->coretype == GPU){
@@ -241,5 +268,76 @@ void detect_classification(Session *sess)
         }
         fprintf(stderr, "Loss:%.4f\n\n", loss[0]);
     }
+    free_graph(g, sess->coretype);
     fprintf(stderr, "Detct Classification: %d/%d  %.2f\n", num, sess->train_data_num, (float)(num)/(float)(sess->train_data_num));
+}
+
+void lr_scheduler_step(Session *sess, int step_size, float gamma)
+{
+    LrScheduler *lrscheduler = make_lrscheduler(SLR, 0, step_size, NULL, 0, 0, gamma);
+    sess->lrscheduler = lrscheduler;
+}
+
+void lr_scheduler_multistep(Session *sess, int *milestones, int num, float gamma)
+{
+    LrScheduler *lrscheduler = make_lrscheduler(MLR, num, 0, milestones, 0, 0, gamma);
+    sess->lrscheduler = lrscheduler;
+}
+
+void lr_scheduler_exponential(Session *sess, float gamma)
+{
+    LrScheduler *lrscheduler = make_lrscheduler(ELR, 0, 0, NULL, 0, 0, gamma);
+    sess->lrscheduler = lrscheduler;
+}
+
+void lr_scheduler_cosineannealing(Session *sess, int T_max, float lr_min)
+{
+    LrScheduler *lrscheduler = make_lrscheduler(CALR, 0, 0, NULL, T_max, lr_min, 0);
+    sess->lrscheduler = lrscheduler;
+}
+
+void init_constant(Layer *l, float x)
+{
+    InitCpt *initcpt = malloc(sizeof(InitCpt));
+    initcpt->initype = CONSTANT_I;
+    initcpt->x = x;
+    l->initcpt = initcpt;
+}
+
+void init_normal(Layer *l, float mean, float std)
+{
+    InitCpt *initcpt = malloc(sizeof(InitCpt));
+    initcpt->initype = NORMAL_I;
+    initcpt->mean = mean;
+    initcpt->std = std;
+    l->initcpt = initcpt;
+}
+
+void init_uniform(Layer *l, float min, float max)
+{
+    InitCpt *initcpt = malloc(sizeof(InitCpt));
+    initcpt->initype = UNIFORM_I;
+    initcpt->min = min;
+    initcpt->max = max;
+    l->initcpt = initcpt;
+}
+
+void init_kaiming_normal(Layer *l, float a, char *mode, char *nonlinearity)
+{
+    InitCpt *initcpt = malloc(sizeof(InitCpt));
+    initcpt->initype = KAIMING_NORMAL_I;
+    initcpt->a = a;
+    initcpt->mode = mode;
+    initcpt->nonlinearity = nonlinearity;
+    l->initcpt = initcpt;
+}
+
+void init_kaiming_uniform(Layer *l, float a, char *mode, char *nonlinearity)
+{
+    InitCpt *initcpt = malloc(sizeof(InitCpt));
+    initcpt->initype = KAIMING_UNIFORM_I;
+    initcpt->a = a;
+    initcpt->mode = mode;
+    initcpt->nonlinearity = nonlinearity;
+    l->initcpt = initcpt;
 }

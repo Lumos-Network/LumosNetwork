@@ -18,6 +18,7 @@
 #include "gemm_gpu.h"
 #include "im2col_gpu.h"
 #include "bias_gpu.h"
+#include "normalization_layer_gpu.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,8 +30,12 @@ void forward_convolutional_layer_gpu(Layer l, int num);
 void backward_convolutional_layer_gpu(Layer l, float rate, int num, float *n_delta);
 void update_convolutional_layer_gpu(Layer l, float rate, int num, float *n_delta);
 void update_convolutional_layer_weights_gpu(Layer l);
-
 void save_convolutional_layer_weights_gpu(Layer l, FILE *fp);
+void free_convolutional_layer_gpu(Layer l);
+
+void convolutional_constant_init_gpu(Layer l, float x);
+void convolutional_normal_init_gpu(Layer l, float mean, float std);
+void convolutional_kaiming_normal_init_gpu(Layer l, float a, char *mode, char *nonlinearity);
 
 #ifdef __cplusplus
 }

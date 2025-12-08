@@ -16,9 +16,27 @@ extern "C" {
 
 typedef enum {
     CONVOLUTIONAL, CONNECT, IM2COL, MAXPOOL, AVGPOOL, \
-    DROPOUT, MSE, SOFTMAX, SHORTCUT, NORMALIZE
+    DROPOUT, SOFTMAX, SHORTCUT, NORMALIZE, \
+    MSE, MAE, CE
 } LayerType;
 
+typedef enum {
+    CONSTANT_I, NORMAL_I, UNIFORM_I, KAIMING_NORMAL_I, KAIMING_UNIFORM_I
+} InitType;
+
+typedef struct initcpt{
+    InitType initype;
+    float x;
+    float mean;
+    float std;
+    float a;
+    float min;
+    float max;
+    char *mode;
+    char *nonlinearity;
+} initcpt, InitCpt;
+
+typedef struct initcpt InitCpt;
 typedef struct layer Layer;
 
 typedef void (*forward)  (struct layer, int);
@@ -50,8 +68,14 @@ typedef saveweights SaveWeights;
 typedef void (*saveweights_gpu) (struct layer, FILE*);
 typedef saveweights_gpu SaveWeightsGpu;
 
+typedef void (*free_layer) (struct layer);
+typedef free_layer FreeLayer;
+typedef void (*free_layer_gpu) (struct layer);
+typedef free_layer_gpu FreeLayerGpu;
+
 struct layer{
     LayerType type;
+    int status;
     int input_h;
     int input_w;
     int input_c;
@@ -83,6 +107,7 @@ struct layer{
     int group;
 
     int bias;
+    int normalize;
     // dropout 占比
     float probability;
 
@@ -95,16 +120,19 @@ struct layer{
     float *update_kernel_weights;
     float *update_bias_weights;
 
-    /*normalize层参数*/
-    int mean_size;
-    int variance_size;
-
     float *mean;
     float *variance;
     float *rolling_mean;
     float *rolling_variance;
     float *x_norm;
     float *normalize_x;
+    float *mean_delta;
+    float *variance_delta;
+
+    float *bn_scale;
+    float *bn_bias;
+    float *update_bn_scale;
+    float *update_bn_bias;
 
     Forward forward;
     Backward backward;
@@ -123,6 +151,11 @@ struct layer{
     Activation active;
     SaveWeights saveweights;
     SaveWeightsGpu saveweightsgpu;
+
+    FreeLayer freelayer;
+    FreeLayerGpu freelayergpu;
+
+    InitCpt *initcpt;
 };
 
 #ifdef __cplusplus

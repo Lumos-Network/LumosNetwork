@@ -80,6 +80,7 @@ void forward_graph(Graph *g, float *input, int coretype, int subdivision)
     for (;;){
         if (layer){
             l = layer->l;
+            l->status = g->status;
             l->input = input;
             if (coretype == GPU){
                 l->forwardgpu(*l, subdivision);
@@ -140,6 +141,22 @@ void save_weights(Graph *g, int coretype, FILE *fp)
             l = layer->l;
             if (coretype == GPU && l->saveweightsgpu) l->saveweightsgpu(*l, fp);
             if (coretype == CPU && l->saveweights) l->saveweights(*l, fp);
+        } else {
+            break;
+        }
+        layer = layer->next;
+    }
+}
+
+void free_graph(Graph *g, int coretype)
+{
+    Node *layer = g->head;
+    Layer *l;
+    for (;;){
+        if (layer){
+            l = layer->l;
+            if (coretype == GPU && l->freelayergpu) l->freelayergpu(*l);
+            if (coretype == CPU && l->freelayer) l->freelayer(*l);
         } else {
             break;
         }

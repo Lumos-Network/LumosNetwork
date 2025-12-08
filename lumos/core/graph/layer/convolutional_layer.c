@@ -1,6 +1,6 @@
 #include "convolutional_layer.h"
 
-Layer *make_convolutional_layer(int filters, int ksize, int stride, int pad, int bias, char *active)
+Layer *make_convolutional_layer(int filters, int ksize, int stride, int pad, int bias, int normalize, char *active)
 {
     Layer *l = malloc(sizeof(Layer));
     l->type = CONVOLUTIONAL;
@@ -9,6 +9,7 @@ Layer *make_convolutional_layer(int filters, int ksize, int stride, int pad, int
     l->stride = stride;
     l->pad = pad;
     l->bias = bias;
+    l->normalize = normalize;
 
     Activation type = load_activate_type(active);
     l->active = type;
@@ -29,6 +30,9 @@ Layer *make_convolutional_layer(int filters, int ksize, int stride, int pad, int
 
     l->saveweights = save_convolutional_layer_weights;
     l->saveweightsgpu = save_convolutional_layer_weights_gpu;
+
+    l->freelayer = free_convolutional_layer;
+    l->freelayergpu = free_convolutional_layer_gpu;
 
     fprintf(stderr, "Convolutional   Layer    :    [filters=%2d, ksize=%2d, stride=%2d, pad=%2d, bias=%d, active=%s]\n",
             l->filters, l->ksize, l->stride, l->pad, l->bias, active);
@@ -57,6 +61,7 @@ void init_convolutional_layer(Layer *l, int w, int h, int c, int subdivision)
         l->bias_weights = calloc(l->filters, sizeof(float));
         l->update_bias_weights = calloc(l->filters, sizeof(float));
     }
+    if (l->normalize) init_normalization_layer(l, subdivision);
 
     fprintf(stderr, "Convolutional   Layer    %3d*%3d*%3d ==> %3d*%3d*%3d\n",
             l->input_w, l->input_h, l->input_c, l->output_w, l->output_h, l->output_c);
@@ -73,22 +78,15 @@ void weightinit_convolutional_layer(Layer l, FILE *fp)
         }
         return;
     }
-    float scale = sqrt((float)2 / (l.ksize*l.ksize*l.input_c));
-    for (int i = 0; i < l.filters; ++i){
-        float *weight = l.kernel_weights + i*l.input_c*l.ksize*l.ksize;
-        for (int j = 0; j < l.ksize*l.ksize; ++j){
-            weight[j] = scale*rand_normal();
-        }
-        for (int j = 0; j < l.input_c-1; ++j){
-            float *weight_c = weight + (j+1)*l.ksize*l.ksize;
-            memcpy(weight_c, weight, l.ksize*l.ksize*sizeof(float));
-        }
-    }
+    InitCpt initcpt = *l.initcpt;
+    if (initcpt.initype == CONSTANT_I) convolutional_constant_init(l, initcpt.x);
+    else if (initcpt.initype == NORMAL_I) convolutional_normal_init(l, initcpt.mean, initcpt.std);
+    else if (initcpt.initype == KAIMING_NORMAL_I) convolutional_kaiming_normal_init(l, initcpt.a, initcpt.mode, initcpt.nonlinearity);
+    else convolutional_constant_init(l, 0);
     if (l.bias){
         fill_cpu(l.bias_weights, l.filters, 0.001, 1);
         memcpy(l.update_bias_weights, l.bias_weights, l.filters*sizeof(float));
     }
-    memcpy(l.update_kernel_weights, l.kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float));
 }
 
 void forward_convolutional_layer(Layer l, int num)
@@ -104,12 +102,18 @@ void forward_convolutional_layer(Layer l, int num)
         if (l.bias){
             add_bias(output, l.bias_weights, l.filters, l.output_h * l.output_w);
         }
+        if (l.normalize){
+            forward_normalization_layer(l, num);
+        }
         activate_list(output, l.outputs, l.active);
     }
 }
 
 void backward_convolutional_layer(Layer l, float rate, int num, float *n_delta)
 {
+    if (l.normalize){
+        backward_normalization_layer(l, rate, num, n_delta);
+    }
     for (int i = 0; i < num; ++i){
         int offset_i = i * l.inputs;
         int offset_o = i * l.outputs;
@@ -152,6 +156,7 @@ void update_convolutional_layer_weights(Layer l)
     if (l.bias){
         memcpy(l.bias_weights, l.update_bias_weights, l.filters*sizeof(float));
     }
+    if (l.normalize) update_normalization_layer_weights(l);
 }
 
 void save_convolutional_layer_weights(Layer l, FILE *fp)
@@ -160,4 +165,75 @@ void save_convolutional_layer_weights(Layer l, FILE *fp)
     if (l.bias){
         fwrite(l.bias_weights, sizeof(float), l.filters, fp);
     }
+    if (l.normalize){
+        save_normalization_layer_weights(l, fp);
+    }
+}
+
+void free_convolutional_layer(Layer l)
+{
+    free(l.output);
+    free(l.delta);
+    free(l.kernel_weights);
+    free(l.update_kernel_weights);
+    if (l.bias){
+        free(l.bias_weights);
+        free(l.update_bias_weights);
+    }
+    if (l.normalize){
+        free_normalization_layer(l);
+    }
+}
+
+void convolutional_constant_init(Layer l, float x)
+{
+    for (int i = 0; i < l.filters; ++i){
+        float *weight = l.kernel_weights + i*l.input_c*l.ksize*l.ksize;
+        for (int j = 0; j < l.ksize*l.ksize; ++j){
+            weight[j] = x;
+        }
+        for (int j = 0; j < l.input_c-1; ++j){
+            float *weight_c = weight + (j+1)*l.ksize*l.ksize;
+            memcpy(weight_c, weight, l.ksize*l.ksize*sizeof(float));
+        }
+    }
+    memcpy(l.update_kernel_weights, l.kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float));
+}
+
+void convolutional_normal_init(Layer l, float mean, float std)
+{
+    for (int i = 0; i < l.filters; ++i){
+        float *weight = l.kernel_weights + i*l.input_c*l.ksize*l.ksize;
+        for (int j = 0; j < l.ksize*l.ksize; ++j){
+            weight[j] = generate_normal(mean, std);
+        }
+        for (int j = 0; j < l.input_c-1; ++j){
+            float *weight_c = weight + (j+1)*l.ksize*l.ksize;
+            memcpy(weight_c, weight, l.ksize*l.ksize*sizeof(float));
+        }
+    }
+    memcpy(l.update_kernel_weights, l.kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float));
+}
+
+void convolutional_kaiming_normal_init(Layer l, float a, char *mode, char *nonlinearity)
+{
+    if (0 == strcmp(nonlinearity, "relu")) a = 0;
+    else if (0 == strcmp(nonlinearity, "leaky relu")) a = 0.1;
+    else a = 0;
+    int num = 0;
+    if (0 == strcmp(mode, "fan_in")) num = l.ksize*l.ksize*l.input_c;
+    else if (0 == strcmp(mode, "fan_out")) num = l.ksize*l.ksize*l.output_c;
+    else num = l.ksize*l.ksize*l.input_c;
+    float scale = sqrt((float)2/(1+a*a)*num);
+    for (int i = 0; i < l.filters; ++i){
+        float *weight = l.kernel_weights + i*l.input_c*l.ksize*l.ksize;
+        for (int j = 0; j < l.ksize*l.ksize; ++j){
+            weight[j] = scale*rand_normal();
+        }
+        for (int j = 0; j < l.input_c-1; ++j){
+            float *weight_c = weight + (j+1)*l.ksize*l.ksize;
+            memcpy(weight_c, weight, l.ksize*l.ksize*sizeof(float));
+        }
+    }
+    memcpy(l.update_kernel_weights, l.kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float));
 }
