@@ -2,6 +2,6 @@
 
 int main()
 {
-    lenet5_mnist("gpu", NULL);
-    lenet5_mnist_detect("gpu", "./LuWeights");
+    lenet5_mnist("cpu", NULL);
+    lenet5_mnist_detect("cpu", "./LuWeights");
 }
