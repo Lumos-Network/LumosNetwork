@@ -30,7 +30,7 @@ void lenet5_mnist(char *type, char *path)
     init_kaiming_uniform(l7, 0, "fan_in", "relu");
 
     Session *sess = create_session(g, 32, 32, 1, 10, type, path);
-    set_train_params(sess, 15, 4, 4, 0.01);
+    set_train_params(sess, 15, 4, 4, 0.1);
     init_session(sess, "./data/mnist/train.txt", "./data/mnist/train_label.txt");
     train(sess, 0);
 }

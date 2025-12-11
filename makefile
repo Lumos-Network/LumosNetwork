@@ -1,6 +1,6 @@
 LINUX=1
 TEST=0
-DEBUG=1
+DEBUG=0
 MEMDEBUG=0
 
 ARCH=	-gencode arch=compute_52,code=[sm_52,compute_52] \
@@ -124,7 +124,7 @@ OBJ+=	layer_delta_call.o
 endif
 
 ifeq ($(TEST), 0)
-OBJ+=	xor.o lenet5_mnist.o
+OBJ+=	xor.o lenet5_mnist.o lenet5_cifar.o
 endif
 
 ifeq ($(TEST),1)

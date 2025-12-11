@@ -21,8 +21,16 @@ void lenet5_cifar(char *type, char *path)
     append_layer2grpah(g, l7);
     append_layer2grpah(g, l8);
     append_layer2grpah(g, l9);
+
+    init_kaiming_normal(l1, 0, "fan_in", "relu");
+    init_kaiming_normal(l3, 0, "fan_in", "relu");
+    init_kaiming_normal(l5, 0, "fan_in", "relu");
+
+    init_kaiming_uniform(l6, 0, "fan_in", "relu");
+    init_kaiming_uniform(l7, 0, "fan_in", "relu");
+
     Session *sess = create_session(g, 32, 32, 3, 10, type, path);
-    set_train_params(sess, 1000, 64, 64, 0.001);
+    set_train_params(sess, 1000, 8, 8, 0.01);
     init_session(sess, "./data/cifar10/train.txt", "./data/cifar10/train_label.txt");
     train(sess, 0);
 }
