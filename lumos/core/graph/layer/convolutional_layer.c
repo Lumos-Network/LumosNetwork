@@ -150,6 +150,38 @@ void update_convolutional_layer(Layer l, float rate, int num, float *n_delta)
     }
 }
 
+void convolutional_layer_SGDOptimizer(Layer l, float rate, float momentum, float decay, int nesterov, int maximize, int num, float *n_delta)
+{
+    multy_cpu(l.update_kernel_weights, l.filters*l.ksize*l.ksize*l.input_c, 1-decay, 1);
+    multy_cpu(l.update_bias_weights, l.output_c, 1-decay, 1);
+    if (nesterov){
+        saxpy_cpu(l.update_kernel_weights, l.momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, momentum, l.update_kernel_weights);
+    }
+    for (int i = 0; i < num; ++i)
+    {
+        int offset_i = i * l.inputs;
+        int offset_o = i * l.outputs;
+        float *input = l.input + offset_i;
+        float *delta_n = n_delta + offset_o;
+        im2col(input, l.input_h, l.input_w, l.input_c, l.ksize, l.stride, l.pad, l.workspace);
+        gemm(0, 1, l.filters, l.output_h * l.output_w,
+             l.ksize * l.ksize * l.input_c, l.output_h * l.output_w, 1,
+             delta_n, l.workspace, l.workspace + l.ksize * l.ksize * l.input_c * l.output_h * l.output_w);
+        saxpy_cpu(l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w, l.momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, momentum, l.momentum_kernel_v);
+        if (l.bias){
+            sum_channel_cpu(delta_n, l.output_h, l.output_w, l.output_c, 1, l.workspace);
+            saxpy_cpu(l.workspace, l.momentum_bias_v, l.output_c, momentum, l.momentum_bias_v);
+        }
+    }
+    if (maximize){
+        saxpy_cpu(l.update_kernel_weights, l.momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, -rate, l.update_kernel_weights);
+        saxpy_cpu(l.update_bias_weights, l.momentum_bias_v, l.outputs, -rate, l.update_bias_weights);
+    } else {
+        saxpy_cpu(l.update_kernel_weights, l.momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, rate, l.update_kernel_weights);
+        saxpy_cpu(l.update_bias_weights, l.momentum_bias_v, l.outputs, rate, l.update_bias_weights);
+    }
+}
+
 void update_convolutional_layer_weights(Layer l)
 {
     memcpy(l.kernel_weights, l.update_kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float));

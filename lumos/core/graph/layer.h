@@ -134,6 +134,9 @@ struct layer{
     float *update_bn_scale;
     float *update_bn_bias;
 
+    float *momentum_kernel_v;
+    float *momentum_bias_v;
+
     Forward forward;
     Backward backward;
     Update update;

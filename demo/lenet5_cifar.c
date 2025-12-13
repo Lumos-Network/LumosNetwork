@@ -31,6 +31,7 @@ void lenet5_cifar(char *type, char *path)
 
     Session *sess = create_session(g, 32, 32, 3, 10, type, path);
     set_train_params(sess, 1000, 8, 8, 0.01);
+    // SGDOptimizer(sess, 0.01, 0.9, 0.9, 1, 0);
     init_session(sess, "./data/cifar10/train.txt", "./data/cifar10/train_label.txt");
     train(sess, 0);
 }
