@@ -95,7 +95,7 @@ void forward_graph(Graph *g, float *input, int coretype, int subdivision)
     }
 }
 
-void backward_graph(Graph *g, float rate, int coretype, int subdivision)
+void backward_graph(Graph *g, int coretype, int subdivision)
 {
     Node *layer = g->tail;
     Layer *l;
@@ -104,9 +104,9 @@ void backward_graph(Graph *g, float rate, int coretype, int subdivision)
         if (layer){
             l = layer->l;
             if (coretype == GPU){
-                l->backwardgpu(*l, rate, subdivision, n_delta);
+                l->backwardgpu(*l, subdivision, n_delta);
             } else {
-                l->backward(*l, rate, subdivision, n_delta);
+                l->backward(*l, subdivision, n_delta);
             }
         } else {
             break;
@@ -116,15 +116,33 @@ void backward_graph(Graph *g, float rate, int coretype, int subdivision)
     }
 }
 
-void update_graph(Graph *g, int coretype)
+void update_graph(Graph *g, int coretype, float rate, int subdivision)
+{
+    Node *layer = g->tail;
+    Layer *l;
+    float *n_delta;
+    for (;;){
+        if (layer){
+            l = layer->l;
+            if (coretype == GPU && l->updategpu) l->updategpu(*l, rate, subdivision, n_delta);
+            if (coretype == CPU && l->update) l->update(*l, rate, subdivision, n_delta);
+        } else {
+            break;
+        }
+        layer = layer->head;
+        n_delta = l->delta;
+    }
+}
+
+void refresh_graph(Graph *g, int coretype)
 {
     Node *layer = g->head;
     Layer *l;
     for (;;){
         if (layer){
             l = layer->l;
-            if (coretype == GPU && l->updategpu) l->updategpu(*l);
-            if (coretype == CPU && l->update) l->update(*l);
+            if (coretype == GPU && l->refreshgpu) l->refreshgpu(*l);
+            if (coretype == CPU && l->refresh) l->refresh(*l);
         } else {
             break;
         }

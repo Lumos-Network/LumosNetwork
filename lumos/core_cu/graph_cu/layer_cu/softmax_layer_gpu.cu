@@ -33,7 +33,7 @@ void forward_softmax_layer_gpu(Layer l, int num)
     }
 }
 
-void backward_softmax_layer_gpu(Layer l, float rate, int num, float *n_delta)
+void backward_softmax_layer_gpu(Layer l, int num, float *n_delta)
 {
     for (int i = 0; i < num; ++i){
         int offset_i = i*l.inputs;

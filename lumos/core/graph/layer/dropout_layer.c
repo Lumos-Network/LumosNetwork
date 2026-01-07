@@ -20,6 +20,9 @@ Layer *make_dropout_layer(float probability)
     l->update = NULL;
     l->updategpu = NULL;
 
+    l->refresh = NULL;
+    l->refreshgpu = NULL;
+
     l->saveweights = NULL;
     l->saveweightsgpu = NULL;
 
@@ -66,7 +69,7 @@ void forward_dropout_layer(Layer l, int num)
     }
 }
 
-void backward_dropout_layer(Layer l, float rate, int num, float *n_delta)
+void backward_dropout_layer(Layer l, int num, float *n_delta)
 {
     if (!l.status){
         memcpy(l.delta, n_delta, num*l.inputs*sizeof(float));

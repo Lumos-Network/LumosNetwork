@@ -76,7 +76,7 @@ void forward_connect_layer_gpu(Layer l, int num)
     }
 }
 
-void backward_connect_layer_gpu(Layer l, float rate, int num, float *n_delta)
+void backward_connect_layer_gpu(Layer l, int num, float *n_delta)
 {
     for (int i = 0; i < num; ++i){
         int offset_i = i * l.inputs;
@@ -89,7 +89,6 @@ void backward_connect_layer_gpu(Layer l, float rate, int num, float *n_delta)
         gemm_gpu(1, 0, l.output_c, l.input_c, l.output_c, l.input_w, 1,
              l.kernel_weights, delta_n, delta_l);
     }
-    update_connect_layer_gpu(l, rate, num, n_delta);
 }
 
 void update_connect_layer_gpu(Layer l, float rate, int num, float *n_delta)
@@ -111,7 +110,7 @@ void update_connect_layer_gpu(Layer l, float rate, int num, float *n_delta)
     }
 }
 
-void update_connect_layer_weights_gpu(Layer l)
+void refresh_connect_layer_weights_gpu(Layer l)
 {
     cudaMemcpy(l.kernel_weights, l.update_kernel_weights, l.inputs*l.outputs*sizeof(float), cudaMemcpyDeviceToDevice);
     if (l.bias){

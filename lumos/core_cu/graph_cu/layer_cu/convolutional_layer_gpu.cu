@@ -79,10 +79,10 @@ void forward_convolutional_layer_gpu(Layer l, int num)
     }
 }
 
-void backward_convolutional_layer_gpu(Layer l, float rate, int num, float *n_delta)
+void backward_convolutional_layer_gpu(Layer l, int num, float *n_delta)
 {
     if (l.normalize){
-        backward_normalization_layer_gpu(l, rate, num, n_delta);
+        backward_normalization_layer_gpu(l, num, n_delta);
     }
     for (int i = 0; i < num; ++i){
         int offset_i = i * l.inputs;
@@ -97,7 +97,6 @@ void backward_convolutional_layer_gpu(Layer l, float rate, int num, float *n_del
              l.kernel_weights, delta_n, l.workspace);
         col2im_gpu(l.workspace, l.ksize, l.stride, l.pad, l.input_h, l.input_w, l.input_c, delta_l);
     }
-    update_convolutional_layer_gpu(l, rate, num, n_delta);
 }
 
 void update_convolutional_layer_gpu(Layer l, float rate, int num, float *n_delta)
@@ -119,13 +118,13 @@ void update_convolutional_layer_gpu(Layer l, float rate, int num, float *n_delta
     }
 }
 
-void update_convolutional_layer_weights_gpu(Layer l)
+void refresh_convolutional_layer_weights_gpu(Layer l)
 {
     cudaMemcpy(l.kernel_weights, l.update_kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float), cudaMemcpyDeviceToDevice);
     if (l.bias){
         cudaMemcpy(l.bias_weights, l.update_bias_weights, l.filters*sizeof(float), cudaMemcpyDeviceToDevice);
     }
-    if (l.normalize) update_normalization_layer_weights_gpu(l);
+    if (l.normalize) refresh_normalization_layer_weights_gpu(l);
 }
 
 void save_convolutional_layer_weights_gpu(Layer l, FILE *fp)

@@ -15,6 +15,10 @@ Layer *make_shortcut_layer(int index, char *active)
     l->gradient = type;
 
     l->update = NULL;
+    l->updategpu = NULL;
+
+    l->refresh = NULL;
+    l->refreshgpu = NULL;
 
     l->freelayer = free_shortcut_layer;
     l->freelayergpu = free_shortcut_layer_gpu;
@@ -68,7 +72,7 @@ void forward_shortcut_layer(Layer l, int num)
     activate_list(l.output, num*l.outputs, l.active);
 }
 
-void backward_shortcut_layer(Layer l, float rate, int num, float *n_delta)
+void backward_shortcut_layer(Layer l, int num, float *n_delta)
 {
     Layer *shortcut = l.shortcut;
     for (int i = 0; i < num; ++i){

@@ -23,6 +23,9 @@ Layer *make_avgpool_layer(int ksize, int stride, int pad)
     l->update = NULL;
     l->updategpu = NULL;
 
+    l->refresh = NULL;
+    l->refreshgpu = NULL;
+
     l->saveweights = NULL;
     l->saveweightsgpu = NULL;
 
@@ -66,7 +69,7 @@ void forward_avgpool_layer(Layer l, int num)
     }
 }
 
-void backward_avgpool_layer(Layer l, float rate, int num, float *n_delta)
+void backward_avgpool_layer(Layer l, int num, float *n_delta)
 {
     for (int i = 0; i < num; ++i)
     {

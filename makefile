@@ -1,6 +1,6 @@
 LINUX=1
 TEST=0
-DEBUG=0
+DEBUG=1
 MEMDEBUG=0
 
 ARCH=	-gencode arch=compute_52,code=[sm_52,compute_52] \

@@ -70,9 +70,8 @@ void forward_normalization_layer_gpu(Layer l, int num)
     }
 }
 
-void backward_normalization_layer_gpu(Layer l, float rate, int num, float *n_delta)
+void backward_normalization_layer_gpu(Layer l, int num, float *n_delta)
 {
-    update_normalization_layer_gpu(l, rate, num, n_delta);
     for (int i = 0; i < num; ++i){
         int offset_o = i * l.outputs;
         float *input = l.normalize_x + offset_o;
@@ -95,7 +94,7 @@ void update_normalization_layer_gpu(Layer l, float rate, int num, float *n_delta
     }
 }
 
-void update_normalization_layer_weights_gpu(Layer l)
+void refresh_normalization_layer_weights_gpu(Layer l)
 {
     cudaMemcpy(l.bn_scale, l.update_bn_scale, l.output_c*sizeof(float), cudaMemcpyDeviceToDevice);
     cudaMemcpy(l.bn_bias, l.update_bn_bias, l.output_c*sizeof(float), cudaMemcpyDeviceToDevice);

@@ -17,16 +17,18 @@ Layer *make_convolutional_layer(int filters, int ksize, int stride, int pad, int
     l->initialize = init_convolutional_layer;
     l->forward = forward_convolutional_layer;
     l->backward = backward_convolutional_layer;
+    l->update = update_convolutional_layer;
 
     l->initializegpu = init_convolutional_layer_gpu;
     l->forwardgpu = forward_convolutional_layer_gpu;
     l->backwardgpu = backward_convolutional_layer_gpu;
+    l->updategpu = update_convolutional_layer_gpu;
 
     l->weightinit = weightinit_convolutional_layer;
     l->weightinitgpu = weightinit_convolutional_layer_gpu;
 
-    l->update = update_convolutional_layer_weights;
-    l->updategpu = update_convolutional_layer_weights_gpu;
+    l->refresh = refresh_convolutional_layer_weights;
+    l->refreshgpu = refresh_convolutional_layer_weights_gpu;
 
     l->saveweights = save_convolutional_layer_weights;
     l->saveweightsgpu = save_convolutional_layer_weights_gpu;
@@ -109,10 +111,10 @@ void forward_convolutional_layer(Layer l, int num)
     }
 }
 
-void backward_convolutional_layer(Layer l, float rate, int num, float *n_delta)
+void backward_convolutional_layer(Layer l, int num, float *n_delta)
 {
     if (l.normalize){
-        backward_normalization_layer(l, rate, num, n_delta);
+        backward_normalization_layer(l, num, n_delta);
     }
     for (int i = 0; i < num; ++i){
         int offset_i = i * l.inputs;
@@ -127,7 +129,6 @@ void backward_convolutional_layer(Layer l, float rate, int num, float *n_delta)
              l.kernel_weights, delta_n, l.workspace);
         col2im(l.workspace, l.ksize, l.stride, l.pad, l.input_h, l.input_w, l.input_c, delta_l);
     }
-    update_convolutional_layer(l, rate, num, n_delta);
 }
 
 void update_convolutional_layer(Layer l, float rate, int num, float *n_delta)
@@ -182,13 +183,13 @@ void convolutional_layer_SGDOptimizer(Layer l, float rate, float momentum, float
     }
 }
 
-void update_convolutional_layer_weights(Layer l)
+void refresh_convolutional_layer_weights(Layer l)
 {
     memcpy(l.kernel_weights, l.update_kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float));
     if (l.bias){
         memcpy(l.bias_weights, l.update_bias_weights, l.filters*sizeof(float));
     }
-    if (l.normalize) update_normalization_layer_weights(l);
+    if (l.normalize) refresh_normalization_layer_weights(l);
 }
 
 void save_convolutional_layer_weights(Layer l, FILE *fp)

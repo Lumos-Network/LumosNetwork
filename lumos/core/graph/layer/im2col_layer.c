@@ -19,6 +19,9 @@ Layer *make_im2col_layer()
     l->update = NULL;
     l->updategpu = NULL;
 
+    l->refresh = NULL;
+    l->refreshgpu = NULL;
+
     fprintf(stderr, "Im2col          Layer\n");
     return l;
 }
@@ -48,7 +51,7 @@ void forward_im2col_layer(Layer l, int num)
     memcpy(l.output, l.input, num*l.outputs*sizeof(float));
 }
 
-void backward_im2col_layer(Layer l, float rate, int num, float *n_delta)
+void backward_im2col_layer(Layer l, int num, float *n_delta)
 {
     memcpy(l.delta, n_delta, num*l.inputs*sizeof(float));
 }

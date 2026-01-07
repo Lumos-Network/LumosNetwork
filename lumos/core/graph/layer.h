@@ -40,18 +40,22 @@ typedef struct initcpt InitCpt;
 typedef struct layer Layer;
 
 typedef void (*forward)  (struct layer, int);
-typedef void (*backward) (struct layer, float, int, float*);
-typedef void (*update) (struct layer);
+typedef void (*backward) (struct layer, int, float*);
+typedef void (*update) (struct layer, float, int, float*);
+typedef void (*refresh) (struct layer);
 typedef forward Forward;
 typedef backward Backward;
 typedef update Update;
+typedef refresh Refresh;
 
 typedef void (*forward_gpu)  (struct layer, int);
-typedef void (*backward_gpu) (struct layer, float, int, float*);
-typedef void (*update_gpu) (struct layer);
+typedef void (*backward_gpu) (struct layer, int, float*);
+typedef void (*update_gpu) (struct layer, float, int, float*);
+typedef void (*refresh_gpu) (struct layer);
 typedef forward_gpu ForwardGpu;
 typedef backward_gpu BackwardGpu;
 typedef update_gpu UpdateGpu;
+typedef refresh_gpu RefreshGpu;
 
 typedef void (*initialize) (struct layer *, int, int, int, int);
 typedef void (*initialize_gpu) (struct layer *, int, int, int, int);
@@ -140,10 +144,12 @@ struct layer{
     Forward forward;
     Backward backward;
     Update update;
+    Refresh refresh;
 
     ForwardGpu forwardgpu;
     BackwardGpu backwardgpu;
     UpdateGpu updategpu;
+    RefreshGpu refreshgpu;
 
     Initialize initialize;
     InitializeGpu initializegpu;

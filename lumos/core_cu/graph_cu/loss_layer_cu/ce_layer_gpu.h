@@ -21,7 +21,7 @@ extern "C" {
 
 void init_ce_layer_gpu(Layer *l, int w, int h, int c, int subdivision);
 void forward_ce_layer_gpu(Layer l, int num);
-void backward_ce_layer_gpu(Layer l, float rate, int num, float *n_delta);
+void backward_ce_layer_gpu(Layer l, int num, float *n_delta);
 
 void free_ce_layer_gpu(Layer l);
 

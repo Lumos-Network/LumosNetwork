@@ -30,7 +30,7 @@ void forward_dropout_layer_gpu(Layer l, int num)
     dropout_gpu(l, num);
 }
 
-void backward_dropout_layer_gpu(Layer l, float rate, int num, float *n_delta)
+void backward_dropout_layer_gpu(Layer l, int num, float *n_delta)
 {
     if (!l.status){
         cudaMemcpy(l.delta, n_delta, num*l.inputs*sizeof(float), cudaMemcpyDeviceToDevice);

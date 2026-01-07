@@ -20,6 +20,9 @@ Layer *make_softmax_layer(int group)
     l->update = NULL;
     l->updategpu = NULL;
 
+    l->refresh = NULL;
+    l->refreshgpu = NULL;
+
     l->saveweights = NULL;
     l->saveweightsgpu = NULL;
 
@@ -62,7 +65,7 @@ void forward_softmax_layer(Layer l, int num)
     }
 }
 
-void backward_softmax_layer(Layer l, float rate, int num, float *n_delta)
+void backward_softmax_layer(Layer l, int num, float *n_delta)
 {
     for (int i = 0; i < num; ++i){
         int offset_i = i*l.inputs;

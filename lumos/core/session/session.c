@@ -195,7 +195,8 @@ void train(Session *sess, int binary)
                 else load_train_data(sess, j * sess->batch + k * sess->subdivision);
                 load_train_label(sess, j * sess->batch + k * sess->subdivision);
                 forward_graph(sess->graph, sess->input, sess->coretype, sess->subdivision);
-                backward_graph(sess->graph, rate, sess->coretype, sess->subdivision);
+                backward_graph(sess->graph, sess->coretype, sess->subdivision);
+                update_graph(sess->graph, sess->coretype, sess->learning_rate, sess->subdivision);
                 final = clock();
                 run_time = (double)(final - start) / CLOCKS_PER_SEC;
                 if (sess->coretype == CPU) {
@@ -207,7 +208,7 @@ void train(Session *sess, int binary)
                 }
                 progress_bar(j * sub_batchs + k + 1, sub_epochs * sub_batchs, run_time);
             }
-            update_graph(sess->graph, sess->coretype);
+            refresh_graph(sess->graph, sess->coretype);
         }
         fprintf(stderr, " AvgLoss:%.3f", loss[0]);
         if ((i+1) % 100 == 0){

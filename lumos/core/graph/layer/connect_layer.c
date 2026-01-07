@@ -13,16 +13,18 @@ Layer *make_connect_layer(int output, int bias, char *active)
     l->initialize = init_connect_layer;
     l->forward = forward_connect_layer;
     l->backward = backward_connect_layer;
+    l->update = update_connect_layer;
 
     l->initializegpu = init_connect_layer_gpu;
     l->forwardgpu = forward_connect_layer_gpu;
     l->backwardgpu = backward_connect_layer_gpu;
+    l->updategpu = update_connect_layer_gpu;
 
     l->weightinit = weightinit_connect_layer;
     l->weightinitgpu = weightinit_connect_layer_gpu;
 
-    l->update = update_connect_layer_weights;
-    l->updategpu = update_connect_layer_weights_gpu;
+    l->refresh = refresh_connect_layer_weights;
+    l->refreshgpu = refresh_connect_layer_weights_gpu;
 
     l->saveweights = save_connect_layer_weights;
     l->saveweightsgpu = save_connect_layer_weights_gpu;
@@ -101,7 +103,7 @@ void forward_connect_layer(Layer l, int num)
     }
 }
 
-void backward_connect_layer(Layer l, float rate, int num, float *n_delta)
+void backward_connect_layer(Layer l, int num, float *n_delta)
 {
     for (int i = 0; i < num; ++i){
         int offset_i = i * l.inputs;
@@ -114,7 +116,6 @@ void backward_connect_layer(Layer l, float rate, int num, float *n_delta)
         gemm(1, 0, l.output_c, l.input_c, l.output_c, l.input_w, 1,
              l.kernel_weights, delta_n, delta_l);
     }
-    update_connect_layer(l, rate, num, n_delta);
 }
 
 void update_connect_layer(Layer l, float rate, int num, float *n_delta)
@@ -163,7 +164,7 @@ void connect_layer_SGDOptimizer(Layer l, float rate, float momentum, float decay
     }
 }
 
-void update_connect_layer_weights(Layer l)
+void refresh_connect_layer_weights(Layer l)
 {
     memcpy(l.kernel_weights, l.update_kernel_weights, l.inputs*l.outputs*sizeof(float));
     if (l.bias){
