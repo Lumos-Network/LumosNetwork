@@ -196,7 +196,7 @@ void train(Session *sess, int binary)
                 load_train_label(sess, j * sess->batch + k * sess->subdivision);
                 forward_graph(sess->graph, sess->input, sess->coretype, sess->subdivision);
                 backward_graph(sess->graph, sess->coretype, sess->subdivision);
-                update_graph(sess->graph, sess->coretype, sess->learning_rate, sess->subdivision);
+                update_graph(sess->graph, sess->coretype, rate, sess->subdivision);
                 final = clock();
                 run_time = (double)(final - start) / CLOCKS_PER_SEC;
                 if (sess->coretype == CPU) {

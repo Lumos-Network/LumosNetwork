@@ -88,3 +88,54 @@ void maxpool_gradient(float *delta_l, int h, int w, int c, int ksize, int stride
         delta_l[index[j]] += delta_n[j];
     }
 }
+
+void global_avgpool(float *im, int h, int w, int c, float *space)
+{
+    for (int k = 0; k < c; ++k){
+        float temp = 0;
+        for (int i = 0; i < h; ++i){
+            for (int j = 0; j < w; ++j){
+                temp += im[k*h*w + i*w + j];
+            }
+        }
+        space[k] = temp / (h*w);
+    }
+}
+
+void global_maxpool(float *im, int h, int w, int c, float *space, int *index)
+{
+    for (int k = 0; k < c; ++k){
+        int max_index = -1;
+        float max = -99;
+        for (int i = 0; i < h; ++i){
+            for (int j = 0; j < w; ++j){
+                if (im[k*h*w + i*w + j] > max){
+                    max = im[k*h*w + i*w + j];
+                    max_index = k*h*w + i*w + j;
+                }
+            }
+        }
+        if (max_index == -1) max = 0;
+        space[k] = max;
+        index[k] = max_index;
+    }
+}
+
+void global_avgpool_gradient(float *delta_l, int h, int w, int c, float *delta_n)
+{
+    for (int k = 0; k < c; ++k){
+        for (int i = 0; i < h; ++i){
+            for (int j = 0; j < w; ++j){
+                delta_l[k*h*w + i*w + j] = delta_n[k] / (h*w);
+            }
+        }
+    }
+}
+
+void global_maxpool_gradient(float *delta_l, int h, int w, int c, float *delta_n, int *index)
+{
+    fill_cpu(delta_l, h*w*c, 0, 1);
+    for (int k = 0; k < c; ++k){
+        delta_l[index[k]] = delta_n[k];
+    }
+}

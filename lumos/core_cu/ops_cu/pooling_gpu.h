@@ -22,6 +22,12 @@ void maxpool_gpu(float *im, int h, int w, int c, int ksize, int stride, int pad,
 void avgpool_gradient_gpu(float *delta_l, int h, int w, int c, int ksize, int stride, int pad, float *delta_n);
 void maxpool_gradient_gpu(float *delta_l, int h, int w, int c, int ksize, int stride, int pad, float *delta_n, int *index);
 
+void global_avgpool_gpu(float *im, int h, int w, int c, float *space);
+void global_maxpool_gpu(float *im, int h, int w, int c, float *space, int *index);
+
+void global_avgpool_gradient_gpu(float *delta_l, int h, int w, int c, float *delta_n);
+void global_maxpool_gradient_gpu(float *delta_l, int h, int w, int c, float *delta_n, int *index);
+
 #ifdef __cplusplus
 }
 #endif

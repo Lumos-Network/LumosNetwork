@@ -29,6 +29,8 @@ Layer *make_avgpool_layer(int ksize, int stride, int pad);
 Layer *make_connect_layer(int output, int bias, char *active);
 Layer *make_convolutional_layer(int filters, int ksize, int stride, int pad, int bias, int normalize, char *active);
 Layer *make_dropout_layer(float probability);
+Layer *make_global_avgpool_layer();
+Layer *make_global_maxpool_layer();
 Layer *make_maxpool_layer(int ksize, int stride, int pad);
 Layer *make_softmax_layer(int group);
 
