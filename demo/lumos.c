@@ -1,6 +1,8 @@
 #include "lenet5_mnist.h"
 #include "xor.h"
 #include "lenet5_cifar.h"
+#include "lenet5_fmnist.h"
+#include "alexnet.h"
 
 int main()
 {
@@ -10,8 +12,14 @@ int main()
     // xor("gpu", NULL);
     // xor_detect("gpu", "./backup/LW_f");
 
-    lenet5_cifar("gpu", NULL);
-    lenet5_cifar_detect("gpu", "./backup/LW_f");
+    // lenet5_cifar("gpu", NULL);
+    // lenet5_cifar_detect("gpu", "./backup/LW_f");
+
+    // lenet5_fmnist("gpu", NULL);
+    // lenet5_fmnist_detect("gpu", "./backup/LW_f");
+
+    alexnet("gpu", NULL);
+    alexnet_detect("gpu", "./backup/LW_f");
 
     return 0;
 }

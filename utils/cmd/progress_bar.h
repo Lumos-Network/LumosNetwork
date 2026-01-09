@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-void progress_bar(int n, int m, double time);
+void progress_bar(int n, int m, float loss, double time);
 
 #ifdef __cplusplus
 }

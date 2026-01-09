@@ -189,6 +189,7 @@ void train(Session *sess, int binary)
         int sub_epochs = (int)(sess->train_data_num / sess->batch);
         int sub_batchs = (int)(sess->batch / sess->subdivision);
         for (int j = 0; j < sub_epochs; ++j){
+            float loss_batch = -1;
             for (int k = 0; k < sub_batchs; ++k){
                 if (j * sess->batch + k * sess->subdivision + sess->subdivision > sess->train_data_num) break;
                 if (binary) load_train_data_binary(sess, j * sess->batch + k * sess->subdivision);
@@ -202,11 +203,13 @@ void train(Session *sess, int binary)
                 if (sess->coretype == CPU) {
                     run_time /= 10;
                     loss[0] += sess->loss[0];
+                    loss_batch += sess->loss[0];
                 } else{
                     cudaMemcpy(loss+1, sess->loss, sizeof(float), cudaMemcpyDeviceToHost);
                     loss[0] += loss[1];
+                    loss_batch += loss[1];
                 }
-                progress_bar(j * sub_batchs + k + 1, sub_epochs * sub_batchs, run_time);
+                progress_bar(j * sub_batchs + k + 1, sub_epochs * sub_batchs, loss_batch, run_time);
             }
             refresh_graph(sess->graph, sess->coretype);
         }
