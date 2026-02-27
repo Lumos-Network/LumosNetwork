@@ -37,6 +37,8 @@ void convolutional_constant_init_gpu(Layer l, float x);
 void convolutional_normal_init_gpu(Layer l, float mean, float std);
 void convolutional_kaiming_normal_init_gpu(Layer l, float a, char *mode, char *nonlinearity);
 
+void convolutional_layer_SGDOptimizer_gpu(Layer l, float rate, float momentum, float decay, int nesterov, int maximize, int num, float *n_delta);
+
 #ifdef __cplusplus
 }
 #endif

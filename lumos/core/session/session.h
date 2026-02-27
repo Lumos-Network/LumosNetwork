@@ -15,11 +15,12 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif
+#endif 
 
 typedef struct session{
     Graph *graph;
 
+    int optimizer;
     int coretype;
     int epoch;
     int batch;
@@ -47,6 +48,12 @@ typedef struct session{
     char *weights_path;
 
     LrScheduler *lrscheduler;
+
+    float momentum;
+    float dampening;
+    float decay;
+    int nesterov;
+    int maximize;
 } Session;
 
 Session *create_session(Graph *graph, int h, int w, int c, int truth_num, char *type, char *path);
@@ -75,6 +82,8 @@ void init_normal(Layer *l, float mean, float std);
 void init_uniform(Layer *l, float min, float max);
 void init_kaiming_normal(Layer *l, float a, char *mode, char *nonlinearity);
 void init_kaiming_uniform(Layer *l, float a, char *mode, char *nonlinearity);
+
+void SGDOptimizer_sess(Session *sess, float momentum, float dampening, float decay, int nesterov, int maximize);
 
 #ifdef __cplusplus
 }

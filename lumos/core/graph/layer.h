@@ -14,6 +14,8 @@ extern "C" {
 #define CPU 0
 #define GPU 1
 
+#define SGD 0
+
 typedef enum {
     CONVOLUTIONAL, CONNECT, IM2COL, MAXPOOL, AVGPOOL, GLOBALMAX, GLOBALAVG, \
     DROPOUT, SOFTMAX, SHORTCUT, NORMALIZE, \
@@ -57,6 +59,11 @@ typedef backward_gpu BackwardGpu;
 typedef update_gpu UpdateGpu;
 typedef refresh_gpu RefreshGpu;
 
+typedef void (*sgdoptimizer) (struct layer, float, float, float, int, int, int, float*);
+typedef void (*sgdoptimizer_gpu) (struct layer, float, float, float, int, int, int, float*);
+typedef sgdoptimizer SGDOptimizer;
+typedef sgdoptimizer_gpu SGDOptimizerGpu;
+
 typedef void (*initialize) (struct layer *, int, int, int, int);
 typedef void (*initialize_gpu) (struct layer *, int, int, int, int);
 typedef initialize Initialize;
@@ -79,6 +86,7 @@ typedef free_layer_gpu FreeLayerGpu;
 
 struct layer{
     LayerType type;
+    int optimizer;
     int status;
     int input_h;
     int input_w;
@@ -150,6 +158,9 @@ struct layer{
     BackwardGpu backwardgpu;
     UpdateGpu updategpu;
     RefreshGpu refreshgpu;
+
+    SGDOptimizer sgdoptimizer;
+    SGDOptimizerGpu sgdoptimizergpu;
 
     Initialize initialize;
     InitializeGpu initializegpu;

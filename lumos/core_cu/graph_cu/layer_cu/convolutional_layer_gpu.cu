@@ -21,8 +21,16 @@ void init_convolutional_layer_gpu(Layer *l, int w, int h, int c, int subdivision
     if (l->bias){
         cudaMalloc((void**)&l->bias_weights, l->filters*sizeof(float));
         cudaMalloc((void**)&l->update_bias_weights, l->filters*sizeof(float));
+        if (l->optimizer == SGD){
+            cudaMalloc((void**)&l->momentum_bias_v, l->filters*sizeof(float));
+            fill_gpu(l->momentum_bias_v, l->filters, 0, 1);
+        }
     }
     if (l->normalize) init_normalization_layer_gpu(l, subdivision);
+    if (l->optimizer == SGD){
+        cudaMalloc((void**)&l->momentum_kernel_v, l->filters*l->ksize*l->ksize*l->input_c*sizeof(float));
+        fill_gpu(l->momentum_kernel_v, l->filters*l->ksize*l->ksize*l->input_c, 0, 1);
+    }
 
     fprintf(stderr, "Convolutional   Layer    %3d*%3d*%3d ==> %3d*%3d*%3d\n",
             l->input_w, l->input_h, l->input_c, l->output_w, l->output_h, l->output_c);
@@ -118,6 +126,38 @@ void update_convolutional_layer_gpu(Layer l, float rate, int num, float *n_delta
     }
 }
 
+void convolutional_layer_SGDOptimizer_gpu(Layer l, float rate, float momentum, float decay, int nesterov, int maximize, int num, float *n_delta)
+{
+    multy_gpu(l.update_kernel_weights, l.filters*l.ksize*l.ksize*l.input_c, 1-decay, 1);
+    multy_gpu(l.update_bias_weights, l.output_c, 1-decay, 1);
+    if (nesterov){
+        saxpy_gpu(l.update_kernel_weights, l.momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, momentum, l.update_kernel_weights);
+    }
+    for (int i = 0; i < num; ++i)
+    {
+        int offset_i = i * l.inputs;
+        int offset_o = i * l.outputs;
+        float *input = l.input + offset_i;
+        float *delta_n = n_delta + offset_o;
+        im2col_gpu(input, l.input_h, l.input_w, l.input_c, l.ksize, l.stride, l.pad, l.workspace);
+        gemm_gpu(0, 1, l.filters, l.output_h * l.output_w,
+             l.ksize * l.ksize * l.input_c, l.output_h * l.output_w, 1,
+             delta_n, l.workspace, l.workspace + l.ksize * l.ksize * l.input_c * l.output_h * l.output_w);
+        saxpy_gpu(l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w, l.momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, momentum, l.momentum_kernel_v);
+        if (l.bias){
+            sum_channel_gpu(delta_n, l.output_h, l.output_w, l.output_c, 1, l.workspace);
+            saxpy_gpu(l.workspace, l.momentum_bias_v, l.output_c, momentum, l.momentum_bias_v);
+        }
+    }
+    if (maximize){
+        saxpy_gpu(l.update_kernel_weights, l.momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, -rate, l.update_kernel_weights);
+        saxpy_gpu(l.update_bias_weights, l.momentum_bias_v, l.outputs, -rate, l.update_bias_weights);
+    } else {
+        saxpy_gpu(l.update_kernel_weights, l.momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, rate, l.update_kernel_weights);
+        saxpy_gpu(l.update_bias_weights, l.momentum_bias_v, l.outputs, rate, l.update_bias_weights);
+    }
+}
+
 void refresh_convolutional_layer_weights_gpu(Layer l)
 {
     cudaMemcpy(l.kernel_weights, l.update_kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float), cudaMemcpyDeviceToDevice);
@@ -161,34 +201,15 @@ void free_convolutional_layer_gpu(Layer l)
 
 void convolutional_constant_init_gpu(Layer l, float x)
 {
-    float *kernel_weights = (float*)calloc(l.filters*l.ksize*l.ksize*l.input_c, sizeof(float));
-    for (int i = 0; i < l.filters; ++i){
-        float *weight = kernel_weights + i*l.input_c*l.ksize*l.ksize;
-        for (int j = 0; j < l.ksize*l.ksize; ++j){
-            weight[j] = x;
-        }
-        for (int j = 0; j < l.input_c-1; ++j){
-            float *weight_c = weight + (j+1)*l.ksize*l.ksize;
-            memcpy(weight_c, weight, l.ksize*l.ksize*sizeof(float));
-        }
-    }
-    cudaMemcpy(l.kernel_weights, kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(l.update_kernel_weights, kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float), cudaMemcpyHostToDevice);
-    free(kernel_weights);
+    fill_gpu(l.kernel_weights, l.filters*l.ksize*l.ksize*l.input_c, x, 1);
+    cudaMemcpy(l.update_kernel_weights, l.kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float), cudaMemcpyHostToDevice);
 }
 
 void convolutional_normal_init_gpu(Layer l, float mean, float std)
 {
     float *kernel_weights = (float*)calloc(l.filters*l.ksize*l.ksize*l.input_c, sizeof(float));
-    for (int i = 0; i < l.filters; ++i){
-        float *weight = kernel_weights + i*l.input_c*l.ksize*l.ksize;
-        for (int j = 0; j < l.ksize*l.ksize; ++j){
-            weight[j] = generate_normal(mean, std);
-        }
-        for (int j = 0; j < l.input_c-1; ++j){
-            float *weight_c = weight + (j+1)*l.ksize*l.ksize;
-            memcpy(weight_c, weight, l.ksize*l.ksize*sizeof(float));
-        }
+    for (int i = 0; i < l.filters*l.ksize*l.ksize*l.input_c; ++i){
+        kernel_weights[i] = generate_normal(mean, std);
     }
     cudaMemcpy(l.kernel_weights, kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(l.update_kernel_weights, kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float), cudaMemcpyHostToDevice);
@@ -206,15 +227,8 @@ void convolutional_kaiming_normal_init_gpu(Layer l, float a, char *mode, char *n
     else num = l.ksize*l.ksize*l.input_c;
     float scale = sqrt((float)2/((1+a*a)*num));
     float *kernel_weights = (float*)calloc(l.filters*l.ksize*l.ksize*l.input_c, sizeof(float));
-    for (int i = 0; i < l.filters; ++i){
-        float *weight = kernel_weights + i*l.input_c*l.ksize*l.ksize;
-        for (int j = 0; j < l.ksize*l.ksize; ++j){
-            weight[j] = scale*rand_normal();
-        }
-        for (int j = 0; j < l.input_c-1; ++j){
-            float *weight_c = weight + (j+1)*l.ksize*l.ksize;
-            memcpy(weight_c, weight, l.ksize*l.ksize*sizeof(float));
-        }
+    for (int i = 0; i < l.filters*l.ksize*l.ksize*l.input_c; ++i){
+        kernel_weights[i] = scale*rand_normal();
     }
     cudaMemcpy(l.kernel_weights, kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(l.update_kernel_weights, kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float), cudaMemcpyHostToDevice);

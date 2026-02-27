@@ -30,7 +30,8 @@ void lenet5_fmnist(char *type, char *path)
     init_kaiming_uniform(l7, 0, "fan_in", "relu");
 
     Session *sess = create_session(g, 28, 28, 1, 10, type, path);
-    set_train_params(sess, 100, 8, 8, 0.01);
+    set_train_params(sess, 250, 8, 8, 0.01);
+    SGDOptimizer_sess(sess, 0.9, 0, 0, 0, 0);
     init_session(sess, "./data/fmnist/train.txt", "./data/fmnist/label.txt");
     train(sess, 0);
 }

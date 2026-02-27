@@ -21,6 +21,14 @@ void init_connect_layer_gpu(Layer *l, int w, int h, int c, int subdivision)
     if (l->bias){
         cudaMalloc((void**)&l->bias_weights, l->outputs*sizeof(float));
         cudaMalloc((void**)&l->update_bias_weights, l->outputs*sizeof(float));
+        if (l->optimizer == SGD){
+            cudaMalloc((void**)&l->momentum_bias_v, l->outputs*sizeof(float));
+            fill_gpu(l->momentum_bias_v, l->outputs, 0, 1);
+        }
+    }
+    if (l->optimizer == SGD){
+        cudaMalloc((void**)&l->momentum_kernel_v, l->inputs*l->outputs*sizeof(float));
+        fill_gpu(l->momentum_kernel_v, l->inputs*l->outputs, 0, 1);
     }
 
     fprintf(stderr, "Connect         Layer    %3d*%3d*%3d ==> %3d*%3d*%3d\n",
@@ -107,6 +115,35 @@ void update_connect_layer_gpu(Layer l, float rate, int num, float *n_delta)
         {
             saxpy_gpu(l.update_bias_weights, delta_n, l.outputs, rate, l.update_bias_weights);
         }
+    }
+}
+
+void connect_layer_SGDOptimizer_gpu(Layer l, float rate, float momentum, float decay, int nesterov, int maximize, int num, float *n_delta)
+{
+    multy_gpu(l.update_kernel_weights, l.output_c*l.input_c, 1-decay, 1);
+    multy_gpu(l.update_bias_weights, l.outputs, 1-decay, 1);
+    if (nesterov){
+        saxpy_gpu(l.update_kernel_weights, l.momentum_kernel_v, l.output_c*l.input_c, momentum, l.update_kernel_weights);
+    }
+    for (int i = 0; i < num; ++i){
+        int offset_i = i * l.inputs;
+        int offset_o = i * l.outputs;
+        float *input = l.input + offset_i;
+        float *delta_n = n_delta + offset_o;
+        gemm_gpu(0, 1, l.output_c, l.output_w,
+                l.input_c, l.input_w, 1,
+                delta_n, input, l.workspace);
+        saxpy_gpu(l.workspace, l.momentum_kernel_v, l.output_c*l.input_c, momentum, l.momentum_kernel_v);
+        if (l.bias){
+            saxpy_gpu(delta_n, l.momentum_bias_v, l.outputs, momentum, l.momentum_bias_v);
+        }
+    }
+    if (maximize){
+        saxpy_gpu(l.update_kernel_weights, l.momentum_kernel_v, l.output_c*l.input_c, -rate, l.update_kernel_weights);
+        saxpy_gpu(l.update_bias_weights, l.momentum_bias_v, l.outputs, -rate, l.update_bias_weights);
+    } else {
+        saxpy_gpu(l.update_kernel_weights, l.momentum_kernel_v, l.output_c*l.input_c, rate, l.update_kernel_weights);
+        saxpy_gpu(l.update_bias_weights, l.momentum_bias_v, l.outputs, rate, l.update_bias_weights);
     }
 }
 

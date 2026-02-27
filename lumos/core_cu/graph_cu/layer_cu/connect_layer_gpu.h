@@ -37,6 +37,8 @@ void connect_uniform_init_gpu(Layer l, float min, float max);
 void connect_kaiming_normal_init_gpu(Layer l, float a, char *mode, char *nonlinearity);
 void connect_kaiming_uniform_init_gpu(Layer l, float a, char *mode, char *nonlinearity);
 
+void connect_layer_SGDOptimizer_gpu(Layer l, float rate, float momentum, float decay, int nesterov, int maximize, int num, float *n_delta);
+
 #ifdef __cplusplus
 }
 #endif

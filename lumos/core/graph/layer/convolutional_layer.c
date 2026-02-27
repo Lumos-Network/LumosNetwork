@@ -24,6 +24,9 @@ Layer *make_convolutional_layer(int filters, int ksize, int stride, int pad, int
     l->backwardgpu = backward_convolutional_layer_gpu;
     l->updategpu = update_convolutional_layer_gpu;
 
+    l->sgdoptimizer = convolutional_layer_SGDOptimizer;
+    l->sgdoptimizergpu = convolutional_layer_SGDOptimizer_gpu;
+
     l->weightinit = weightinit_convolutional_layer;
     l->weightinitgpu = weightinit_convolutional_layer_gpu;
 
@@ -62,8 +65,16 @@ void init_convolutional_layer(Layer *l, int w, int h, int c, int subdivision)
     if (l->bias){
         l->bias_weights = calloc(l->filters, sizeof(float));
         l->update_bias_weights = calloc(l->filters, sizeof(float));
+        if (l->optimizer == SGD){
+            l->momentum_bias_v = calloc(l->filters, sizeof(float));
+            fill_cpu(l->momentum_bias_v, l->filters, 0, 1);
+        }
     }
     if (l->normalize) init_normalization_layer(l, subdivision);
+    if (l->optimizer == SGD){
+        l->momentum_kernel_v = calloc(l->filters*l->ksize*l->ksize*l->input_c, sizeof(float));
+        fill_cpu(l->momentum_kernel_v, l->filters*l->ksize*l->ksize*l->input_c, 0, 1);
+    }
 
     fprintf(stderr, "Convolutional   Layer    %3d*%3d*%3d ==> %3d*%3d*%3d\n",
             l->input_w, l->input_h, l->input_c, l->output_w, l->output_h, l->output_c);
@@ -220,30 +231,14 @@ void free_convolutional_layer(Layer l)
 
 void convolutional_constant_init(Layer l, float x)
 {
-    for (int i = 0; i < l.filters; ++i){
-        float *weight = l.kernel_weights + i*l.input_c*l.ksize*l.ksize;
-        for (int j = 0; j < l.ksize*l.ksize; ++j){
-            weight[j] = x;
-        }
-        for (int j = 0; j < l.input_c-1; ++j){
-            float *weight_c = weight + (j+1)*l.ksize*l.ksize;
-            memcpy(weight_c, weight, l.ksize*l.ksize*sizeof(float));
-        }
-    }
+    fill_cpu(l.kernel_weights, l.filters*l.ksize*l.ksize*l.input_c, x, 1);
     memcpy(l.update_kernel_weights, l.kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float));
 }
 
 void convolutional_normal_init(Layer l, float mean, float std)
 {
-    for (int i = 0; i < l.filters; ++i){
-        float *weight = l.kernel_weights + i*l.input_c*l.ksize*l.ksize;
-        for (int j = 0; j < l.ksize*l.ksize; ++j){
-            weight[j] = generate_normal(mean, std);
-        }
-        for (int j = 0; j < l.input_c-1; ++j){
-            float *weight_c = weight + (j+1)*l.ksize*l.ksize;
-            memcpy(weight_c, weight, l.ksize*l.ksize*sizeof(float));
-        }
+    for (int i = 0; i < l.filters*l.ksize*l.ksize*l.input_c; ++i){
+        l.kernel_weights[i] = generate_normal(mean, std);
     }
     memcpy(l.update_kernel_weights, l.kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float));
 }
@@ -258,15 +253,8 @@ void convolutional_kaiming_normal_init(Layer l, float a, char *mode, char *nonli
     else if (0 == strcmp(mode, "fan_out")) num = l.ksize*l.ksize*l.output_c;
     else num = l.ksize*l.ksize*l.input_c;
     float scale = sqrt((float)2 / ((1+a*a)*num));
-    for (int i = 0; i < l.filters; ++i){
-        float *weight = l.kernel_weights + i*l.input_c*l.ksize*l.ksize;
-        for (int j = 0; j < l.ksize*l.ksize; ++j){
-            weight[j] = scale*rand_normal();
-        }
-        for (int j = 0; j < l.input_c-1; ++j){
-            float *weight_c = weight + (j+1)*l.ksize*l.ksize;
-            memcpy(weight_c, weight, l.ksize*l.ksize*sizeof(float));
-        }
+    for (int i = 0; i < l.filters*l.ksize*l.ksize*l.input_c; ++i){
+        l.kernel_weights[i] = scale*rand_normal();
     }
     memcpy(l.update_kernel_weights, l.kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float));
 }

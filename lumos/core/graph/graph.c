@@ -56,7 +56,7 @@ void init_graph(Graph *g, int w, int h, int c, int coretype, int subdivision, ch
     }
 }
 
-void set_graph(Graph *g, float *space, float *truth, float *loss)
+void set_graph(Graph *g, float *space, float *truth, float *loss, int optimizer)
 {
     Node *layer = g->head;
     Layer *l;
@@ -66,6 +66,7 @@ void set_graph(Graph *g, float *space, float *truth, float *loss)
             l->truth = truth;
             l->loss = loss;
             l->workspace = space;
+            l->optimizer = optimizer;
         } else {
             break;
         }
@@ -179,5 +180,23 @@ void free_graph(Graph *g, int coretype)
             break;
         }
         layer = layer->next;
+    }
+}
+
+void SGDOptimizer_graph(Graph *g, int coretype, float rate, int subdivision, float momentum, float dampening, float decay, int nesterov, int maximize)
+{
+    Node *layer = g->tail;
+    Layer *l;
+    float *n_delta;
+    for (;;){
+        if (layer){
+            l = layer->l;
+            if (coretype == GPU && l->updategpu) l->sgdoptimizergpu(*l, rate, momentum, decay, nesterov, maximize, subdivision, n_delta);
+            if (coretype == CPU && l->update) l->sgdoptimizer(*l, rate, momentum, decay, nesterov, maximize, subdivision, n_delta);
+        } else {
+            break;
+        }
+        layer = layer->head;
+        n_delta = l->delta;
     }
 }

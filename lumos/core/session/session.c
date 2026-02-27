@@ -33,7 +33,7 @@ void init_session(Session *sess, char *data_path, char *label_path)
         sess->truth = calloc(sess->subdivision*sess->truth_num, sizeof(float));
         sess->loss = calloc(1, sizeof(float));
     }
-    set_graph(sess->graph, sess->workspace, sess->truth, sess->loss);
+    set_graph(sess->graph, sess->workspace, sess->truth, sess->loss, sess->optimizer);
 }
 
 void bind_train_data(Session *sess, char *path)
@@ -197,7 +197,11 @@ void train(Session *sess, int binary)
                 load_train_label(sess, j * sess->batch + k * sess->subdivision);
                 forward_graph(sess->graph, sess->input, sess->coretype, sess->subdivision);
                 backward_graph(sess->graph, sess->coretype, sess->subdivision);
-                update_graph(sess->graph, sess->coretype, rate, sess->subdivision);
+                if (sess->optimizer == SGD){
+                    SGDOptimizer_graph(sess->graph, sess->coretype, rate, sess->subdivision, sess->momentum, sess->dampening, sess->decay, sess->nesterov, sess->maximize);
+                } else {
+                    update_graph(sess->graph, sess->coretype, rate, sess->subdivision);
+                }
                 final = clock();
                 run_time = (double)(final - start) / CLOCKS_PER_SEC;
                 if (sess->coretype == CPU) {
@@ -344,4 +348,14 @@ void init_kaiming_uniform(Layer *l, float a, char *mode, char *nonlinearity)
     initcpt->mode = mode;
     initcpt->nonlinearity = nonlinearity;
     l->initcpt = initcpt;
+}
+
+void SGDOptimizer_sess(Session *sess, float momentum, float dampening, float decay, int nesterov, int maximize)
+{
+    sess->momentum = momentum;
+    sess->dampening = dampening;
+    sess->decay = decay;
+    sess->nesterov = nesterov;
+    sess->maximize = maximize;
+    sess->optimizer = SGD;
 }

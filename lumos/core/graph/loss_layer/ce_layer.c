@@ -20,6 +20,9 @@ Layer *make_ce_layer(int group)
     l->update = NULL;
     l->updategpu = NULL;
 
+    l->sgdoptimizer = NULL;
+    l->sgdoptimizergpu = NULL;
+
     l->refresh = NULL;
     l->freelayergpu = NULL;
 

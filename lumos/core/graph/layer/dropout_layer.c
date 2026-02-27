@@ -20,6 +20,9 @@ Layer *make_dropout_layer(float probability)
     l->update = NULL;
     l->updategpu = NULL;
 
+    l->sgdoptimizer = NULL;
+    l->sgdoptimizergpu = NULL;
+
     l->refresh = NULL;
     l->refreshgpu = NULL;
 

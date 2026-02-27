@@ -10,10 +10,10 @@ void alexnet(char *type, char *path)
     Layer *l5 = make_convolutional_layer(384, 3, 1, 1, 1, 0, "relu");
     Layer *l6 = make_convolutional_layer(384, 3, 1, 1, 1, 0, "relu");
     Layer *l7 = make_convolutional_layer(256, 3, 1, 1, 1, 0, "relu");
-    Layer *l8 = make_maxpool_layer(3, 2, 0);
-    Layer *l9 = make_connect_layer(4096, 1, "relu");
+    Layer *l8 = make_global_maxpool_layer();
+    Layer *l9 = make_connect_layer(128, 1, "relu");
     Layer *l10 = make_dropout_layer(0.5);
-    Layer *l11 = make_connect_layer(4096, 1, "relu");
+    Layer *l11 = make_connect_layer(128, 1, "relu");
     Layer *l12 = make_dropout_layer(0.5);
     Layer *l13 = make_connect_layer(2, 1, "linear");
     Layer *l14 = make_softmax_layer(2);
@@ -45,7 +45,7 @@ void alexnet(char *type, char *path)
     init_kaiming_uniform(l13, 0, "fan_in", "relu");
 
     Session *sess = create_session(g, 224, 224, 3, 2, type, path);
-    set_train_params(sess, 200, 64, 64, 0.01);
+    set_train_params(sess, 20, 32, 32, 0.001);
     init_session(sess, "./data/dogvscat/train.txt", "./data/dogvscat/train_label.txt");
     train(sess, 0);
 }
@@ -60,10 +60,10 @@ void alexnet_detect(char *type, char *path)
     Layer *l5 = make_convolutional_layer(384, 3, 1, 1, 1, 0, "relu");
     Layer *l6 = make_convolutional_layer(384, 3, 1, 1, 1, 0, "relu");
     Layer *l7 = make_convolutional_layer(256, 3, 1, 1, 1, 0, "relu");
-    Layer *l8 = make_maxpool_layer(3, 2, 0);
-    Layer *l9 = make_connect_layer(4096, 1, "relu");
+    Layer *l8 = make_global_maxpool_layer();
+    Layer *l9 = make_connect_layer(128, 1, "relu");
     Layer *l10 = make_dropout_layer(0.5);
-    Layer *l11 = make_connect_layer(4096, 1, "relu");
+    Layer *l11 = make_connect_layer(128, 1, "relu");
     Layer *l12 = make_dropout_layer(0.5);
     Layer *l13 = make_connect_layer(2, 1, "linear");
     Layer *l14 = make_softmax_layer(2);

@@ -20,6 +20,9 @@ Layer *make_connect_layer(int output, int bias, char *active)
     l->backwardgpu = backward_connect_layer_gpu;
     l->updategpu = update_connect_layer_gpu;
 
+    l->sgdoptimizer = connect_layer_SGDOptimizer;
+    l->sgdoptimizergpu = connect_layer_SGDOptimizer_gpu;
+
     l->weightinit = weightinit_connect_layer;
     l->weightinitgpu = weightinit_connect_layer_gpu;
 
@@ -57,6 +60,14 @@ void init_connect_layer(Layer *l, int w, int h, int c, int subdivision)
     if (l->bias){
         l->bias_weights = calloc(l->outputs, sizeof(float));
         l->update_bias_weights = calloc(l->outputs, sizeof(float));
+        if (l->optimizer == SGD){
+            l->momentum_bias_v = calloc(l->outputs, sizeof(float));
+            fill_cpu(l->momentum_bias_v, l->outputs, 0, 1);
+        }
+    }
+    if (l->optimizer == SGD){
+        l->momentum_kernel_v = calloc(l->inputs*l->outputs, sizeof(float));
+        fill_cpu(l->momentum_kernel_v, l->inputs*l->outputs, 0, 1);
     }
 
     fprintf(stderr, "Connect         Layer    %3d*%3d*%3d ==> %3d*%3d*%3d\n",

@@ -22,6 +22,9 @@ Layer *make_maxpool_layer(int ksize, int stride, int pad)
     l->update = NULL;
     l->updategpu = NULL;
 
+    l->sgdoptimizer = NULL;
+    l->sgdoptimizergpu = NULL;
+
     l->refresh = NULL;
     l->refreshgpu = NULL;
 
