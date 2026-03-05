@@ -15,8 +15,8 @@ Session *create_session(Graph *graph, int h, int w, int c, int truth_num, char *
 void init_session(Session *sess, char *data_path, char *label_path);
 void set_train_params(Session *sess, int epoch, int batch, int subdivision, float learning_rate);
 void set_detect_params(Session *sess);
-void train(Session *sess, int binary);
-void detect_classification(Session *sess, int binary);
+void train(Session *sess);
+void detect_classification(Session *sess);
 void lr_scheduler_step(Session *sess, int step_size, float gamma);
 void lr_scheduler_multistep(Session *sess, int *milestones, int num, float gamma);
 void lr_scheduler_exponential(Session *sess, float gamma);
@@ -45,5 +45,8 @@ void init_kaiming_normal(Layer *l, float a, char *mode, char *nonlinearity);
 void init_kaiming_uniform(Layer *l, float a, char *mode, char *nonlinearity);
 
 void SGDOptimizer_sess(Session *sess, float momentum, float dampening, float decay, int nesterov, int maximize);
+
+void transform_resize_sess(Session *sess, int height, int width);
+void transform_normalize_sess(Session *sess, float *mean, float *std);
 
 #endif

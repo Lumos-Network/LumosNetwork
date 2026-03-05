@@ -58,7 +58,7 @@ void vgg16(char *type, char *path)
     Session *sess = create_session(g, 256, 256, 3, 1000, type, path);
     set_train_params(sess, 200, 16, 16, 0.001);
     init_session(sess, "./data/fmnist/train.txt", "./data/fmnist/train_label.txt");
-    train(sess, 0);
+    train(sess);
 }
 
 void vgg16_detect(char*type, char *path)
@@ -117,5 +117,5 @@ void vgg16_detect(char*type, char *path)
     Session *sess = create_session(g, 256, 256, 3, 1000, type, path);
     set_detect_params(sess);
     init_session(sess, "./data/fmnist/test.txt", "./data/fmnist/test_label.txt");
-    train(sess, 0);
+    train(sess);
 }

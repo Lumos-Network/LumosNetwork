@@ -124,7 +124,7 @@ OBJ+=	layer_delta_call.o
 endif
 
 ifeq ($(TEST), 0)
-OBJ+=	xor.o lenet5_mnist.o lenet5_cifar.o lenet5_fmnist.o alexnet.o alexnet_flower.o
+OBJ+=	xor.o lenet5_mnist.o lenet5_cifar.o lenet5_fmnist.o alexnet.o alexnet_flower.o alexnet_xray.o
 endif
 
 ifeq ($(TEST),1)

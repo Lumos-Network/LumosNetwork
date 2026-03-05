@@ -30,10 +30,10 @@ void lenet5_mnist(char *type, char *path)
     init_kaiming_uniform(l7, 0, "fan_in", "relu");
 
     Session *sess = create_session(g, 32, 32, 1, 10, type, path);
-    set_train_params(sess, 50, 4, 4, 0.01);
+    set_train_params(sess, 50, 16, 16, 0.01);
     SGDOptimizer_sess(sess, 0.9, 0, 0, 0, 0);
     init_session(sess, "./data/mnist/train.txt", "./data/mnist/train_label.txt");
-    train(sess, 0);
+    train(sess);
 }
 
 void lenet5_mnist_detect(char*type, char *path)
@@ -60,5 +60,5 @@ void lenet5_mnist_detect(char*type, char *path)
     Session *sess = create_session(g, 32, 32, 1, 10, type, path);
     set_detect_params(sess);
     init_session(sess, "./data/mnist/test.txt", "./data/mnist/test_label.txt");
-    detect_classification(sess, 0);
+    detect_classification(sess);
 }

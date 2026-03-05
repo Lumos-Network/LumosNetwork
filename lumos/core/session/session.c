@@ -15,6 +15,8 @@ Session *create_session(Graph *graph, int h, int w, int c, int truth_num, char *
     sess->truth_num = truth_num;
     sess->weights_path = path;
     sess->lrscheduler = NULL;
+    sess->resize = 0;
+    sess->normalize = 0;
     return sess;
 }
 
@@ -34,6 +36,8 @@ void init_session(Session *sess, char *data_path, char *label_path)
         sess->loss = calloc(1, sizeof(float));
     }
     set_graph(sess->graph, sess->workspace, sess->truth, sess->loss, sess->optimizer);
+    transforms_sess(sess);
+    bind_train_data(sess, "./backup/train.txt");
 }
 
 void bind_train_data(Session *sess, char *path)
@@ -134,8 +138,8 @@ void load_train_data_binary(Session *sess, int index)
     float *input = (float*)calloc(sess->subdivision*sess->width*sess->height*sess->channel, sizeof(float));
     for (int i = index; i < index + sess->subdivision; ++i){
         char *data_path = sess->train_data_paths[i];
-        FILE *fp = fopen(data_path, "r");
-        bfget(fp, input + offset_i, sess->height*sess->width*sess->channel);
+        FILE *fp = fopen(data_path, "rb");
+        fread(input+offset_i, sizeof(float), sess->height*sess->width*sess->channel, fp);
         fclose(fp);
         offset_i += sess->height * sess->width * sess->channel;
     }
@@ -172,7 +176,7 @@ void load_train_label(Session *sess, int index)
     free(truth);
 }
 
-void train(Session *sess, int binary)
+void train(Session *sess)
 {
     fprintf(stderr, "\nSession Start To Running\n");
     float rate = -sess->learning_rate / (float)sess->batch;
@@ -192,8 +196,7 @@ void train(Session *sess, int binary)
             float loss_batch = -1;
             for (int k = 0; k < sub_batchs; ++k){
                 if (j * sess->batch + k * sess->subdivision + sess->subdivision > sess->train_data_num) break;
-                if (binary) load_train_data_binary(sess, j * sess->batch + k * sess->subdivision);
-                else load_train_data(sess, j * sess->batch + k * sess->subdivision);
+                load_train_data_binary(sess, j * sess->batch + k * sess->subdivision);
                 load_train_label(sess, j * sess->batch + k * sess->subdivision);
                 forward_graph(sess->graph, sess->input, sess->coretype, sess->subdivision);
                 backward_graph(sess->graph, sess->coretype, sess->subdivision);
@@ -238,7 +241,7 @@ void train(Session *sess, int binary)
     fprintf(stderr, "\n\nSession Training Finished\n");
 }
 
-void detect_classification(Session *sess, int binary)
+void detect_classification(Session *sess)
 {
     fprintf(stderr, "\nSession Start To Running\n");
     int num = 0;
@@ -255,8 +258,7 @@ void detect_classification(Session *sess, int binary)
         loss = calloc(1, sizeof(float));
     }
     for (int i = 0; i < sess->train_data_num; ++i){
-        if (binary) load_train_data_binary(sess, i);
-        else load_train_data(sess, i);
+        load_train_data_binary(sess, i);
         load_train_label(sess, i);
         forward_graph(sess->graph, sess->input, sess->coretype, sess->subdivision);
         if (sess->coretype == GPU){
@@ -358,4 +360,51 @@ void SGDOptimizer_sess(Session *sess, float momentum, float dampening, float dec
     sess->nesterov = nesterov;
     sess->maximize = maximize;
     sess->optimizer = SGD;
+}
+
+void transform_resize_sess(Session *sess, int height, int width)
+{
+    sess->resize = 1;
+    sess->row = height;
+    sess->col = width;
+}
+
+void transform_normalize_sess(Session *sess, float *mean, float *std)
+{
+    sess->normalize = 1;
+    sess->mean = calloc(sess->channel, sizeof(float));
+    sess->std = calloc(sess->channel, sizeof(float));
+    memcpy(sess->mean, mean, sess->channel*sizeof(float));
+    memcpy(sess->std, std, sess->channel*sizeof(float));
+}
+
+void transforms_sess(Session *sess)
+{
+    int h[1], w[1], c[1];
+    float *im;
+    char path[200];
+    FILE *fp = fopen("./backup/train.txt", "w");
+    for (int i = 0; i < sess->train_data_num; ++i){
+        char *data_path = sess->train_data_paths[i];
+        im = load_image_data(data_path, w, h, c);
+        if (sess->resize){
+            float *new_im = calloc(sess->row*sess->col*sess->channel, sizeof(float));
+            resize_im(im, h[0], w[0], c[0], sess->row, sess->col, new_im);
+            free(im);
+            im = new_im;
+            h[0] = sess->row;
+            w[0] = sess->col;
+            c[0] = sess->channel;
+        }
+        if (sess->normalize){
+            normalize_im(im, h[0], w[0], c[0], sess->mean, sess->std, im);
+        }
+        sprintf(path, "./backup/data/%d", i);
+        FILE *imfp = fopen(path, "wb");
+        fwrite(im, sizeof(float), h[0]*w[0]*c[0], imfp);
+        fclose(imfp);
+        fprintf(fp, "%s\n", path);
+        free(im);
+    }
+    fclose(fp);
 }

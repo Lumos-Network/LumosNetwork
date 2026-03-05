@@ -54,6 +54,14 @@ typedef struct session{
     float decay;
     int nesterov;
     int maximize;
+
+    int resize;
+    int row;
+    int col;
+
+    int normalize;
+    float *mean;
+    float *std;
 } Session;
 
 Session *create_session(Graph *graph, int h, int w, int c, int truth_num, char *type, char *path);
@@ -65,8 +73,8 @@ void bind_train_label(Session *sess, char *path);
 void set_train_params(Session *sess, int epoch, int batch, int subdivision, float learning_rate);
 void set_detect_params(Session *sess);
 void create_workspace(Session *sess);
-void train(Session *sess, int binary);
-void detect_classification(Session *sess, int binary);
+void train(Session *sess);
+void detect_classification(Session *sess);
 
 void load_train_data(Session *sess, int index);
 void load_train_data_binary(Session *sess, int index);
@@ -84,6 +92,10 @@ void init_kaiming_normal(Layer *l, float a, char *mode, char *nonlinearity);
 void init_kaiming_uniform(Layer *l, float a, char *mode, char *nonlinearity);
 
 void SGDOptimizer_sess(Session *sess, float momentum, float dampening, float decay, int nesterov, int maximize);
+
+void transform_resize_sess(Session *sess, int height, int width);
+void transform_normalize_sess(Session *sess, float *mean, float *std);
+void transforms_sess(Session *sess);
 
 #ifdef __cplusplus
 }

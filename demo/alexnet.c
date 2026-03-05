@@ -3,7 +3,7 @@
 void alexnet(char *type, char *path)
 {
     Graph *g = create_graph();
-    Layer *l1 = make_convolutional_layer(96, 11, 4, 0, 1, 0, "relu");
+    Layer *l1 = make_convolutional_layer(96, 11, 4, 2, 1, 0, "relu");
     Layer *l2 = make_maxpool_layer(3, 2, 0);
     Layer *l3 = make_convolutional_layer(256, 5, 1, 2, 1, 0, "relu");
     Layer *l4 = make_maxpool_layer(3, 2, 0);
@@ -44,16 +44,26 @@ void alexnet(char *type, char *path)
     init_kaiming_uniform(l11, 0, "fan_in", "relu");
     init_kaiming_uniform(l13, 0, "fan_in", "relu");
 
-    Session *sess = create_session(g, 224, 224, 3, 2, type, path);
+    Session *sess = create_session(g, 224, 224, 1, 2, type, path);
+    float *mean = calloc(3, sizeof(float));
+    float *std = calloc(3, sizeof(float));
+    mean[0] = 0.5;
+    mean[1] = 0.5;
+    mean[2] = 0.5;
+    std[0] = 1;
+    std[1] = 1;
+    std[2] = 1;
+    transform_normalize_sess(sess, mean, std);
     set_train_params(sess, 20, 32, 32, 0.001);
-    init_session(sess, "./data/dogvscat/train.txt", "./data/dogvscat/train_label.txt");
-    train(sess, 0);
+    SGDOptimizer_sess(sess, 0.9, 0, 0, 0, 0);
+    init_session(sess, "./data/xray/train.txt", "./data/xray/train_label.txt");
+    train(sess);
 }
 
 void alexnet_detect(char *type, char *path)
 {
     Graph *g = create_graph();
-    Layer *l1 = make_convolutional_layer(96, 11, 4, 0, 1, 0, "relu");
+    Layer *l1 = make_convolutional_layer(96, 11, 4, 2, 1, 0, "relu");
     Layer *l2 = make_maxpool_layer(3, 2, 0);
     Layer *l3 = make_convolutional_layer(256, 5, 1, 2, 1, 0, "relu");
     Layer *l4 = make_maxpool_layer(3, 2, 0);
@@ -83,9 +93,18 @@ void alexnet_detect(char *type, char *path)
     append_layer2grpah(g, l13);
     append_layer2grpah(g, l14);
     append_layer2grpah(g, l15);
-    Session *sess = create_session(g, 224, 224, 3, 2, type, path);
+    Session *sess = create_session(g, 224, 224, 1, 2, type, path);
+    float *mean = calloc(3, sizeof(float));
+    float *std = calloc(3, sizeof(float));
+    mean[0] = 0.5;
+    mean[1] = 0.5;
+    mean[2] = 0.5;
+    std[0] = 1;
+    std[1] = 1;
+    std[2] = 1;
+    transform_normalize_sess(sess, mean, std);
     set_detect_params(sess);
-    init_session(sess, "./data/dogvscat/train.txt", "./data/dogvscat/train_label.txt");
-    detect_classification(sess, 0);
+    init_session(sess, "./data/xray/train.txt", "./data/xray/train_label.txt");
+    detect_classification(sess);
 }
 

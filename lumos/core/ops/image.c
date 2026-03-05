@@ -119,3 +119,14 @@ void resize_im(float *img, int height, int width, int channel, int row, int col,
     }
     free(part);
 }
+
+void normalize_im(float *img, int height, int width, int channel, float *mean, float *std, float *space)
+{
+    for (int k = 0; k < channel; ++k){
+        for (int i = 0; i < height; ++i){
+            for (int j = 0; j < width; ++j){
+                space[k*height*width + i*width + j] = (img[k*height*width + i*width + j] - mean[k]) / std[k];
+            }
+        }
+    }
+}

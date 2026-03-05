@@ -1,6 +1,6 @@
-#include "alexnet_flower.h"
+#include "alexnet_xray.h"
 
-void alexnet_flower(char *type, char *path)
+void alexnet_xray(char *type, char *path)
 {
     Graph *g = create_graph();
     Layer *l1 = make_convolutional_layer(96, 11, 4, 2, 1, 0, "relu");
@@ -10,14 +10,14 @@ void alexnet_flower(char *type, char *path)
     Layer *l5 = make_convolutional_layer(384, 3, 1, 1, 1, 0, "relu");
     Layer *l6 = make_convolutional_layer(384, 3, 1, 1, 1, 0, "relu");
     Layer *l7 = make_convolutional_layer(256, 3, 1, 1, 1, 0, "relu");
-    Layer *l8 = make_maxpool_layer(3, 2, 0);
-    Layer *l9 = make_connect_layer(4096, 1, "relu");
+    Layer *l8 = make_global_maxpool_layer();
+    Layer *l9 = make_connect_layer(128, 1, "relu");
     Layer *l10 = make_dropout_layer(0.5);
-    Layer *l11 = make_connect_layer(4096, 1, "relu");
+    Layer *l11 = make_connect_layer(128, 1, "relu");
     Layer *l12 = make_dropout_layer(0.5);
-    Layer *l13 = make_connect_layer(5, 1, "linear");
-    Layer *l14 = make_softmax_layer(5);
-    Layer *l15 = make_mse_layer(5);
+    Layer *l13 = make_connect_layer(2, 1, "linear");
+    Layer *l14 = make_softmax_layer(2);
+    Layer *l15 = make_mse_layer(2);
     append_layer2grpah(g, l1);
     append_layer2grpah(g, l2);
     append_layer2grpah(g, l3);
@@ -41,24 +41,20 @@ void alexnet_flower(char *type, char *path)
 
     init_kaiming_uniform(l9, 0, "fan_in", "relu");
     init_kaiming_uniform(l11, 0, "fan_in", "relu");
-    init_kaiming_uniform(l13, 0, "fan_in", "linear");
-    Session *sess = create_session(g, 224, 224, 3, 5, type, path);
-    float *mean = calloc(3, sizeof(float));
-    float *std = calloc(3, sizeof(float));
-    mean[0] = 0.466;
-    mean[1] = 0.425;
-    mean[2] = 0.304;
-    std[0] = 0.299;
-    std[1] = 0.269;
-    std[2] = 0.293;
+    init_kaiming_uniform(l13, 0, "fan_in", "relu");
+    Session *sess = create_session(g, 224, 224, 1, 2, type, path);
+    float *mean = calloc(1, sizeof(float));
+    float *std = calloc(1, sizeof(float));
+    mean[0] = 0.480;
+    std[0] = 0.239;
     transform_normalize_sess(sess, mean, std);
-    set_train_params(sess, 500, 32, 32, 0.001);
-    SGDOptimizer_sess(sess, 0.9, 0, 0, 0, 0);
-    init_session(sess, "./data/flower/train.txt", "./data/flower/train_label.txt");
+    set_train_params(sess, 50, 64, 64, 0.001);
+    // SGDOptimizer_sess(sess, 0.9, 0, 0, 0, 0);
+    init_session(sess, "./data/xray/train.txt", "./data/xray/train_label.txt");
     train(sess);
 }
 
-void alexnet_flower_detect(char *type, char *path)
+void alexnet_xray_detect(char *type, char *path)
 {
     Graph *g = create_graph();
     Layer *l1 = make_convolutional_layer(96, 11, 4, 2, 1, 0, "relu");
@@ -73,9 +69,9 @@ void alexnet_flower_detect(char *type, char *path)
     Layer *l10 = make_dropout_layer(0.5);
     Layer *l11 = make_connect_layer(128, 1, "relu");
     Layer *l12 = make_dropout_layer(0.5);
-    Layer *l13 = make_connect_layer(5, 1, "linear");
-    Layer *l14 = make_softmax_layer(5);
-    Layer *l15 = make_mse_layer(5);
+    Layer *l13 = make_connect_layer(2, 1, "linear");
+    Layer *l14 = make_softmax_layer(2);
+    Layer *l15 = make_mse_layer(2);
     append_layer2grpah(g, l1);
     append_layer2grpah(g, l2);
     append_layer2grpah(g, l3);
@@ -91,18 +87,14 @@ void alexnet_flower_detect(char *type, char *path)
     append_layer2grpah(g, l13);
     append_layer2grpah(g, l14);
     append_layer2grpah(g, l15);
-    Session *sess = create_session(g, 224, 224, 3, 5, type, path);
-    // float *mean = calloc(3, sizeof(float));
-    // float *std = calloc(3, sizeof(float));
-    // mean[0] = 0.466;
-    // mean[1] = 0.425;
-    // mean[2] = 0.304;
-    // std[0] = 0.299;
-    // std[1] = 0.269;
-    // std[2] = 0.293;
-    // transform_normalize_sess(sess, mean, std);
+    Session *sess = create_session(g, 224, 224, 1, 2, type, path);
+    float *mean = calloc(1, sizeof(float));
+    float *std = calloc(1, sizeof(float));
+    mean[0] = 0.480;
+    std[0] = 0.239;
+    transform_normalize_sess(sess, mean, std);
     set_detect_params(sess);
-    init_session(sess, "./data/flower/train.txt", "./data/flower/train_label.txt");
+    init_session(sess, "./data/xray/test.txt", "./data/xray/test_label.txt");
     detect_classification(sess);
 }
 
