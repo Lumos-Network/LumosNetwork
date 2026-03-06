@@ -18,7 +18,7 @@ extern "C" {
 
 typedef enum {
     CONVOLUTIONAL, CONNECT, IM2COL, MAXPOOL, AVGPOOL, GLOBALMAX, GLOBALAVG, \
-    DROPOUT, SOFTMAX, SHORTCUT, NORMALIZE, \
+    DROPOUT, SOFTMAX, LOGSOFTMAX, SHORTCUT, NORMALIZE, \
     MSE, MAE, CE
 } LayerType;
 
@@ -122,6 +122,7 @@ struct layer{
     int normalize;
     // dropout 占比
     float probability;
+    int inplace;
 
     Layer *shortcut;
     int shortcut_index;

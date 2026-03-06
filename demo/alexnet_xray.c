@@ -12,9 +12,9 @@ void alexnet_xray(char *type, char *path)
     Layer *l7 = make_convolutional_layer(256, 3, 1, 1, 1, 0, "relu");
     Layer *l8 = make_global_maxpool_layer();
     Layer *l9 = make_connect_layer(128, 1, "relu");
-    Layer *l10 = make_dropout_layer(0.5);
+    Layer *l10 = make_dropout_layer(0.5, 0);
     Layer *l11 = make_connect_layer(128, 1, "relu");
-    Layer *l12 = make_dropout_layer(0.5);
+    Layer *l12 = make_dropout_layer(0.5, 0);
     Layer *l13 = make_connect_layer(2, 1, "linear");
     Layer *l14 = make_softmax_layer(2);
     Layer *l15 = make_mse_layer(2);
@@ -66,9 +66,9 @@ void alexnet_xray_detect(char *type, char *path)
     Layer *l7 = make_convolutional_layer(256, 3, 1, 1, 1, 0, "relu");
     Layer *l8 = make_global_maxpool_layer();
     Layer *l9 = make_connect_layer(128, 1, "relu");
-    Layer *l10 = make_dropout_layer(0.5);
+    Layer *l10 = make_dropout_layer(0.5, 0);
     Layer *l11 = make_connect_layer(128, 1, "relu");
-    Layer *l12 = make_dropout_layer(0.5);
+    Layer *l12 = make_dropout_layer(0.5, 0);
     Layer *l13 = make_connect_layer(2, 1, "linear");
     Layer *l14 = make_softmax_layer(2);
     Layer *l15 = make_mse_layer(2);

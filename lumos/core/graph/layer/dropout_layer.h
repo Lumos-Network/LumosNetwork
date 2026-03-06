@@ -13,7 +13,7 @@
 extern "C"{
 #endif
 
-Layer *make_dropout_layer(float probability);
+Layer *make_dropout_layer(float probability, int inplace);
 
 void init_dropout_layer(Layer *l, int w, int h, int c, int subdivision);
 void forward_dropout_layer(Layer l, int num);

@@ -71,7 +71,8 @@ __global__ void dropout_gradient_kernel(Layer l, int num, float *n_delta, float 
 void dropout_gpu(Layer l, int num)
 {
     int size = num * l.inputs;
-    float scale = 1. / (1.-l.probability);
+    float scale = 1;
+    if (l.inplace) scale = 1. / (1.-l.probability);
     dropout_kernel<<<(size+BLOCK-1)/BLOCK, BLOCK>>>(l, num, scale);
 }
 

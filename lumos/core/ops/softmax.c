@@ -6,14 +6,29 @@ void softmax(float *data, int num, float *space)
     float res = 0;
     max_cpu(data, num, &M);
     for (int i = 0; i < num; ++i){
-        res += exp(data[i] - M);
+        space[i] = exp(data[i] - M);
+        res += space[i];
     }
     for (int i = 0; i < num; ++i){
-        space[i] = exp(data[i] - M) / res;
+        space[i] /= res;
     }
 }
 
-void softmax_grident(float *data, int num, float *space)
+void softmax_gradient(float *data, int num, float *space)
+{
+    float M = 0;
+    float res = 0;
+    max_cpu(data, num, &M);
+    for (int i = 0; i < num; ++i){
+        space[i] = exp(data[i] - M);
+        res += space[i];
+    }
+    for (int i = 0; i < num; ++i){
+        space[i] = (res + space[i]) * space[i];
+    }
+}
+
+void log_softmax(float *data, int num, float *space)
 {
     float M = 0;
     float res = 0;
@@ -22,7 +37,19 @@ void softmax_grident(float *data, int num, float *space)
         res += exp(data[i] - M);
     }
     for (int i = 0; i < num; ++i){
-        float x = exp(data[i] - M);
-        space[i] = (res + x) * x;
+        space[i] = (data[i] - M) - logf(res);
+    }
+}
+
+void log_softmax_gradient(float *data, int num, float *space)
+{
+    float M = 0;
+    float res = 0;
+    max_cpu(data, num, &M);
+    for (int i = 0; i < num; ++i){
+        res += exp(data[i] - M);
+    }
+    for (int i = 0; i < num; ++i){
+        space[i] = 1 - exp(data[i] - M) / res;
     }
 }

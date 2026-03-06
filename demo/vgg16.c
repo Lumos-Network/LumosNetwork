@@ -23,9 +23,9 @@ void vgg16(char *type, char *path)
     Layer *l18 = make_maxpool_layer(2, 2, 0);
     Layer *l19 = make_im2col_layer();
     Layer *l20 = make_connect_layer(4096, 1, "relu");
-    Layer *l21 = make_dropout_layer(0.5);
+    Layer *l21 = make_dropout_layer(0.5, 0);
     Layer *l22 = make_connect_layer(4096, 1, "relu");
-    Layer *l23 = make_dropout_layer(0.5);
+    Layer *l23 = make_dropout_layer(0.5, 0);
     Layer *l24 = make_connect_layer(1000, 1, "linear");
     Layer *l25 = make_softmax_layer(1000);
     Layer *l26 = make_mae_layer(1000);
@@ -83,9 +83,9 @@ void vgg16_detect(char*type, char *path)
     Layer *l17 = make_convolutional_layer(512, 3, 1, 1, 1, 0, "relu");
     Layer *l18 = make_maxpool_layer(2, 2, 0);
     Layer *l19 = make_connect_layer(4096, 1, "relu");
-    Layer *l20 = make_dropout_layer(0.5);
+    Layer *l20 = make_dropout_layer(0.5, 0);
     Layer *l21 = make_connect_layer(4096, 1, "relu");
-    Layer *l22 = make_dropout_layer(0.5);
+    Layer *l22 = make_dropout_layer(0.5, 0);
     Layer *l23 = make_connect_layer(1000, 1, "linear");
     Layer *l24 = make_softmax_layer(1000);
     Layer *l25 = make_mae_layer(1000);

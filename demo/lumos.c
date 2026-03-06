@@ -21,13 +21,13 @@ int main()
     // lenet5_fmnist("gpu", NULL);
     // lenet5_fmnist_detect("gpu", "./backup/LW_f");
 
-    // alexnet_flower("gpu", NULL);
+    alexnet_flower("cpu", "./backup/LW_py");
     // alexnet_flower_detect("gpu", "./backup/LW_f");
 
     // alexnet("gpu", NULL);
     // alexnet_detect("gpu", "./backup/LW_f");
 
-    alexnet_xray("gpu", NULL);
+    // alexnet_xray("gpu", NULL);
 
     // float *input = (float*)calloc(224*224*3, sizeof(float));
     // FILE *fp = fopen("./backup/data/0", "rb");

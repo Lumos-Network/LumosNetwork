@@ -220,25 +220,25 @@ void train(Session *sess)
             }
             refresh_graph(sess->graph, sess->coretype);
         }
-        fprintf(stderr, " AvgLoss:%.3f", loss[0]);
-        if ((i+1) % 100 == 0){
-            char str[50];
-            sprintf(str, "./backup/LW_%d", i+1);
-            FILE *fp = fopen(str, "wb");
-            if (fp) {
-                save_weights(sess->graph, sess->coretype, fp);
-                fclose(fp);
-            }
-        }
-        rate = run_lrscheduler(sess->lrscheduler, rate, lr_max, i);
+        // fprintf(stderr, " AvgLoss:%.3f", loss[0]);
+        // if ((i+1) % 100 == 0){
+        //     char str[50];
+        //     sprintf(str, "./backup/LW_%d", i+1);
+        //     FILE *fp = fopen(str, "wb");
+        //     if (fp) {
+        //         save_weights(sess->graph, sess->coretype, fp);
+        //         fclose(fp);
+        //     }
+        // }
+        // rate = run_lrscheduler(sess->lrscheduler, rate, lr_max, i);
     }
-    FILE *fp = fopen("./backup/LW_f", "wb");
-    if (fp) {
-        save_weights(sess->graph, sess->coretype, fp);
-        fclose(fp);
-    }
+    // FILE *fp = fopen("./backup/LW_f", "wb");
+    // if (fp) {
+    //     save_weights(sess->graph, sess->coretype, fp);
+    //     fclose(fp);
+    // }
     free_graph(g, sess->coretype);
-    fprintf(stderr, "\n\nSession Training Finished\n");
+    // fprintf(stderr, "\n\nSession Training Finished\n");
 }
 
 void detect_classification(Session *sess)

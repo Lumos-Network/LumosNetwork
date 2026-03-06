@@ -89,7 +89,17 @@ void forward_graph(Graph *g, float *input, int coretype, int subdivision)
                 l->forward(*l, subdivision);
             }
         } else {
+            FILE *imfp = fopen("./backup/in_c", "wb");
+            fwrite(l->input, sizeof(float), l->inputs, imfp);
+            fclose(imfp);
+            fprintf(stderr, "input finish %ld\n", sizeof(float));
+
+            FILE *fp = fopen("./backup/out_c", "wb");
+            fwrite(l->output, sizeof(float), l->outputs, fp);
+            fclose(fp);
+            fprintf(stderr, "output finish %ld\n", sizeof(float));
             break;
+            // fprintf(stderr, "loss: %f\n", l->output[0]);
         }
         layer = layer->next;
         input = l->output;

@@ -208,8 +208,11 @@ void convolutional_constant_init_gpu(Layer l, float x)
 void convolutional_normal_init_gpu(Layer l, float mean, float std)
 {
     float *kernel_weights = (float*)calloc(l.filters*l.ksize*l.ksize*l.input_c, sizeof(float));
-    for (int i = 0; i < l.filters*l.ksize*l.ksize*l.input_c; ++i){
+    for (int i = 0; i < l.ksize*l.ksize*l.input_c; ++i){
         kernel_weights[i] = generate_normal(mean, std);
+    }
+    for (int i = 1; i < l.filters; ++i){
+        memcpy(kernel_weights+i*(l.ksize*l.ksize*l.input_c), kernel_weights, l.ksize*l.ksize*l.input_c*sizeof(float));
     }
     cudaMemcpy(l.kernel_weights, kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(l.update_kernel_weights, kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float), cudaMemcpyHostToDevice);
@@ -227,8 +230,11 @@ void convolutional_kaiming_normal_init_gpu(Layer l, float a, char *mode, char *n
     else num = l.ksize*l.ksize*l.input_c;
     float scale = sqrt((float)2/((1+a*a)*num));
     float *kernel_weights = (float*)calloc(l.filters*l.ksize*l.ksize*l.input_c, sizeof(float));
-    for (int i = 0; i < l.filters*l.ksize*l.ksize*l.input_c; ++i){
+    for (int i = 0; i < l.ksize*l.ksize*l.input_c; ++i){
         kernel_weights[i] = scale*rand_normal();
+    }
+    for (int i = 1; i < l.filters; ++i){
+        memcpy(kernel_weights+i*(l.ksize*l.ksize*l.input_c), kernel_weights, l.ksize*l.ksize*l.input_c*sizeof(float));
     }
     cudaMemcpy(l.kernel_weights, kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(l.update_kernel_weights, kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float), cudaMemcpyHostToDevice);
