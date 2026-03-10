@@ -3,13 +3,13 @@
 void alexnet(char *type, char *path)
 {
     Graph *g = create_graph();
-    Layer *l1 = make_convolutional_layer(96, 11, 4, 2, 1, 0, "relu");
+    Layer *l1 = make_convolutional_layer(96, 11, 4, 2, 1, "relu");
     Layer *l2 = make_maxpool_layer(3, 2, 0);
-    Layer *l3 = make_convolutional_layer(256, 5, 1, 2, 1, 0, "relu");
+    Layer *l3 = make_convolutional_layer(256, 5, 1, 2, 1, "relu");
     Layer *l4 = make_maxpool_layer(3, 2, 0);
-    Layer *l5 = make_convolutional_layer(384, 3, 1, 1, 1, 0, "relu");
-    Layer *l6 = make_convolutional_layer(384, 3, 1, 1, 1, 0, "relu");
-    Layer *l7 = make_convolutional_layer(256, 3, 1, 1, 1, 0, "relu");
+    Layer *l5 = make_convolutional_layer(384, 3, 1, 1, 1, "relu");
+    Layer *l6 = make_convolutional_layer(384, 3, 1, 1, 1, "relu");
+    Layer *l7 = make_convolutional_layer(256, 3, 1, 1, 1, "relu");
     Layer *l8 = make_global_maxpool_layer();
     Layer *l9 = make_connect_layer(128, 1, "relu");
     Layer *l10 = make_dropout_layer(0.5, 0);
@@ -63,13 +63,13 @@ void alexnet(char *type, char *path)
 void alexnet_detect(char *type, char *path)
 {
     Graph *g = create_graph();
-    Layer *l1 = make_convolutional_layer(96, 11, 4, 2, 1, 0, "relu");
+    Layer *l1 = make_convolutional_layer(96, 11, 4, 2, 1, "relu");
     Layer *l2 = make_maxpool_layer(3, 2, 0);
-    Layer *l3 = make_convolutional_layer(256, 5, 1, 2, 1, 0, "relu");
+    Layer *l3 = make_convolutional_layer(256, 5, 1, 2, 1, "relu");
     Layer *l4 = make_maxpool_layer(3, 2, 0);
-    Layer *l5 = make_convolutional_layer(384, 3, 1, 1, 1, 0, "relu");
-    Layer *l6 = make_convolutional_layer(384, 3, 1, 1, 1, 0, "relu");
-    Layer *l7 = make_convolutional_layer(256, 3, 1, 1, 1, 0, "relu");
+    Layer *l5 = make_convolutional_layer(384, 3, 1, 1, 1, "relu");
+    Layer *l6 = make_convolutional_layer(384, 3, 1, 1, 1, "relu");
+    Layer *l7 = make_convolutional_layer(256, 3, 1, 1, 1, "relu");
     Layer *l8 = make_global_maxpool_layer();
     Layer *l9 = make_connect_layer(128, 1, "relu");
     Layer *l10 = make_dropout_layer(0.5, 0);

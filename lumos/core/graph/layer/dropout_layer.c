@@ -81,6 +81,7 @@ void backward_dropout_layer(Layer l, int num, float *n_delta)
         memcpy(l.delta, n_delta, num*l.inputs*sizeof(float));
         return;
     }
+    fill_cpu(l.delta, num*l.inputs, 0, 1);
     float scale = 1. / (1.-l.probability);
     for (int i = 0; i < num*l.inputs; ++i){
         float r = l.dropout_rand[i];

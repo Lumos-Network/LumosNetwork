@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <float.h>
 
 #include "gpu.h"
 #include "cpu_gpu.h"
@@ -20,7 +21,7 @@ void avgpool_gpu(float *im, int h, int w, int c, int ksize, int stride, int pad,
 void maxpool_gpu(float *im, int h, int w, int c, int ksize, int stride, int pad, float *space, int *index);
 
 void avgpool_gradient_gpu(float *delta_l, int h, int w, int c, int ksize, int stride, int pad, float *delta_n);
-void maxpool_gradient_gpu(float *delta_l, int h, int w, int c, int ksize, int stride, int pad, float *delta_n, int *index);
+void maxpool_gradient_gpu(float *delta_l, int h, int w, int c, float *delta_n, int *index);
 
 void global_avgpool_gpu(float *im, int h, int w, int c, float *space);
 void global_maxpool_gpu(float *im, int h, int w, int c, float *space, int *index);

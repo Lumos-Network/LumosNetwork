@@ -18,8 +18,8 @@ extern "C" {
 
 typedef enum {
     CONVOLUTIONAL, CONNECT, IM2COL, MAXPOOL, AVGPOOL, GLOBALMAX, GLOBALAVG, \
-    DROPOUT, SOFTMAX, LOGSOFTMAX, SHORTCUT, NORMALIZE, \
-    MSE, MAE, CE
+    DROPOUT, SOFTMAX, LOGSOFTMAX, SHORTCUT, \
+    MSE, MAE, CE, NLL, CROSSENTROPY
 } LayerType;
 
 typedef enum {
@@ -119,10 +119,11 @@ struct layer{
     int group;
 
     int bias;
-    int normalize;
     // dropout 占比
     float probability;
     int inplace;
+
+    float *detect; //预测值
 
     Layer *shortcut;
     int shortcut_index;

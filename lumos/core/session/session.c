@@ -14,7 +14,6 @@ Session *create_session(Graph *graph, int h, int w, int c, int truth_num, char *
     sess->channel = c;
     sess->truth_num = truth_num;
     sess->weights_path = path;
-    sess->lrscheduler = NULL;
     sess->resize = 0;
     sess->normalize = 0;
     return sess;
@@ -24,7 +23,7 @@ void init_session(Session *sess, char *data_path, char *label_path)
 {
     bind_train_data(sess, data_path);
     bind_train_label(sess, label_path);
-    init_graph(sess->graph, sess->width, sess->height, sess->channel, sess->coretype, sess->subdivision, sess->weights_path);
+    init_graph(sess->graph, sess->width, sess->height, sess->channel, sess->coretype, sess->subdivision, sess->truth_num, sess->optimizer, sess->weights_path);
     create_workspace(sess);
     if (sess->coretype == GPU){
         cudaMalloc((void**)&sess->input, sess->subdivision*sess->width*sess->height*sess->channel*sizeof(float));
@@ -35,7 +34,7 @@ void init_session(Session *sess, char *data_path, char *label_path)
         sess->truth = calloc(sess->subdivision*sess->truth_num, sizeof(float));
         sess->loss = calloc(1, sizeof(float));
     }
-    set_graph(sess->graph, sess->workspace, sess->truth, sess->loss, sess->optimizer);
+    set_graph(sess->graph, sess->workspace, sess->truth, sess->loss);
     transforms_sess(sess);
     bind_train_data(sess, "./backup/train.txt");
 }
@@ -179,21 +178,15 @@ void load_train_label(Session *sess, int index)
 void train(Session *sess)
 {
     fprintf(stderr, "\nSession Start To Running\n");
-    float rate = -sess->learning_rate / (float)sess->batch;
-    float lr_max = rate;
-    float *loss = calloc(2, sizeof(float));
-    clock_t start, final;
-    double run_time = 0;
+    float rate = -sess->learning_rate;
     Graph *g = sess->graph;
     g->status = 1;
     for (int i = 0; i < sess->epoch; ++i){
         fprintf(stderr, "\n\nEpoch %d/%d\n", i + 1, sess->epoch);
-        loss[0] = 0;
-        start = clock();
         int sub_epochs = (int)(sess->train_data_num / sess->batch);
         int sub_batchs = (int)(sess->batch / sess->subdivision);
+        float loss[2] = {0, 0};
         for (int j = 0; j < sub_epochs; ++j){
-            float loss_batch = -1;
             for (int k = 0; k < sub_batchs; ++k){
                 if (j * sess->batch + k * sess->subdivision + sess->subdivision > sess->train_data_num) break;
                 load_train_data_binary(sess, j * sess->batch + k * sess->subdivision);
@@ -205,40 +198,25 @@ void train(Session *sess)
                 } else {
                     update_graph(sess->graph, sess->coretype, rate, sess->subdivision);
                 }
-                final = clock();
-                run_time = (double)(final - start) / CLOCKS_PER_SEC;
                 if (sess->coretype == CPU) {
-                    run_time /= 10;
                     loss[0] += sess->loss[0];
-                    loss_batch += sess->loss[0];
                 } else{
                     cudaMemcpy(loss+1, sess->loss, sizeof(float), cudaMemcpyDeviceToHost);
                     loss[0] += loss[1];
-                    loss_batch += loss[1];
                 }
-                progress_bar(j * sub_batchs + k + 1, sub_epochs * sub_batchs, loss_batch, run_time);
+                progress_bar(j * sub_batchs + k + 1, sub_epochs * sub_batchs);
             }
             refresh_graph(sess->graph, sess->coretype);
         }
-        // fprintf(stderr, " AvgLoss:%.3f", loss[0]);
-        // if ((i+1) % 100 == 0){
-        //     char str[50];
-        //     sprintf(str, "./backup/LW_%d", i+1);
-        //     FILE *fp = fopen(str, "wb");
-        //     if (fp) {
-        //         save_weights(sess->graph, sess->coretype, fp);
-        //         fclose(fp);
-        //     }
-        // }
-        // rate = run_lrscheduler(sess->lrscheduler, rate, lr_max, i);
+        fprintf(stderr, " AvgLoss:%f", loss[0]/(sub_epochs * sub_batchs));
     }
-    // FILE *fp = fopen("./backup/LW_f", "wb");
-    // if (fp) {
-    //     save_weights(sess->graph, sess->coretype, fp);
-    //     fclose(fp);
-    // }
+    FILE *fp = fopen("./backup/LW_f", "wb");
+    if (fp) {
+        save_weights(sess->graph, sess->coretype, fp);
+        fclose(fp);
+    }
     free_graph(g, sess->coretype);
-    // fprintf(stderr, "\n\nSession Training Finished\n");
+    fprintf(stderr, "\n\nSession Training Finished\n");
 }
 
 void detect_classification(Session *sess)
@@ -263,11 +241,11 @@ void detect_classification(Session *sess)
         forward_graph(sess->graph, sess->input, sess->coretype, sess->subdivision);
         if (sess->coretype == GPU){
             cudaMemcpy(truth, l->truth, sess->truth_num*sizeof(float), cudaMemcpyDeviceToHost);
-            cudaMemcpy(detect, l->input, sess->truth_num*sizeof(float), cudaMemcpyDeviceToHost);
+            cudaMemcpy(detect, l->detect, sess->truth_num*sizeof(float), cudaMemcpyDeviceToHost);
             cudaMemcpy(loss, l->loss, sizeof(float), cudaMemcpyDeviceToHost);
         } else {
             truth = l->truth;
-            detect = l->input;
+            detect = l->detect;
             loss = l->loss;
         }
         fprintf(stderr, "%s\n", sess->train_data_paths[i]);

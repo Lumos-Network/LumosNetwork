@@ -2,9 +2,9 @@
 
 void init_connect_layer_gpu(Layer *l, int w, int h, int c, int subdivision)
 {
-    l->input_h = h;
-    l->input_w = w;
-    l->input_c = c;
+    l->input_h = 1;
+    l->input_w = 1;
+    l->input_c = h*w*c;
     l->inputs = l->input_h * l->input_w * l->input_c;
 
     l->output_h = 1;
@@ -61,7 +61,7 @@ void weightinit_connect_layer_gpu(Layer l, FILE *fp)
     else connect_constant_init_gpu(l, 0);
     if (l.bias){
         float *bias_weights = (float*)calloc(l.outputs, sizeof(float));
-        fill_cpu(bias_weights, l.outputs, 0.001, 1);
+        fill_cpu(bias_weights, l.outputs, 0, 1);
         cudaMemcpy(l.bias_weights, bias_weights, l.outputs*sizeof(float), cudaMemcpyHostToDevice);
         cudaMemcpy(l.update_bias_weights, bias_weights, l.outputs*sizeof(float), cudaMemcpyHostToDevice);
         free(bias_weights);
@@ -86,6 +86,7 @@ void forward_connect_layer_gpu(Layer l, int num)
 
 void backward_connect_layer_gpu(Layer l, int num, float *n_delta)
 {
+    fill_gpu(l.delta, num*l.inputs, 0, 1);
     for (int i = 0; i < num; ++i){
         int offset_i = i * l.inputs;
         int offset_o = i * l.outputs;

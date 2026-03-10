@@ -6,6 +6,7 @@
 
 #include "layer.h"
 #include "random.h"
+#include "cpu.h"
 
 #include "dropout_layer_gpu.h"
 

@@ -1,6 +1,6 @@
-#include "logsoftmax_layer_gpu.h"
+#include "softmax_layer_gpu.h"
 
-void init_logsoftmax_layer_gpu(Layer *l, int w, int h, int c, int subdivision)
+void init_softmax_layer_gpu(Layer *l, int w, int h, int c, int subdivision)
 {
     l->input_h = h;
     l->input_w = w;
@@ -17,11 +17,11 @@ void init_logsoftmax_layer_gpu(Layer *l, int w, int h, int c, int subdivision)
     cudaMalloc((void**)&l->output, l->outputs*subdivision*sizeof(float));
     cudaMalloc((void**)&l->delta, l->outputs*subdivision*sizeof(float));
 
-    fprintf(stderr, "LogSoftmax         Layer    %3d*%3d*%3d ==> %3d*%3d*%3d\n", \
+    fprintf(stderr, "Softmax         Layer    %3d*%3d*%3d ==> %3d*%3d*%3d\n", \
             l->input_w, l->input_h, l->input_c, l->output_w, l->output_h, l->output_c);
 }
 
-void forward_logsoftmax_layer_gpu(Layer l, int num)
+void forward_softmax_layer_gpu(Layer l, int num)
 {
     for (int i = 0; i < num; ++i){
         int offset_i = i*l.inputs;
@@ -29,12 +29,13 @@ void forward_logsoftmax_layer_gpu(Layer l, int num)
         float *input = l.input + offset_i;
         float *output = l.output + offset_o;
         softmax_exp_sum_gpu(input, l.inputs, l.workspace, l.workspace+l.inputs);
-        log_softmax_gpu(input, l.inputs, output, l.workspace+l.inputs);
+        softmax_gpu(l.workspace, l.inputs, output, l.workspace+l.inputs);
     }
 }
 
-void backward_logsoftmax_layer_gpu(Layer l, int num, float *n_delta)
+void backward_softmax_layer_gpu(Layer l, int num, float *n_delta)
 {
+    fill_gpu(l.delta, num*l.inputs, 0, 1);
     for (int i = 0; i < num; ++i){
         int offset_i = i*l.inputs;
         int offset_o = i*l.outputs;
@@ -42,12 +43,12 @@ void backward_logsoftmax_layer_gpu(Layer l, int num, float *n_delta)
         float *delta_l = l.delta + offset_i;
         float *delta_n = n_delta + offset_o;
         softmax_exp_sum_gpu(input, l.inputs, l.workspace, l.workspace+l.inputs);
-        log_softmax_gradient_gpu(input, l.inputs, delta_l, l.workspace+l.inputs);
+        softmax_gradient_gpu(l.workspace, l.inputs, delta_l, l.workspace+l.inputs);
         matrix_multiply_gpu(delta_n, delta_l, l.inputs, delta_l);
     }
 }
 
-void free_logsoftmax_layer_gpu(Layer l)
+void free_softmax_layer_gpu(Layer l)
 {
     cudaFree(l.output);
     cudaFree(l.delta);

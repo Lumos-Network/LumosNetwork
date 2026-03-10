@@ -78,6 +78,7 @@ void forward_shortcut_layer(Layer l, int num)
 void backward_shortcut_layer(Layer l, int num, float *n_delta)
 {
     Layer *shortcut = l.shortcut;
+    fill_cpu(l.delta, num*l.inputs, 0, 1);
     for (int i = 0; i < num; ++i){
         int offset_i = i * l.inputs;
         int offset_o = i * l.outputs;

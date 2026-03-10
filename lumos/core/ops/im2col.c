@@ -32,43 +32,15 @@ void col2im(float *img, int ksize, int stride, int pad, int out_h, int out_w, in
 {
     int height_col = (out_h + 2 * pad - ksize) / stride + 1;
     int width_col = (out_w + 2 * pad - ksize) / stride + 1;
-    fill_cpu(space, out_h*out_w*out_c, 0, 1);
-    for (int c = 0; c < out_c; ++c)
-    {
-        for (int i = 0; i < out_h; ++i)
-        {
-            int kernel_h_index = (i + pad) / stride;
-            int h_index = (i + pad) % stride;
-            int o_flag = 0;
-            if (kernel_h_index + 1 > height_col)
-            {
-                h_index = (kernel_h_index - height_col + 1) * stride + h_index;
-                kernel_h_index = height_col - 1;
-            }
-            if (h_index + 1 > ksize)
-                o_flag = 1;
-            for (int j = 0; j < out_w; ++j)
-            {
-                if (o_flag)
-                    space[c * out_h * out_w + i * out_w + j] += 0;
-                else
-                {
-                    int kernel_w_index = (j + pad) / stride;
-                    int w_index = (j + pad) % stride;
-                    if (kernel_w_index + 1 > width_col)
-                    {
-                        w_index = (kernel_w_index - width_col + 1) * stride + w_index;
-                        kernel_w_index = width_col - 1;
-                    }
-                    if (w_index + 1 > ksize)
-                        space[c * out_h * out_w + i * out_w + j] += 0;
-                    else
-                    {
-                        int index_w = kernel_h_index * width_col + kernel_w_index;
-                        int index_h = c * ksize * ksize + h_index * ksize + w_index;
-                        space[c * out_h * out_w + i * out_w + j] += img[index_h * height_col * width_col + index_w];
-                    }
-                }
+    for (int i = 0; i < ksize*ksize*out_c; ++i){
+        for (int j = 0; j < height_col*width_col; ++j){
+            int kernel_h = j/width_col*stride;
+            int kernel_w = j%width_col*stride;
+            int channel = i/(ksize*ksize);
+            int index_h = (i-channel*ksize*ksize)/ksize + kernel_h - pad;
+            int index_w = (i-channel*ksize*ksize)%ksize + kernel_w - pad;
+            if (index_h >= 0 && index_w >= 0 && index_h < out_h && index_w < out_w){
+                space[channel*out_h*out_w+index_h*out_w+index_w] += img[i*height_col*width_col+j];
             }
         }
     }

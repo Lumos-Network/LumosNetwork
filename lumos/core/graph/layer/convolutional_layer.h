@@ -10,7 +10,6 @@
 #include "bias.h"
 #include "gemm.h"
 #include "cpu.h"
-#include "normalization_layer.h"
 
 #include "convolutional_layer_gpu.h"
 
@@ -18,7 +17,7 @@
 extern "C"{
 #endif
 
-Layer *make_convolutional_layer(int filters, int ksize, int stride, int pad, int bias, int normalize, char *active);
+Layer *make_convolutional_layer(int filters, int ksize, int stride, int pad, int bias, char *active);
 void init_convolutional_layer(Layer *l, int w, int h, int c, int subdivision);
 void weightinit_convolutional_layer(Layer l, FILE *fp);
 

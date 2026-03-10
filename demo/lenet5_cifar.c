@@ -3,14 +3,14 @@
 void lenet5_cifar(char *type, char *path)
 {
     Graph *g = create_graph();
-    Layer *l1 = make_convolutional_layer(32, 3, 1, 3, 1, 0, "relu");
-    Layer *l2 = make_convolutional_layer(48, 3, 1, 3, 1, 0, "relu");
+    Layer *l1 = make_convolutional_layer(32, 3, 1, 3, 1, "relu");
+    Layer *l2 = make_convolutional_layer(48, 3, 1, 3, 1, "relu");
     Layer *l3 = make_maxpool_layer(2, 2, 0);
     Layer *l4 = make_dropout_layer(0.25, 0);
-    Layer *l5 = make_convolutional_layer(80, 3, 1, 3, 1, 0, "relu");
+    Layer *l5 = make_convolutional_layer(80, 3, 1, 3, 1, "relu");
     Layer *l6 = make_maxpool_layer(2, 2, 0);
     Layer *l7 = make_dropout_layer(0.25, 0);
-    Layer *l8 = make_convolutional_layer(128, 3, 1, 3, 1, 0, "relu");
+    Layer *l8 = make_convolutional_layer(128, 3, 1, 3, 1, "relu");
     Layer *l9 = make_global_maxpool_layer();
     Layer *l10 = make_dropout_layer(0.25, 0);
     Layer *l11 = make_connect_layer(500, 1, "relu");
@@ -51,14 +51,14 @@ void lenet5_cifar(char *type, char *path)
 void lenet5_cifar_detect(char*type, char *path)
 {
     Graph *g = create_graph();
-    Layer *l1 = make_convolutional_layer(32, 3, 1, 3, 1, 0, "relu");
-    Layer *l2 = make_convolutional_layer(48, 3, 1, 3, 1, 0, "relu");
+    Layer *l1 = make_convolutional_layer(32, 3, 1, 3, 1, "relu");
+    Layer *l2 = make_convolutional_layer(48, 3, 1, 3, 1, "relu");
     Layer *l3 = make_maxpool_layer(2, 2, 0);
     Layer *l4 = make_dropout_layer(0.25, 0);
-    Layer *l5 = make_convolutional_layer(80, 3, 1, 3, 1, 0, "relu");
+    Layer *l5 = make_convolutional_layer(80, 3, 1, 3, 1, "relu");
     Layer *l6 = make_maxpool_layer(2, 2, 0);
     Layer *l7 = make_dropout_layer(0.25, 0);
-    Layer *l8 = make_convolutional_layer(128, 3, 1, 3, 1, 0, "relu");
+    Layer *l8 = make_convolutional_layer(128, 3, 1, 3, 1, "relu");
     Layer *l9 = make_global_maxpool_layer();
     Layer *l10 = make_dropout_layer(0.25, 0);
     Layer *l11 = make_connect_layer(500, 1, "relu");

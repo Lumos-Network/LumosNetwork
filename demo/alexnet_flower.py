@@ -19,10 +19,10 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-def print_layer_outputs(module, input, output):
+def forward_hook(module, input, output):
     data_f = []
     data = output.tolist()
-    print(output.shape)
+    # print(output.shape)
     with open("./backup/out_py", "wb") as fp:
         for i in range(output.shape[0]):
             # for j in range(output.shape[1]):
@@ -44,6 +44,46 @@ def print_layer_outputs(module, input, output):
         for i in range(len(data_f)):
             fp.write(struct.pack('f', data_f[i]))
         fp.close()
+
+# grad_input 中各部分梯度的‌顺序取决于模块 forward 函数的输入顺序‌：
+# ‌nn.Linear‌（有 bias）：
+# grad_input 顺序：[bias_grad, input_grad, weight_grad]
+# ‌nn.Conv2d‌（有 bias）：
+# grad_input 顺序：[input_grad, weight_grad, bias_grad]
+# ‌nn.ReLU‌（无参数）：
+# grad_input 仅包含：[input_grad]
+def backward_hook(module, grad_input, grad_output):
+    print(grad_output[0].shape)
+    bias_grad = grad_output[0]
+    grad = bias_grad.tolist()
+    with open("./backup/grad_py", "wb") as fp:
+        for i in range(len(grad[0])):
+            for j in range(len(grad[0][0])):
+                for k in range(len(grad[0][0][0])):
+                    fp.write(struct.pack('f', grad[0][i][j][k]))
+        
+        # for i in range(len(grad[0])):
+        #     fp.write(struct.pack('f', grad[0][i]))
+        fp.close()
+    
+    # print(grad_input[0].shape)
+
+def backward_hook_1(module, grad_input, grad_output):
+    print(grad_output[0].shape)
+    bias_grad = grad_output[0]
+    grad = bias_grad.tolist()
+    with open("./backup/grad_py_maxin", "wb") as fp:
+        for i in range(len(grad[0])):
+            for j in range(len(grad[0][0])):
+                for k in range(len(grad[0][0][0])):
+                    fp.write(struct.pack('f', grad[0][i][j][k]))
+        
+        # for i in range(len(grad[0])):
+        #     fp.write(struct.pack('f', grad[0][i]))
+        # print(grad)
+        fp.close()
+    
+    # print(grad_input[0].shape)
 
 class MyDataset(Dataset):
     def __init__(self, txt_path, transform = None, target_transform = None):
@@ -79,18 +119,17 @@ class AlexNet(nn.Module):
         self.l6 = nn.Conv2d(384, 384, kernel_size=3, padding=1)
         self.l7 = nn.Conv2d(384, 256, kernel_size=3, padding=1)
         self.l8 = nn.MaxPool2d(kernel_size=3, stride=2)
-        
+
         # self.l9 = nn.Dropout(p=0.5)
         self.l10 = nn.Linear(256 * 6 * 6, 4096)
         # self.l11 = nn.Dropout(p=0.5)
         self.l12 = nn.Linear(4096, 4096)
         self.l13 = nn.Linear(4096, num_classes)
         
-        self.l14 = nn.Softmax(dim=1)
-        # self.l15 = nn.NLLLoss()
+        self.l14 = nn.CrossEntropyLoss()
     
     # 前向传播：定义数据在网络里的流动路径
-    def forward(self, x):
+    def forward(self, x, labels):
         x = torch.relu(self.l1(x))
         x = self.l2(x)
         x = torch.relu(self.l3(x))
@@ -106,8 +145,8 @@ class AlexNet(nn.Module):
         # x = self.l11(x)
         x = torch.relu(self.l12(x))
         x = self.l13(x)
-        x = self.l14(x)
-        # x = self.l15(x)
+        x = self.l14(x, labels)
+        # x = self.l15(x, labels)
         return x
 
 data_transform = transforms.Compose([
@@ -148,12 +187,14 @@ for i in range(len(data_f)):
     fp.write(struct.pack('f', data_f[i]))
 fp.close()
 
-model.l14.register_forward_hook(print_layer_outputs)
+# model.l14.register_forward_hook(forward_hook)
+model.l3.register_backward_hook(backward_hook)
+# model.l8.register_backward_hook(backward_hook_1)
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # device = torch.device("cpu")
 model.to(device)
-
+# criterion = nn.CrossEntropyLoss()
 
 for epoch in range(num_epochs):
     model.train()
@@ -163,36 +204,60 @@ for epoch in range(num_epochs):
         # 获取输入：图片（inputs）和对应的标签（labels，比如0代表玫瑰，1代表郁金香）
         inputs, labels = data[0].to(device), data[1].to(device)
         optimizer.zero_grad()
-        outputs = model(inputs)
-
+        outputs = model(inputs, labels)
+        # print(labels)
         # loss = criterion(outputs, labels)
-        # print(loss.item())
-        # loss.backward()
-        # optimizer.step()
+        # print(outputs.item())
+        outputs.backward()
+        optimizer.step()
+        print(outputs.item())
+        # running_loss += outputs.item()
+        # 每100个批量打印一次训练情况
+        # if i % 100 == 99:
+        #     print(f'[{epoch + 1}, {i + 1}] loss: {running_loss / 100:.3f}')
+        #     running_loss = 0.0
+        # print("loss: {}".format(outputs.item()))
 
-#         running_loss += loss.item()
-#         # 每100个批量打印一次训练情况
-#         if i % 100 == 99:
-#             print(f'[{epoch + 1}, {i + 1}] loss: {running_loss / 100:.3f}')
-#             running_loss = 0.0
+fp = open("./backup/LWF_py", "wb")
+data_f = []
+for name, param in model.named_parameters():
+    print(f"Layer: {name}, Parameter Shape: {param.shape}") #param.shape [filters, channels, ksize, ksize]  [outputs, inputs]
+    if ("weight" in name and len(param.shape) == 4):
+        data = param.tolist()
+        for i in range(param.shape[0]):
+            for j in range(param.shape[1]):
+                for k in range(param.shape[2]):
+                    data_f += data[i][j][k]
+    if ("weight" in name and len(param.shape) == 2):
+        data = param.tolist()
+        for i in range(param.shape[0]):
+            data_f += data[i]
+    if ("bias" in name):
+        data = param.tolist()
+        data_f += data
+print(len(data_f))
+for i in range(len(data_f)):
+    fp.write(struct.pack('f', data_f[i]))
+fp.close()
+    # if param.grad is not None:
+    #     print(f"Parameter: {name}, Gradient: {param.grad}")
+    # # 每轮训练结束后，在验证集上测试效果
+    # model.eval()  # 评估模式：关闭Dropout
+    # correct = 0  # 正确预测的数量
+    # total = 0    # 总图片数量
     
-#     # 每轮训练结束后，在验证集上测试效果
-#     model.eval()  # 评估模式：关闭Dropout
-#     correct = 0  # 正确预测的数量
-#     total = 0    # 总图片数量
+    # # 验证集不需要计算梯度，节省资源
+    # with torch.no_grad():
+    #     for data in trainloader:
+    #         images, labels = data[0].to(device), data[1].to(device)
+    #         outputs = model(images, labels)
+    #         # 取概率最大的作为预测结果
+    #         _, predicted = torch.max(outputs.data, 1)
+    #         total += labels.size(0)
+    #         correct += (predicted == labels).sum().item()
     
-#     # 验证集不需要计算梯度，节省资源
-#     with torch.no_grad():
-#         for data in trainloader:
-#             images, labels = data[0].to(device), data[1].to(device)
-#             outputs = model(images)
-#             # 取概率最大的作为预测结果
-#             _, predicted = torch.max(outputs.data, 1)
-#             total += labels.size(0)
-#             correct += (predicted == labels).sum().item()
-    
-#     # 打印每轮的验证准确率
-#     print(f'Epoch {epoch + 1}, 验证准确率: {100 * correct / total:.2f}%')
+    # # 打印每轮的验证准确率
+    # print(f'Epoch {epoch + 1}, 验证准确率: {100 * correct / total:.2f}%')
 
 # print('训练完成！')
 

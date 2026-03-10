@@ -1,6 +1,6 @@
 #include "convolutional_layer.h"
 
-Layer *make_convolutional_layer(int filters, int ksize, int stride, int pad, int bias, int normalize, char *active)
+Layer *make_convolutional_layer(int filters, int ksize, int stride, int pad, int bias, char *active)
 {
     Layer *l = malloc(sizeof(Layer));
     l->type = CONVOLUTIONAL;
@@ -9,7 +9,6 @@ Layer *make_convolutional_layer(int filters, int ksize, int stride, int pad, int
     l->stride = stride;
     l->pad = pad;
     l->bias = bias;
-    l->normalize = normalize;
 
     Activation type = load_activate_type(active);
     l->active = type;
@@ -70,7 +69,6 @@ void init_convolutional_layer(Layer *l, int w, int h, int c, int subdivision)
             fill_cpu(l->momentum_bias_v, l->filters, 0, 1);
         }
     }
-    if (l->normalize) init_normalization_layer(l, subdivision);
     if (l->optimizer == SGD){
         l->momentum_kernel_v = calloc(l->filters*l->ksize*l->ksize*l->input_c, sizeof(float));
         fill_cpu(l->momentum_kernel_v, l->filters*l->ksize*l->ksize*l->input_c, 0, 1);
@@ -97,7 +95,7 @@ void weightinit_convolutional_layer(Layer l, FILE *fp)
     else if (initcpt.initype == KAIMING_NORMAL_I) convolutional_kaiming_normal_init(l, initcpt.a, initcpt.mode, initcpt.nonlinearity);
     else convolutional_constant_init(l, 0);
     if (l.bias){
-        fill_cpu(l.bias_weights, l.filters, 0.001, 1);
+        fill_cpu(l.bias_weights, l.filters, 0, 1);
         memcpy(l.update_bias_weights, l.bias_weights, l.filters*sizeof(float));
     }
 }
@@ -115,18 +113,13 @@ void forward_convolutional_layer(Layer l, int num)
         if (l.bias){
             add_bias(output, l.bias_weights, l.filters, l.output_h * l.output_w);
         }
-        if (l.normalize){
-            forward_normalization_layer(l, num);
-        }
         activate_list(output, l.outputs, l.active);
     }
 }
 
 void backward_convolutional_layer(Layer l, int num, float *n_delta)
 {
-    if (l.normalize){
-        backward_normalization_layer(l, num, n_delta);
-    }
+    fill_cpu(l.delta, num*l.inputs, 0, 1);
     for (int i = 0; i < num; ++i){
         int offset_i = i * l.inputs;
         int offset_o = i * l.outputs;
@@ -187,10 +180,10 @@ void convolutional_layer_SGDOptimizer(Layer l, float rate, float momentum, float
     }
     if (maximize){
         saxpy_cpu(l.update_kernel_weights, l.momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, -rate, l.update_kernel_weights);
-        saxpy_cpu(l.update_bias_weights, l.momentum_bias_v, l.outputs, -rate, l.update_bias_weights);
+        saxpy_cpu(l.update_bias_weights, l.momentum_bias_v, l.output_c, -rate, l.update_bias_weights);
     } else {
         saxpy_cpu(l.update_kernel_weights, l.momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, rate, l.update_kernel_weights);
-        saxpy_cpu(l.update_bias_weights, l.momentum_bias_v, l.outputs, rate, l.update_bias_weights);
+        saxpy_cpu(l.update_bias_weights, l.momentum_bias_v, l.output_c, rate, l.update_bias_weights);
     }
 }
 
@@ -200,7 +193,6 @@ void refresh_convolutional_layer_weights(Layer l)
     if (l.bias){
         memcpy(l.bias_weights, l.update_bias_weights, l.filters*sizeof(float));
     }
-    if (l.normalize) refresh_normalization_layer_weights(l);
 }
 
 void save_convolutional_layer_weights(Layer l, FILE *fp)
@@ -208,9 +200,6 @@ void save_convolutional_layer_weights(Layer l, FILE *fp)
     fwrite(l.kernel_weights, sizeof(float), l.ksize*l.ksize*l.filters*l.input_c, fp);
     if (l.bias){
         fwrite(l.bias_weights, sizeof(float), l.filters, fp);
-    }
-    if (l.normalize){
-        save_normalization_layer_weights(l, fp);
     }
 }
 
@@ -223,9 +212,6 @@ void free_convolutional_layer(Layer l)
     if (l.bias){
         free(l.bias_weights);
         free(l.update_bias_weights);
-    }
-    if (l.normalize){
-        free_normalization_layer(l);
     }
 }
 

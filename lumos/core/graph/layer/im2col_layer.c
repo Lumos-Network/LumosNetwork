@@ -56,5 +56,6 @@ void forward_im2col_layer(Layer l, int num)
 
 void backward_im2col_layer(Layer l, int num, float *n_delta)
 {
+    fill_cpu(l.delta, num*l.inputs, 0, 1);
     memcpy(l.delta, n_delta, num*l.inputs*sizeof(float));
 }

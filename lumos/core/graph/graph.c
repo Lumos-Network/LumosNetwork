@@ -23,19 +23,23 @@ void append_layer2grpah(Graph *graph, Layer *l)
     if (graph->head == NULL) graph->head = layer;
 }
 
-void init_graph(Graph *g, int w, int h, int c, int coretype, int subdivision, char *weights_path)
+void init_graph(Graph *g, int w, int h, int c, int coretype, int subdivision, int group, int optimizer, char *weights_path)
 {
     fprintf(stderr, "\nStart To Init Graph\n");
     fprintf(stderr, "[Lumos]                     Inputs         Outputs\n");
     Node *layer = g->head;
     Layer *l;
     FILE *fp = NULL;
+    if (coretype == GPU) cudaMalloc((void**)&g->detect, subdivision*group*sizeof(float));
+    else g->detect = calloc(subdivision*group, sizeof(float));
     if (weights_path){
         fp = fopen(weights_path, "rb");
     }
     for (;;){
         if (layer){
             l = layer->l;
+            l->optimizer = optimizer;
+            l->detect = g->detect;
             if (coretype == GPU){
                 l->initializegpu(l, w, h, c, subdivision);
                 if (l->weightinitgpu) l->weightinitgpu(*l, fp);
@@ -56,7 +60,7 @@ void init_graph(Graph *g, int w, int h, int c, int coretype, int subdivision, ch
     }
 }
 
-void set_graph(Graph *g, float *space, float *truth, float *loss, int optimizer)
+void set_graph(Graph *g, float *space, float *truth, float *loss)
 {
     Node *layer = g->head;
     Layer *l;
@@ -66,7 +70,6 @@ void set_graph(Graph *g, float *space, float *truth, float *loss, int optimizer)
             l->truth = truth;
             l->loss = loss;
             l->workspace = space;
-            l->optimizer = optimizer;
         } else {
             break;
         }
@@ -89,17 +92,7 @@ void forward_graph(Graph *g, float *input, int coretype, int subdivision)
                 l->forward(*l, subdivision);
             }
         } else {
-            FILE *imfp = fopen("./backup/in_c", "wb");
-            fwrite(l->input, sizeof(float), l->inputs, imfp);
-            fclose(imfp);
-            fprintf(stderr, "input finish %ld\n", sizeof(float));
-
-            FILE *fp = fopen("./backup/out_c", "wb");
-            fwrite(l->output, sizeof(float), l->outputs, fp);
-            fclose(fp);
-            fprintf(stderr, "output finish %ld\n", sizeof(float));
             break;
-            // fprintf(stderr, "loss: %f\n", l->output[0]);
         }
         layer = layer->next;
         input = l->output;
@@ -201,8 +194,8 @@ void SGDOptimizer_graph(Graph *g, int coretype, float rate, int subdivision, flo
     for (;;){
         if (layer){
             l = layer->l;
-            if (coretype == GPU && l->updategpu) l->sgdoptimizergpu(*l, rate, momentum, decay, nesterov, maximize, subdivision, n_delta);
-            if (coretype == CPU && l->update) l->sgdoptimizer(*l, rate, momentum, decay, nesterov, maximize, subdivision, n_delta);
+            if (coretype == GPU && l->sgdoptimizergpu) l->sgdoptimizergpu(*l, rate, momentum, decay, nesterov, maximize, subdivision, n_delta);
+            if (coretype == CPU && l->sgdoptimizer) l->sgdoptimizer(*l, rate, momentum, decay, nesterov, maximize, subdivision, n_delta);
         } else {
             break;
         }

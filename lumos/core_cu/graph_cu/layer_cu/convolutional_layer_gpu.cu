@@ -26,7 +26,6 @@ void init_convolutional_layer_gpu(Layer *l, int w, int h, int c, int subdivision
             fill_gpu(l->momentum_bias_v, l->filters, 0, 1);
         }
     }
-    if (l->normalize) init_normalization_layer_gpu(l, subdivision);
     if (l->optimizer == SGD){
         cudaMalloc((void**)&l->momentum_kernel_v, l->filters*l->ksize*l->ksize*l->input_c*sizeof(float));
         fill_gpu(l->momentum_kernel_v, l->filters*l->ksize*l->ksize*l->input_c, 0, 1);
@@ -60,7 +59,7 @@ void weightinit_convolutional_layer_gpu(Layer l, FILE *fp)
     else convolutional_constant_init_gpu(l, 0);
     if (l.bias){
         float *bias_weights = (float*)calloc(l.filters, sizeof(float));
-        fill_cpu(bias_weights, l.filters, 0.001, 1);
+        fill_cpu(bias_weights, l.filters, 0, 1);
         cudaMemcpy(l.bias_weights, bias_weights, l.filters*sizeof(float), cudaMemcpyHostToDevice);
         cudaMemcpy(l.update_bias_weights, bias_weights, l.filters*sizeof(float), cudaMemcpyHostToDevice);
         free(bias_weights);
@@ -80,18 +79,13 @@ void forward_convolutional_layer_gpu(Layer l, int num)
         if (l.bias){
             add_bias_gpu(output, l.bias_weights, l.filters, l.output_h * l.output_w);
         }
-        if (l.normalize){
-            forward_normalization_layer_gpu(l, num);
-        }
         activate_list_gpu(output, l.outputs, l.active);
     }
 }
 
 void backward_convolutional_layer_gpu(Layer l, int num, float *n_delta)
 {
-    if (l.normalize){
-        backward_normalization_layer_gpu(l, num, n_delta);
-    }
+    fill_gpu(l.delta, num*l.inputs, 0, 1);
     for (int i = 0; i < num; ++i){
         int offset_i = i * l.inputs;
         int offset_o = i * l.outputs;
@@ -164,7 +158,6 @@ void refresh_convolutional_layer_weights_gpu(Layer l)
     if (l.bias){
         cudaMemcpy(l.bias_weights, l.update_bias_weights, l.filters*sizeof(float), cudaMemcpyDeviceToDevice);
     }
-    if (l.normalize) refresh_normalization_layer_weights_gpu(l);
 }
 
 void save_convolutional_layer_weights_gpu(Layer l, FILE *fp)
@@ -179,9 +172,6 @@ void save_convolutional_layer_weights_gpu(Layer l, FILE *fp)
         fwrite(bias_weights, sizeof(float), l.filters, fp);
         free(bias_weights);
     }
-    if (l.normalize){
-        save_normalization_layer_weights_gpu(l, fp);
-    }
 }
 
 void free_convolutional_layer_gpu(Layer l)
@@ -193,9 +183,6 @@ void free_convolutional_layer_gpu(Layer l)
     if (l.bias){
         cudaFree(l.bias_weights);
         cudaFree(l.update_bias_weights);
-    }
-    if (l.normalize){
-        free_normalization_layer_gpu(l);
     }
 }
 

@@ -35,6 +35,7 @@ void forward_avgpool_layer_gpu(Layer l, int num)
 
 void backward_avgpool_layer_gpu(Layer l, int num, float *n_delta)
 {
+    fill_gpu(l.delta, num*l.inputs, 0, 1);
     for (int i = 0; i < num; ++i)
     {
         int offset_i = i * l.inputs;
