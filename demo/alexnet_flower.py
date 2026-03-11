@@ -108,7 +108,7 @@ class MyDataset(Dataset):
         return len(self.imgs)
 
 class AlexNet(nn.Module):
-    def __init__(self, num_classes=5):  # num_classes：类别数，默认1000（ImageNet）
+    def __init__(self, num_classes=2):  # num_classes：类别数，默认1000（ImageNet）
         super(AlexNet, self).__init__()
         # 卷积部分：5层卷积+3层池化
         self.l1 = nn.Conv2d(3, 96, kernel_size=11, stride=4, padding=2)  # 输入3通道，输出96通道
@@ -162,108 +162,108 @@ train_data = MyDataset('./data/flower/train_test.txt', transform=data_transform)
 trainloader = torch.utils.data.DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
 
 model = AlexNet(num_classes=5)
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)  # lr是学习率，控制更新速度
-
-fp = open("./backup/LW_py", "wb")
-data_f = []
-for name, param in model.named_parameters():
-    # print(f"Layer: {name}, Parameter Shape: {param.shape}") #param.shape [filters, channels, ksize, ksize]  [outputs, inputs]
-    if ("weight" in name and len(param.shape) == 4):
-        data = param.tolist()
-        for i in range(param.shape[0]):
-            for j in range(param.shape[1]):
-                for k in range(param.shape[2]):
-                    data_f += data[i][j][k]
-    if ("weight" in name and len(param.shape) == 2):
-        data = param.tolist()
-        for i in range(param.shape[0]):
-            data_f += data[i]
-    if ("bias" in name):
-        data = param.tolist()
-        data_f += data
-print(len(data_f))
-for i in range(len(data_f)):
-    fp.write(struct.pack('f', data_f[i]))
-fp.close()
-
-# model.l14.register_forward_hook(forward_hook)
-model.l3.register_backward_hook(backward_hook)
-# model.l8.register_backward_hook(backward_hook_1)
-
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-# device = torch.device("cpu")
-model.to(device)
 # criterion = nn.CrossEntropyLoss()
+# optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)  # lr是学习率，控制更新速度
 
-for epoch in range(num_epochs):
-    model.train()
-    running_loss = 0.0  # 记录每轮的损失
-
-    for i, data in enumerate(trainloader, 0):
-        # 获取输入：图片（inputs）和对应的标签（labels，比如0代表玫瑰，1代表郁金香）
-        inputs, labels = data[0].to(device), data[1].to(device)
-        optimizer.zero_grad()
-        outputs = model(inputs, labels)
-        # print(labels)
-        # loss = criterion(outputs, labels)
-        # print(outputs.item())
-        outputs.backward()
-        optimizer.step()
-        print(outputs.item())
-        # running_loss += outputs.item()
-        # 每100个批量打印一次训练情况
-        # if i % 100 == 99:
-        #     print(f'[{epoch + 1}, {i + 1}] loss: {running_loss / 100:.3f}')
-        #     running_loss = 0.0
-        # print("loss: {}".format(outputs.item()))
-
-fp = open("./backup/LWF_py", "wb")
-data_f = []
+# fp = open("./backup/LW_py", "wb")
+# data_f = []
 for name, param in model.named_parameters():
     print(f"Layer: {name}, Parameter Shape: {param.shape}") #param.shape [filters, channels, ksize, ksize]  [outputs, inputs]
-    if ("weight" in name and len(param.shape) == 4):
-        data = param.tolist()
-        for i in range(param.shape[0]):
-            for j in range(param.shape[1]):
-                for k in range(param.shape[2]):
-                    data_f += data[i][j][k]
-    if ("weight" in name and len(param.shape) == 2):
-        data = param.tolist()
-        for i in range(param.shape[0]):
-            data_f += data[i]
-    if ("bias" in name):
-        data = param.tolist()
-        data_f += data
-print(len(data_f))
-for i in range(len(data_f)):
-    fp.write(struct.pack('f', data_f[i]))
-fp.close()
-    # if param.grad is not None:
-    #     print(f"Parameter: {name}, Gradient: {param.grad}")
-    # # 每轮训练结束后，在验证集上测试效果
-    # model.eval()  # 评估模式：关闭Dropout
-    # correct = 0  # 正确预测的数量
-    # total = 0    # 总图片数量
-    
-    # # 验证集不需要计算梯度，节省资源
-    # with torch.no_grad():
-    #     for data in trainloader:
-    #         images, labels = data[0].to(device), data[1].to(device)
-    #         outputs = model(images, labels)
-    #         # 取概率最大的作为预测结果
-    #         _, predicted = torch.max(outputs.data, 1)
-    #         total += labels.size(0)
-    #         correct += (predicted == labels).sum().item()
-    
-    # # 打印每轮的验证准确率
-    # print(f'Epoch {epoch + 1}, 验证准确率: {100 * correct / total:.2f}%')
+#     if ("weight" in name and len(param.shape) == 4):
+#         data = param.tolist()
+#         for i in range(param.shape[0]):
+#             for j in range(param.shape[1]):
+#                 for k in range(param.shape[2]):
+#                     data_f += data[i][j][k]
+#     if ("weight" in name and len(param.shape) == 2):
+#         data = param.tolist()
+#         for i in range(param.shape[0]):
+#             data_f += data[i]
+#     if ("bias" in name):
+#         data = param.tolist()
+#         data_f += data
+# print(len(data_f))
+# for i in range(len(data_f)):
+#     fp.write(struct.pack('f', data_f[i]))
+# fp.close()
 
-# print('训练完成！')
+# # model.l14.register_forward_hook(forward_hook)
+# model.l3.register_backward_hook(backward_hook)
+# # model.l8.register_backward_hook(backward_hook_1)
 
-# # 保存训练好的模型，方便后续使用
-# torch.save(model.state_dict(), 'alexnet_flower.pth')
-# print('模型已保存为 alexnet_flower.pth')
+# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# # device = torch.device("cpu")
+# model.to(device)
+# # criterion = nn.CrossEntropyLoss()
+
+# for epoch in range(num_epochs):
+#     model.train()
+#     running_loss = 0.0  # 记录每轮的损失
+
+#     for i, data in enumerate(trainloader, 0):
+#         # 获取输入：图片（inputs）和对应的标签（labels，比如0代表玫瑰，1代表郁金香）
+#         inputs, labels = data[0].to(device), data[1].to(device)
+#         optimizer.zero_grad()
+#         outputs = model(inputs, labels)
+#         # print(labels)
+#         # loss = criterion(outputs, labels)
+#         # print(outputs.item())
+#         outputs.backward()
+#         optimizer.step()
+#         print(outputs.item())
+#         # running_loss += outputs.item()
+#         # 每100个批量打印一次训练情况
+#         # if i % 100 == 99:
+#         #     print(f'[{epoch + 1}, {i + 1}] loss: {running_loss / 100:.3f}')
+#         #     running_loss = 0.0
+#         # print("loss: {}".format(outputs.item()))
+
+# fp = open("./backup/LWF_py", "wb")
+# data_f = []
+# for name, param in model.named_parameters():
+#     print(f"Layer: {name}, Parameter Shape: {param.shape}") #param.shape [filters, channels, ksize, ksize]  [outputs, inputs]
+#     if ("weight" in name and len(param.shape) == 4):
+#         data = param.tolist()
+#         for i in range(param.shape[0]):
+#             for j in range(param.shape[1]):
+#                 for k in range(param.shape[2]):
+#                     data_f += data[i][j][k]
+#     if ("weight" in name and len(param.shape) == 2):
+#         data = param.tolist()
+#         for i in range(param.shape[0]):
+#             data_f += data[i]
+#     if ("bias" in name):
+#         data = param.tolist()
+#         data_f += data
+# print(len(data_f))
+# for i in range(len(data_f)):
+#     fp.write(struct.pack('f', data_f[i]))
+# fp.close()
+#     # if param.grad is not None:
+#     #     print(f"Parameter: {name}, Gradient: {param.grad}")
+#     # # 每轮训练结束后，在验证集上测试效果
+#     # model.eval()  # 评估模式：关闭Dropout
+#     # correct = 0  # 正确预测的数量
+#     # total = 0    # 总图片数量
+    
+#     # # 验证集不需要计算梯度，节省资源
+#     # with torch.no_grad():
+#     #     for data in trainloader:
+#     #         images, labels = data[0].to(device), data[1].to(device)
+#     #         outputs = model(images, labels)
+#     #         # 取概率最大的作为预测结果
+#     #         _, predicted = torch.max(outputs.data, 1)
+#     #         total += labels.size(0)
+#     #         correct += (predicted == labels).sum().item()
+    
+#     # # 打印每轮的验证准确率
+#     # print(f'Epoch {epoch + 1}, 验证准确率: {100 * correct / total:.2f}%')
+
+# # print('训练完成！')
+
+# # # 保存训练好的模型，方便后续使用
+# # torch.save(model.state_dict(), 'alexnet_flower.pth')
+# # print('模型已保存为 alexnet_flower.pth')
 
 
 

@@ -90,10 +90,14 @@ void weightinit_connect_layer(Layer l, FILE *fp)
     else if (initcpt.initype == NORMAL_I) connect_normal_init(l, initcpt.mean, initcpt.std);
     else if (initcpt.initype == UNIFORM_I) connect_uniform_init(l, initcpt.min, initcpt.max);
     else if (initcpt.initype == KAIMING_NORMAL_I) connect_kaiming_normal_init(l, initcpt.a, initcpt.mode, initcpt.nonlinearity);
-    else if (initcpt.initype == KAIMING_UNIFORM_I) connect_kaiming_uniform_init(l, initcpt.a, initcpt.mode, initcpt.nonlinearity);
+    else if (initcpt.initype == KAIMING_UNIFORM_I) connect_kaiming_uniform_init(l, sqrt(5.0), initcpt.mode, initcpt.nonlinearity);
     else connect_constant_init(l, 0);
     if (l.bias){
-        fill_cpu(l.bias_weights, l.outputs, 0, 1);
+        float fan = l.inputs;
+        float bound = 1 / sqrt(fan);
+        for (int i = 0; i < l.outputs; ++i){
+            l.bias_weights[i] = rand_uniform(-bound, bound);
+        }
         memcpy(l.update_bias_weights, l.bias_weights, l.outputs*sizeof(float));
     }
 }
@@ -246,16 +250,23 @@ void connect_kaiming_normal_init(Layer l, float a, char *mode, char *nonlinearit
 
 void connect_kaiming_uniform_init(Layer l, float a, char *mode, char *nonlinearity)
 {
-    if (0 == strcmp(nonlinearity, "relu")) a = 0;
-    else if (0 == strcmp(nonlinearity, "leaky relu")) a = 0.1;
-    else a = 0;
-    int num = 0;
-    if (0 == strcmp(mode, "fan_in")) num = l.inputs;
-    else if (0 == strcmp(mode, "fan_out")) num = l.outputs;
-    else num = l.inputs;
-    float scale = sqrt((float)2/((1+a*a)*num));
+    float fan = 0;
+    float std = 0;
+    float bound = 0;
+    if (0 == strcmp(mode, "fan_in")) fan = l.inputs;
+    else if (0 == strcmp(mode, "fan_out")) fan = l.outputs;
+    if (0 == strcmp(nonlinearity, "sigmoid")) a= 1;
+    else if (0 == strcmp(nonlinearity, "tanh")) a = 5.0/3;
+    else if (0 == strcmp(nonlinearity, "relu")) a = sqrt(2.0);
+    else if (0 == strcmp(nonlinearity, "leaky_relu")){
+        if (a == 0) a = 0.01;
+        a = sqrt(2.0 / (1 + a*a));
+    }
+    else if (0 == strcmp(nonlinearity, "selu")) a = 3.0 / 4;
+    std = a / sqrt(fan);
+    bound = sqrt(3.0) * std;
     for (int i = 0; i < l.inputs*l.outputs; ++i){
-        l.kernel_weights[i] = scale*rand_uniform(-1, 1);
+        l.kernel_weights[i] = rand_uniform(-bound, bound);
     }
     memcpy(l.update_kernel_weights, l.kernel_weights, l.inputs*l.outputs*sizeof(float));
 }

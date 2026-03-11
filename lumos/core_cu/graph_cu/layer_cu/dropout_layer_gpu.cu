@@ -80,7 +80,8 @@ void dropout_gpu(Layer l, int num)
 void dropout_gradient_gpu(Layer l, int num, float *n_delta)
 {
     int size = num * l.inputs;
-    float scale = 1. / (1.-l.probability);
+    float scale = 1;
+    if (l.inplace) scale = 1. / (1.-l.probability);
     dropout_gradient_kernel<<<(size+BLOCK-1)/BLOCK, BLOCK>>>(l, num, n_delta, scale);
 }
 

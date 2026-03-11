@@ -19,11 +19,10 @@ void uniform_list(float a, float b, int num, float *space);
 void guass_list(float mean, float sigma, int seed, int num, float *space);
 void normal_list(int num, float *space);
 void uniform_int_list(int a, int b, int num, float *space);
+double generate_normal(double mu, double sigma);
 
 float rand_normal();
 float rand_uniform(float min, float max);
-float rand_normal();
-double generate_normal(double mu, double sigma);
 
 #ifdef  __cplusplus
 }

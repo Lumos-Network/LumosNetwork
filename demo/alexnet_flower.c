@@ -31,15 +31,15 @@ void alexnet_flower(char *type, char *path)
     append_layer2grpah(g, l12);
     append_layer2grpah(g, l13);
     append_layer2grpah(g, l14);
-    init_kaiming_normal(l1, 0, "fan_in", "relu");
-    init_kaiming_normal(l3, 0, "fan_in", "relu");
-    init_kaiming_normal(l5, 0, "fan_in", "relu");
-    init_kaiming_normal(l6, 0, "fan_in", "relu");
-    init_kaiming_normal(l7, 0, "fan_in", "relu");
+    init_kaiming_uniform(l1, 0, "fan_in", "leaky_relu");
+    init_kaiming_uniform(l3, 0, "fan_in", "leaky_relu");
+    init_kaiming_uniform(l5, 0, "fan_in", "leaky_relu");
+    init_kaiming_uniform(l6, 0, "fan_in", "leaky_relu");
+    init_kaiming_uniform(l7, 0, "fan_in", "leaky_relu");
 
-    init_kaiming_uniform(l10, 0, "fan_in", "relu");
-    init_kaiming_uniform(l12, 0, "fan_in", "relu");
-    init_kaiming_uniform(l13, 0, "fan_in", "linear");
+    init_kaiming_uniform(l10, 0, "fan_in", "leaky_relu");
+    init_kaiming_uniform(l12, 0, "fan_in", "leaky_relu");
+    init_kaiming_uniform(l13, 0, "fan_in", "leaky_relu");
     Session *sess = create_session(g, 224, 224, 3, 5, type, path);
     float *mean = calloc(3, sizeof(float));
     float *std = calloc(3, sizeof(float));

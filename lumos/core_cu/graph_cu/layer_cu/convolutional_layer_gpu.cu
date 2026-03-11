@@ -56,10 +56,15 @@ void weightinit_convolutional_layer_gpu(Layer l, FILE *fp)
     if (initcpt.initype == CONSTANT_I) convolutional_constant_init_gpu(l, initcpt.x);
     else if (initcpt.initype == NORMAL_I) convolutional_normal_init_gpu(l, initcpt.mean, initcpt.std);
     else if (initcpt.initype == KAIMING_NORMAL_I) convolutional_kaiming_normal_init_gpu(l, initcpt.a, initcpt.mode, initcpt.nonlinearity);
+    else if (initcpt.initype == KAIMING_UNIFORM_I) convolutional_kaiming_uniform_init_gpu(l, sqrt(5.0), initcpt.mode, initcpt.nonlinearity);
     else convolutional_constant_init_gpu(l, 0);
     if (l.bias){
         float *bias_weights = (float*)calloc(l.filters, sizeof(float));
-        fill_cpu(bias_weights, l.filters, 0, 1);
+        float fan = l.input_c*l.ksize*l.ksize;
+        float bound = 1 / sqrt(fan);
+        for (int i = 0; i < l.filters; ++i){
+            bias_weights[i] = rand_uniform(-bound, bound);
+        }
         cudaMemcpy(l.bias_weights, bias_weights, l.filters*sizeof(float), cudaMemcpyHostToDevice);
         cudaMemcpy(l.update_bias_weights, bias_weights, l.filters*sizeof(float), cudaMemcpyHostToDevice);
         free(bias_weights);
@@ -222,6 +227,32 @@ void convolutional_kaiming_normal_init_gpu(Layer l, float a, char *mode, char *n
     }
     for (int i = 1; i < l.filters; ++i){
         memcpy(kernel_weights+i*(l.ksize*l.ksize*l.input_c), kernel_weights, l.ksize*l.ksize*l.input_c*sizeof(float));
+    }
+    cudaMemcpy(l.kernel_weights, kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(l.update_kernel_weights, kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float), cudaMemcpyHostToDevice);
+    free(kernel_weights);
+}
+
+void convolutional_kaiming_uniform_init_gpu(Layer l, float a, char *mode, char *nonlinearity)
+{
+    float fan = 0;
+    float std = 0;
+    float bound = 0;
+    float *kernel_weights = (float*)calloc(l.filters*l.ksize*l.ksize*l.input_c, sizeof(float));
+    if (0 == strcmp(mode, "fan_in")) fan = l.ksize*l.ksize*l.input_c;
+    else if (0 == strcmp(mode, "fan_out")) fan = l.ksize*l.ksize*l.filters;
+    if (0 == strcmp(nonlinearity, "sigmoid")) a= 1;
+    else if (0 == strcmp(nonlinearity, "tanh")) a = 5.0/3;
+    else if (0 == strcmp(nonlinearity, "relu")) a = sqrt(2.0);
+    else if (0 == strcmp(nonlinearity, "leaky_relu")){
+        if (a == 0) a = 0.01;
+        a = sqrt(2.0 / (1 + a*a));
+    }
+    else if (0 == strcmp(nonlinearity, "selu")) a = 3.0 / 4;
+    std = a / sqrt(fan);
+    bound = sqrt(3.0) * std;
+    for (int i = 0; i < l.filters*l.ksize*l.ksize*l.input_c; ++i){
+        kernel_weights[i] = rand_uniform(-bound, bound);
     }
     cudaMemcpy(l.kernel_weights, kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(l.update_kernel_weights, kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float), cudaMemcpyHostToDevice);
