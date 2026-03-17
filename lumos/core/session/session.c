@@ -200,13 +200,14 @@ void train(Session *sess)
                 }
                 if (sess->coretype == CPU) {
                     loss[0] += sess->loss[0];
+                    loss[1] = sess->loss[0];
                 } else{
                     cudaMemcpy(loss+1, sess->loss, sizeof(float), cudaMemcpyDeviceToHost);
                     loss[0] += loss[1];
                 }
-                progress_bar(j * sub_batchs + k + 1, sub_epochs * sub_batchs);
             }
             refresh_graph(sess->graph, sess->coretype);
+            fprintf(stderr, "%d/%d    Loss:%f\n", j, sub_epochs, loss[1]);
         }
         fprintf(stderr, " AvgLoss:%f", loss[0]/(sub_epochs * sub_batchs));
     }
@@ -225,7 +226,7 @@ void detect_classification(Session *sess)
     int num = 0;
     float *truth = NULL;
     float *detect = NULL;
-    float *loss = NULL;
+    float *loss = calloc(1, sizeof(float));
     Graph *g = sess->graph;
     g->status = 0;
     Node *layer = g->tail;
@@ -233,7 +234,6 @@ void detect_classification(Session *sess)
     if (sess->coretype == GPU){
         truth = calloc(sess->truth_num, sizeof(float));
         detect = calloc(sess->truth_num, sizeof(float));
-        loss = calloc(1, sizeof(float));
     }
     for (int i = 0; i < sess->train_data_num; ++i){
         load_train_data_binary(sess, i);
@@ -242,18 +242,24 @@ void detect_classification(Session *sess)
         if (sess->coretype == GPU){
             cudaMemcpy(truth, l->truth, sess->truth_num*sizeof(float), cudaMemcpyDeviceToHost);
             cudaMemcpy(detect, l->detect, sess->truth_num*sizeof(float), cudaMemcpyDeviceToHost);
-            cudaMemcpy(loss, l->loss, sizeof(float), cudaMemcpyDeviceToHost);
+            cudaMemcpy(loss, sess->loss, sizeof(float), cudaMemcpyDeviceToHost);
         } else {
             truth = l->truth;
             detect = l->detect;
-            loss = l->loss;
+            loss[0] = sess->loss[0];
         }
         fprintf(stderr, "%s\n", sess->train_data_paths[i]);
         fprintf(stderr, "Truth     Detect\n");
+        float max = -FLT_MAX;
+        int index = -1;
         for (int j = 0; j < sess->truth_num; ++j){
             fprintf(stderr, "%.3f %.3f\n", truth[j], detect[j]);
-            if (truth[j] == 1 && detect[j] > 0.5) num += 1;
+            if (detect[j] > max){
+                index = j;
+                max = detect[j];
+            }
         }
+        if (truth[index] == 1) num += 1;
         fprintf(stderr, "Loss:%.4f\n\n", loss[0]);
     }
     free_graph(g, sess->coretype);

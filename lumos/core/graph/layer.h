@@ -121,7 +121,6 @@ struct layer{
     int bias;
     // dropout 占比
     float probability;
-    int inplace;
 
     float *detect; //预测值
 

@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <float.h>
 
 #include "graph.h"
 #include "text_f.h"

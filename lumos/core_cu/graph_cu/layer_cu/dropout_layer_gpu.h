@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "gpu.h"
 #include "layer.h"
@@ -16,6 +17,7 @@
 #include "gemm_gpu.h"
 #include "im2col_gpu.h"
 #include "bias_gpu.h"
+#include "random.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -17,7 +17,11 @@ void init_dropout_layer_gpu(Layer *l, int w, int h, int c, int subdivision)
     cudaMalloc((void**)&l->output, subdivision*l->outputs*sizeof(float));
     cudaMalloc((void**)&l->delta, subdivision*l->inputs*sizeof(float));
     cudaMalloc((void**)&l->dropout_rand, subdivision*l->inputs*sizeof(float));
-
+    float *rand_l = (float*)calloc(l->outputs, sizeof(float));
+    for (int i = 0; i < l->outputs; ++i){
+        rand_l[i] = rand_uniform(0, 1);
+    }
+    cudaMemcpy(l->dropout_rand, rand_l, l->outputs*sizeof(float), cudaMemcpyHostToDevice);
     fprintf(stderr, "Dropout         Layer\n");
 }
 
@@ -27,35 +31,25 @@ void forward_dropout_layer_gpu(Layer l, int num)
         cudaMemcpy(l.output, l.input, num*l.inputs*sizeof(float), cudaMemcpyDeviceToDevice);
         return;
     }
+    float *dropout_rand = (float*)calloc(num*l.inputs, sizeof(float));
+    for (int i = 0; i < num*l.inputs; ++i){
+        dropout_rand[i] = rand_uniform(0, 1);
+    }
+    cudaMemcpy(l.dropout_rand, dropout_rand, num*l.inputs*sizeof(float), cudaMemcpyHostToDevice);
     dropout_gpu(l, num);
 }
 
 void backward_dropout_layer_gpu(Layer l, int num, float *n_delta)
 {
     fill_gpu(l.delta, num*l.inputs, 0, 1);
-    if (!l.status){
-        cudaMemcpy(l.delta, n_delta, num*l.inputs*sizeof(float), cudaMemcpyDeviceToDevice);
-        return;
-    }
     dropout_gradient_gpu(l, num, n_delta);
-}
-
-__device__ float rand_uniform_gpu(float a, float b, int seed)
-{
-	float t;
-	seed = 2045.0 * seed + 1;
-	seed = seed - (seed / 1048576) * 1048576;
-	t = seed / 1048576.0;
-	t = a + (b - a) * t;
-	return t;
 }
 
 __global__ void dropout_kernel(Layer l, int num, float scale)
 {
     int index = threadIdx.x + blockIdx.x * blockDim.x;
     if (index >= num*l.inputs) return;
-    float r = rand_uniform_gpu(0, 1, index);
-    l.dropout_rand[index] = r;
+    float r = l.dropout_rand[index];
     if (r < l.probability) l.output[index] = 0;
     else l.output[index] = l.input[index] * scale;
 }
@@ -72,16 +66,14 @@ __global__ void dropout_gradient_kernel(Layer l, int num, float *n_delta, float 
 void dropout_gpu(Layer l, int num)
 {
     int size = num * l.inputs;
-    float scale = 1;
-    if (l.inplace) scale = 1. / (1.-l.probability);
+    float scale = 1. / (1.-l.probability);
     dropout_kernel<<<(size+BLOCK-1)/BLOCK, BLOCK>>>(l, num, scale);
 }
 
 void dropout_gradient_gpu(Layer l, int num, float *n_delta)
 {
     int size = num * l.inputs;
-    float scale = 1;
-    if (l.inplace) scale = 1. / (1.-l.probability);
+    float scale = 1. / (1.-l.probability);
     dropout_gradient_kernel<<<(size+BLOCK-1)/BLOCK, BLOCK>>>(l, num, n_delta, scale);
 }
 

@@ -83,7 +83,7 @@ void init_crossentropy_layer(Layer *l, int w, int h, int c, int subdivision)
     l->output = calloc(subdivision*l->outputs, sizeof(float));
     l->delta = calloc(subdivision*l->inputs, sizeof(float));
 
-    fprintf(stderr, "CrossEntropy   Layer    %3d*%3d*%3d ==> %3d*%3d*%3d\n", \
+    fprintf(stderr, "CrossEntropy    Layer    %3d*%3d*%3d ==> %3d*%3d*%3d\n", \
             l->input_w, l->input_h, l->input_c, l->output_w, l->output_h, l->output_c);
 }
 

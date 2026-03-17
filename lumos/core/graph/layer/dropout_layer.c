@@ -1,11 +1,10 @@
 #include "dropout_layer.h"
 
-Layer *make_dropout_layer(float probability, int inplace)
+Layer *make_dropout_layer(float probability)
 {
     Layer *l = malloc(sizeof(Layer));
     l->type = DROPOUT;
     l->probability = probability;
-    l->inplace = inplace;
 
     l->initialize = init_dropout_layer;
     l->forward = forward_dropout_layer;
@@ -60,12 +59,11 @@ void init_dropout_layer(Layer *l, int w, int h, int c, int subdivision)
 
 void forward_dropout_layer(Layer l, int num)
 {
-    float scale = 1;
     if (!l.status){
         memcpy(l.output, l.input, num*l.inputs*sizeof(float));
         return;
     }
-    if (l.inplace) scale = 1. / (1.-l.probability);
+    float scale = 1. / (1.-l.probability);
     for (int i = 0; i < num*l.inputs; ++i){
         float r = rand_uniform(0, 1);
         l.dropout_rand[i] = r;
@@ -77,13 +75,8 @@ void forward_dropout_layer(Layer l, int num)
 
 void backward_dropout_layer(Layer l, int num, float *n_delta)
 {
-    if (!l.status){
-        memcpy(l.delta, n_delta, num*l.inputs*sizeof(float));
-        return;
-    }
     fill_cpu(l.delta, num*l.inputs, 0, 1);
-    float scale = 1;
-    if (l.inplace) scale = 1. / (1.-l.probability);
+    float scale = 1. / (1.-l.probability);
     for (int i = 0; i < num*l.inputs; ++i){
         float r = l.dropout_rand[i];
         if (r < l.probability) l.delta[i] = 0;
