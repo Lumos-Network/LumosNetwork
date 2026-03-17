@@ -20,12 +20,12 @@ void lenet5_mnist(char *type, char *path)
     append_layer2grpah(g, l7);
     append_layer2grpah(g, l8);
 
-    init_kaiming_uniform(l1, 0, "fan_in", "leaky_relu"); //默认使用leaky relu
-    init_kaiming_uniform(l3, 0, "fan_in", "leaky_relu");
-    init_kaiming_uniform(l5, 0, "fan_in", "leaky_relu");
+    init_kaiming_uniform(l1, sqrt(5.0), "fan_in", "leaky_relu"); //默认使用leaky relu
+    init_kaiming_uniform(l3, sqrt(5.0), "fan_in", "leaky_relu");
+    init_kaiming_uniform(l5, sqrt(5.0), "fan_in", "leaky_relu");
 
-    init_kaiming_uniform(l6, 0, "fan_in", "leaky_relu");
-    init_kaiming_uniform(l7, 0, "fan_in", "leaky_relu");
+    init_kaiming_uniform(l6, sqrt(5.0), "fan_in", "leaky_relu");
+    init_kaiming_uniform(l7, sqrt(5.0), "fan_in", "leaky_relu");
 
     Session *sess = create_session(g, 32, 32, 1, 10, type, path);
     set_train_params(sess, 10, 16, 16, 0.001);

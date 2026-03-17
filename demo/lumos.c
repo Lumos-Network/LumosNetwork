@@ -1,7 +1,6 @@
 #include "lenet5_mnist.h"
 #include "xor.h"
 #include "lenet5_fmnist.h"
-#include "alexnet_dvc.h"
 #include "alexnet_flower.h"
 #include "image.h"
 
@@ -23,9 +22,6 @@ int main()
 
     // alexnet_flower("gpu", NULL);
     // alexnet_flower_detect("gpu", "./backup/LW_f");
-
-    alexnet_dvc("gpu", NULL);
-    alexnet_dvc_detect("gpu", "./backup/LW_f");
 
     // alexnet_xray("gpu", NULL);
     // alexnet_xray_detect("gpu", "./backup/LW_f");

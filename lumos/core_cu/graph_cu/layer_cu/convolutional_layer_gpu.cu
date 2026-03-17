@@ -56,7 +56,7 @@ void weightinit_convolutional_layer_gpu(Layer l, FILE *fp)
     if (initcpt.initype == CONSTANT_I) convolutional_constant_init_gpu(l, initcpt.x);
     else if (initcpt.initype == NORMAL_I) convolutional_normal_init_gpu(l, initcpt.mean, initcpt.std);
     else if (initcpt.initype == KAIMING_NORMAL_I) convolutional_kaiming_normal_init_gpu(l, initcpt.a, initcpt.mode, initcpt.nonlinearity);
-    else if (initcpt.initype == KAIMING_UNIFORM_I) convolutional_kaiming_uniform_init_gpu(l, sqrt(5.0), initcpt.mode, initcpt.nonlinearity);
+    else if (initcpt.initype == KAIMING_UNIFORM_I) convolutional_kaiming_uniform_init_gpu(l, initcpt.a, initcpt.mode, initcpt.nonlinearity);
     else convolutional_constant_init_gpu(l, 0);
     if (l.bias){
         float *bias_weights = (float*)calloc(l.filters, sizeof(float));

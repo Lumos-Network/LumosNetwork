@@ -19,7 +19,7 @@
 extern "C" {
 #endif
 
-void init_normalization_layer_gpu(Layer *l, int subdivision);
+void init_normalization_layer_gpu(Layer *l, int w, int h, int c, int subdivision);
 void weightinit_normalization_layer_gpu(Layer l, FILE *fp);
 
 void forward_normalization_layer_gpu(Layer l, int num);

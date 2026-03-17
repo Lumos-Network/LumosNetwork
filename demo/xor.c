@@ -11,9 +11,9 @@ void xor(char *type, char *path)
     append_layer2grpah(g, l2);
     append_layer2grpah(g, l3);
     append_layer2grpah(g, l4);
-    init_kaiming_uniform(l1, 0, "fan_in", "leaky_relu");
-    init_kaiming_uniform(l2, 0, "fan_in", "leaky_relu");
-    init_kaiming_uniform(l3, 0, "fan_in", "leaky_relu");
+    init_kaiming_uniform(l1, sqrt(5.0), "fan_in", "leaky_relu");
+    init_kaiming_uniform(l2, sqrt(5.0), "fan_in", "leaky_relu");
+    init_kaiming_uniform(l3, sqrt(5.0), "fan_in", "leaky_relu");
     Session *sess = create_session(g, 1, 2, 1, 2, type, path);
     set_train_params(sess, 50, 4, 4, 0.1);
     SGDOptimizer_sess(sess, 0.9, 0, 0, 0, 0);

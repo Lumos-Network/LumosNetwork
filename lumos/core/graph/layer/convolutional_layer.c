@@ -93,7 +93,7 @@ void weightinit_convolutional_layer(Layer l, FILE *fp)
     if (initcpt.initype == CONSTANT_I) convolutional_constant_init(l, initcpt.x);
     else if (initcpt.initype == NORMAL_I) convolutional_normal_init(l, initcpt.mean, initcpt.std);
     else if (initcpt.initype == KAIMING_NORMAL_I) convolutional_kaiming_normal_init(l, initcpt.a, initcpt.mode, initcpt.nonlinearity);
-    else if (initcpt.initype == KAIMING_UNIFORM_I) convolutional_kaiming_uniform_init(l, sqrt(5.0), initcpt.mode, initcpt.nonlinearity);
+    else if (initcpt.initype == KAIMING_UNIFORM_I) convolutional_kaiming_uniform_init(l, initcpt.a, initcpt.mode, initcpt.nonlinearity);
     else convolutional_constant_init(l, 0);
     if (l.bias){
         float fan = l.input_c*l.ksize*l.ksize;

@@ -18,7 +18,7 @@ extern "C" {
 
 typedef enum {
     CONVOLUTIONAL, CONNECT, IM2COL, MAXPOOL, AVGPOOL, GLOBALMAX, GLOBALAVG, \
-    DROPOUT, SOFTMAX, LOGSOFTMAX, SHORTCUT, \
+    DROPOUT, SOFTMAX, LOGSOFTMAX, SHORTCUT, NORMALIZE, \
     MSE, MAE, CE, NLL, CROSSENTROPY
 } LayerType;
 
@@ -133,19 +133,14 @@ struct layer{
     float *update_kernel_weights;
     float *update_bias_weights;
 
+    int affine;
     float *mean;
     float *variance;
     float *rolling_mean;
     float *rolling_variance;
-    float *x_norm;
-    float *normalize_x;
     float *mean_delta;
     float *variance_delta;
-
-    float *bn_scale;
-    float *bn_bias;
-    float *update_bn_scale;
-    float *update_bn_bias;
+    float bn_momentum;
 
     float *momentum_kernel_v;
     float *momentum_bias_v;
