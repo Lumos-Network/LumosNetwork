@@ -41,8 +41,8 @@ __global__ void normalize_kernel(float *data, float *mean, float *variance, int 
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     if (index >= num*features) return;
     int offset = num;
-    int i = index / (num);
-    int j = index % (num);
+    int i = index / num;
+    int j = index % num;
     float *data_c = data + i*offset;
     float *space_c = space + i*offset;
     space_c[j] = (data_c[j] - mean[i]) / (sqrt(variance[i] + .00001f));
@@ -99,18 +99,18 @@ void gradient_normalize_gpu(float *input, float *mean, float *variance, float *m
     gradient_normalize_kernel<<<(features+BLOCK-1)/BLOCK, BLOCK>>>(input, mean, variance, mean_delta, variance_delta, num, features, n_delta, l_delta);
 }
 
-__global__ void update_scale_kernel(float *output, float *delta, int num, int features, float rate, float *space)
+__global__ void update_scale_kernel(float *norm_x, float *mean, float *variance, float *delta, int num, int features, float momentum, float *space)
 {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     if (index >= features) return;
     float sum = 0;
     for (int j = 0; j < num; ++j){
-        sum += output[index*num+j]*delta[index*num+j];
+        sum += norm_x[j] * delta[index*num+j];
     }
-    space[index] += rate * sum;
+    space[index] = momentum*space[index] + sum;
 }
 
-__global__ void update_bias_kernel(float *delta, int num, int features, float rate, float *space)
+__global__ void update_bias_kernel(float *delta, int num, int features, float momentum, float *space)
 {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     if (index >= features) return;
@@ -118,15 +118,15 @@ __global__ void update_bias_kernel(float *delta, int num, int features, float ra
     for (int j = 0; j < num; ++j){
         sum += delta[index*num+j];
     }
-    space[index] += rate * sum;
+    space[index] = momentum*space[index] + sum;
 }
 
-void update_scale_gpu(float *output, float *delta, int num, int features, float rate, float *space)
+void update_scale_gpu(float *norm_x, float *mean, float *variance, float *delta, int num, int features, float momentum, float *space)
 {
-    update_scale_kernel<<<(features+BLOCK-1)/BLOCK, BLOCK>>>(output, delta, num, features, rate, space);
+    update_scale_kernel<<<(features+BLOCK-1)/BLOCK, BLOCK>>>(norm_x, mean, variance, delta, num, features, momentum, space);
 }
 
-void update_bias_gpu(float *delta, int num, int features, float rate, float *space)
+void update_bias_gpu(float *delta, int num, int features, float momentum, float *space)
 {
-    update_bias_kernel<<<(features+BLOCK-1)/BLOCK, BLOCK>>>(delta, num, features, rate, space);
+    update_bias_kernel<<<(features+BLOCK-1)/BLOCK, BLOCK>>>(delta, num, features, momentum, space);
 }

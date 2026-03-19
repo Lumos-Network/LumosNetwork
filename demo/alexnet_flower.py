@@ -1,17 +1,99 @@
+import os
+import pickle
+import struct
+from PIL import Image
+import sys
+import json
+import torch
+import time
+import torch.nn as nn
+from torchvision import transforms, datasets, utils
+from torch.utils.data import Dataset
+import matplotlib.pyplot as plt
+import numpy as np
+import torch.optim as optim
+from tqdm import tqdm
+import torchvision.models as models
+
 import torch
 import torch.nn as nn
-import torch.optim as optim
-import torchvision.datasets as datasets
-import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
-from PIL import Image
-import matplotlib.pyplot as plt
+
+def forward_hook(module, input, output):
+    shape = input[0].shape
+    data_f = []
+    data = input[0].tolist()
+    with open("./backup/in_py", "wb") as fp:
+        for i in range(shape[0]):
+            for j in range(shape[1]):
+                for k in range(shape[2]):
+                    data_f += data[i][j][k]
+        for i in range(len(data_f)):
+            fp.write(struct.pack('f', data_f[i]))
+        fp.close()
+
+    # shape = output.shape
+    # print(shape)
+    # data_f = []
+    # data = output.tolist()
+    # with open("./backup/out_py", "wb") as fp:
+    #     for i in range(shape[0]):
+    #         for j in range(shape[1]):
+    #             for k in range(output.shape[2]):
+    #                 data_f += data[i][j][k]
+    #     for i in range(len(data_f)):
+    #         fp.write(struct.pack('f', data_f[i]))
+    #     fp.close()
+
+# grad_input 中各部分梯度的‌顺序取决于模块 forward 函数的输入顺序‌：
+# ‌nn.Linear‌（有 bias）：
+# grad_input 顺序：[bias_grad, input_grad, weight_grad]
+# ‌nn.Conv2d‌（有 bias）：
+# grad_input 顺序：[input_grad, weight_grad, bias_grad]
+# ‌nn.ReLU‌（无参数）：
+# grad_input 仅包含：[input_grad]
+def backward_hook(module, grad_input, grad_output):
+    input_grad = grad_input[0]
+    shape = input_grad.shape
+    grad = input_grad.tolist()
+    data = []
+    with open("./backup/grad_py", "wb") as fp:
+        for i in range(shape[0]):
+            for j in range(shape[1]):
+                for k in range(shape[2]):
+                    data += grad[i][j][k]
+        for i in range(len(data)):
+            fp.write(struct.pack('f', data[i]))
+        fp.close()
+
+class MyDataset(Dataset):
+    def __init__(self, txt_path, transform = None, target_transform = None):
+        fh = open(txt_path, 'r')
+        imgs = []
+        for line in fh:
+            line = line.rstrip()
+            words = line.split()
+            imgs.append((words[0], int(words[1]))) # 类别转为整型int
+            self.imgs = imgs 
+            self.transform = transform
+            self.target_transform = target_transform
+
+    def __getitem__(self, index):
+        fn, label = self.imgs[index]
+        img = Image.open(fn).convert('RGB') 
+        if self.transform is not None:
+            img = self.transform(img) 
+        return img, label
+
+    def __len__(self):
+        return len(self.imgs)
 
 class AlexNet(nn.Module):
-    def __init__(self, num_classes=1000):
+    def __init__(self, num_classes=2):  # num_classes：类别数，默认1000（ImageNet）
         super(AlexNet, self).__init__()
-        self.l1 = nn.Conv2d(3, 96, kernel_size=11, stride=4, padding=2)
-        self.l2 = nn.MaxPool2d(kernel_size=3, stride=2)
+        # 卷积部分：5层卷积+3层池化
+        self.l1 = nn.Conv2d(3, 96, kernel_size=11, stride=4, padding=2)  # 输入3通道，输出96通道
+        self.l2 = nn.MaxPool2d(kernel_size=3, stride=2)  # 池化
         self.l3 = nn.Conv2d(96, 256, kernel_size=5, padding=2)
         self.l4 = nn.MaxPool2d(kernel_size=3, stride=2)
         self.l5 = nn.Conv2d(256, 384, kernel_size=3, padding=1)
@@ -19,151 +101,152 @@ class AlexNet(nn.Module):
         self.l6 = nn.Conv2d(384, 384, kernel_size=3, padding=1)
         self.l7 = nn.Conv2d(384, 256, kernel_size=3, padding=1)
         self.l8 = nn.MaxPool2d(kernel_size=3, stride=2)
-        self.l9 = nn.Dropout(p=0.5)
+
+        # self.l9 = nn.Dropout(p=0.5)
         self.l10 = nn.Linear(256 * 6 * 6, 4096)
-        self.bn2 = nn.BatchNorm1d(4096)
-        self.l11 = nn.Dropout(p=0.5)
+        # self.l11 = nn.Dropout(p=0.5)
         self.l12 = nn.Linear(4096, 4096)
         self.l13 = nn.Linear(4096, num_classes)
 
-    def forward(self, x):
-        x = self.features(x)  # 经过卷积部分
-        x = torch.flatten(x, start_dim=1)  # 拉平向量（从第1维开始，第0维是批量数）
-        x = self.classifier(x)  # 经过全连接部分
+        self.l14 = nn.CrossEntropyLoss()
+    
+    # 前向传播：定义数据在网络里的流动路径
+    def forward(self, x, labels):
+        x = torch.relu(self.l1(x))
+        x = self.l2(x)
+        x = torch.relu(self.l3(x))
+        x = self.l4(x)
+        x = torch.relu(self.l5(x))
+        x = self.bn1(x)
+        x = torch.relu(self.l6(x))
+        x = torch.relu(self.l7(x))
+        x = self.l8(x)
+        
+        x = torch.flatten(x, start_dim=1)
+        # x = self.l9(x)
+        x = torch.relu(self.l10(x))
+        # x = self.l11(x)
+        x = torch.relu(self.l12(x))
+        x = self.l13(x)
+        x = self.l14(x, labels)
+        # x = self.l15(x, labels)
         return x
 
-# 数据预处理：把图片转换成网络需要的格式，同时做数据增强（提高模型泛化能力）
-data_transform = {
-    # 训练集：除了基本转换，还做随机裁剪、翻转，增加数据多样性
-    "train": transforms.Compose([
-        transforms.RandomResizedCrop(224),  # 随机裁剪成224×224
-        transforms.RandomHorizontalFlip(),  # 随机水平翻转
-        transforms.ToTensor(),  # 转换成Tensor（PyTorch能处理的数据格式）
-        # 标准化：让数据更符合模型训练要求，数值范围更稳定
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ]),
-    # 测试集：只做基本转换，不做数据增强
-    "val": transforms.Compose([
-        transforms.Resize(256),  # 缩放到256×256
-        transforms.CenterCrop(224),  # 中心裁剪成224×224
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])
-}
+data_transform = transforms.Compose([
+    transforms.Resize((224,224)),  # 随机裁剪成224×224
+    transforms.ToTensor(),  # 转换成Tensor（PyTorch能处理的数据格式）
+    # 标准化：让数据更符合模型训练要求，数值范围更稳定
+    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+])
 
-# 下载数据集到当前文件夹的"data"目录下
-data_root = "./data"  # 数据集保存路径
-train_dataset = datasets.Flowers17(
-    root=data_root, split="train", download=True, transform=data_transform["train"]
-)
-val_dataset = datasets.Flowers17(
-    root=data_root, split="val", download=True, transform=data_transform["val"]
-)
+num_epochs = 1
+batch_size = 1
+train_data = MyDataset('./data/flower/train_test.txt', transform=data_transform)
+trainloader = torch.utils.data.DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
 
-# 创建数据加载器：批量加载数据，方便训练
-batch_size = 32  # 每次加载32张图片
-train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-
-# 初始化网络：花分类是5类，所以num_classes=5
 model = AlexNet(num_classes=5)
-# 检查网络结构（可选）
-print(model)
-
-# 1. 损失函数：计算模型预测值和真实值的差距，指导模型改进
-criterion = nn.CrossEntropyLoss()  # 适合多分类任务
-
-# 2. 优化器：更新网络参数，减小损失。这里用SGD（随机梯度下降）
 optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)  # lr是学习率，控制更新速度
 
-# 3. 训练设备：优先用GPU（速度快），没有GPU就用CPU
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-model.to(device)  # 把模型放到指定设备上
+fp = open("./backup/LW_py", "wb")
+data_f = []
+for name, param in model.named_parameters():
+    print(f"Layer: {name}, Parameter Shape: {param.shape}") #param.shape [filters, channels, ksize, ksize]  [outputs, inputs]
+    if ("weight" in name and len(param.shape) == 4):
+        data = param.tolist()
+        for i in range(param.shape[0]):
+            for j in range(param.shape[1]):
+                for k in range(param.shape[2]):
+                    data_f += data[i][j][k]
+    if ("weight" in name and len(param.shape) == 2):
+        data = param.tolist()
+        for i in range(param.shape[0]):
+            data_f += data[i]
+    if ("weight" in name and len(param.shape) == 1):
+        data_f += param.tolist()
+    if ("bias" in name):
+        data = param.tolist()
+        data_f += data
+# print(len(data_f))
+for i in range(len(data_f)):
+    fp.write(struct.pack('f', data_f[i]))
+fp.close()
 
-num_epochs = 10  # 训练轮次，新手可以先设10，后续再增加
+# model.l6.register_forward_hook(forward_hook)
+model.bn1.register_backward_hook(backward_hook)
+
+# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
+model.to(device)
 
 for epoch in range(num_epochs):
-    # 训练模式：开启Dropout
     model.train()
     running_loss = 0.0  # 记录每轮的损失
-    
-    # 遍历训练集，批量处理图片
-    for i, data in enumerate(train_loader, 0):
+
+    for i, data in enumerate(trainloader, 0):
         # 获取输入：图片（inputs）和对应的标签（labels，比如0代表玫瑰，1代表郁金香）
         inputs, labels = data[0].to(device), data[1].to(device)
-        
-        # 重要：每次更新前把梯度清零，避免累计
         optimizer.zero_grad()
-        
-        # 前向传播：模型预测
-        outputs = model(inputs)
-        # 计算损失
-        loss = criterion(outputs, labels)
-        # 反向传播：计算梯度，指导参数更新
-        loss.backward()
-        # 优化器更新参数
+        outputs = model(inputs, labels)
+        # print(labels)
+        # print(outputs.item())
+        outputs.backward()
         optimizer.step()
-        
-        # 统计损失
-        running_loss += loss.item()
+        # print(outputs.item())
+        # running_loss += outputs.item()
         # 每100个批量打印一次训练情况
-        if i % 100 == 99:
-            print(f'[{epoch + 1}, {i + 1}] loss: {running_loss / 100:.3f}')
-            running_loss = 0.0
+        # if i % 100 == 99:
+        #     print(f'[{epoch + 1}, {i + 1}] loss: {running_loss / 100:.3f}')
+        #     running_loss = 0.0
+        # print("loss: {}".format(outputs.item()))
+
+fp = open("./backup/LWF_py", "wb")
+data_f = []
+for name, param in model.named_parameters():
+    print(f"Layer: {name}, Parameter Shape: {param.shape}") #param.shape [filters, channels, ksize, ksize]  [outputs, inputs]
+    # if ("weight" in name and len(param.shape) == 4):
+    #     data = param.tolist()
+    #     for i in range(param.shape[0]):
+    #         for j in range(param.shape[1]):
+    #             for k in range(param.shape[2]):
+    #                 data_f += data[i][j][k]
+    # if ("weight" in name and len(param.shape) == 2):
+    #     data = param.tolist()
+    #     for i in range(param.shape[0]):
+    #         data_f += data[i]
+    # if ("weight" in name and len(param.shape) == 1):
+    #     data_f += param.tolist()
+    if ("bias" in name and "bn1" in name):
+        data = param.tolist()
+        data_f += data
+print(len(data_f))
+for i in range(len(data_f)):
+    fp.write(struct.pack('f', data_f[i]))
+fp.close()
+#     # if param.grad is not None:
+#     #     print(f"Parameter: {name}, Gradient: {param.grad}")
+#     # # 每轮训练结束后，在验证集上测试效果
+#     # model.eval()  # 评估模式：关闭Dropout
+#     # correct = 0  # 正确预测的数量
+#     # total = 0    # 总图片数量
     
-    # 每轮训练结束后，在验证集上测试效果
-    model.eval()  # 评估模式：关闭Dropout
-    correct = 0  # 正确预测的数量
-    total = 0    # 总图片数量
+#     # # 验证集不需要计算梯度，节省资源
+#     # with torch.no_grad():
+#     #     for data in trainloader:
+#     #         images, labels = data[0].to(device), data[1].to(device)
+#     #         outputs = model(images, labels)
+#     #         # 取概率最大的作为预测结果
+#     #         _, predicted = torch.max(outputs.data, 1)
+#     #         total += labels.size(0)
+#     #         correct += (predicted == labels).sum().item()
     
-    # 验证集不需要计算梯度，节省资源
-    with torch.no_grad():
-        for data in val_loader:
-            images, labels = data[0].to(device), data[1].to(device)
-            outputs = model(images)
-            # 取概率最大的作为预测结果
-            _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-    
-    # 打印每轮的验证准确率
-    print(f'Epoch {epoch + 1}, 验证准确率: {100 * correct / total:.2f}%')
+#     # # 打印每轮的验证准确率
+#     # print(f'Epoch {epoch + 1}, 验证准确率: {100 * correct / total:.2f}%')
 
-print('训练完成！')
+# # print('训练完成！')
 
-# 保存训练好的模型，方便后续使用
-torch.save(model.state_dict(), 'alexnet_flower.pth')
-print('模型已保存为 alexnet_flower.pth')
+# # # 保存训练好的模型，方便后续使用
+# # torch.save(model.state_dict(), 'alexnet_flower.pth')
+# # print('模型已保存为 alexnet_flower.pth')
 
-# 1. 加载训练好的模型
-model = AlexNet(num_classes=5)
-model.load_state_dict(torch.load('alexnet_flower.pth'))
-model.to(device)
-model.eval()  # 切换到评估模式
 
-# 2. 定义类别名称（对应标签0-4）
-class_names = ['玫瑰', '郁金香', '雏菊', '蒲公英', '向日葵']
-
-# 3. 处理要测试的图片（替换成你自己的图片路径，比如'./test_rose.jpg'）
-img_path = './test_flower.jpg'
-img = Image.open(img_path).convert('RGB')  # 打开图片并转成RGB格式
-
-# 4. 图片预处理（和验证集的处理一致）
-transform = data_transform["val"]
-img_tensor = transform(img).unsqueeze(0)  # 增加一个维度（对应批量数）
-img_tensor = img_tensor.to(device)
-
-# 5. 模型预测
-with torch.no_grad():
-    outputs = model(img_tensor)
-    probabilities = torch.nn.functional.softmax(outputs, dim=1)  # 把输出转成概率
-    _, predicted = torch.max(outputs, 1)
-    pred_class = class_names[predicted[0]]
-    pred_prob = probabilities[0][predicted[0]].item() * 100
-
-# 6. 显示图片和预测结果
-plt.imshow(img)
-plt.title(f'预测结果：{pred_class}，概率：{pred_prob:.2f}%')
-plt.axis('off')  # 隐藏坐标轴
-plt.show()
 

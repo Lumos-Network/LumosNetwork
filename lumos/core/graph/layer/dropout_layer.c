@@ -70,7 +70,6 @@ void forward_dropout_layer(Layer l, int num)
         if (r < l.probability) l.output[i] = 0;
         else l.output[i] = l.input[i] * scale;
     }
-    fprintf(stderr, "dropout finish\n");
 }
 
 void backward_dropout_layer(Layer l, int num, float *n_delta)

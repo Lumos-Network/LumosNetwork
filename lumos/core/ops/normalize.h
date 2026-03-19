@@ -15,8 +15,8 @@ void gradient_normalize_mean(float *n_delta, float *variance, int num, int featu
 void gradient_normalize_variance(float *n_delta, float *input, float *mean, float *variance, int num, int features, float *variance_delta);
 void gradient_normalize_cpu(float *input, float *mean, float *variance, float *mean_delta, float *variance_delta, int num, int features, float *n_delta, float *l_delta);
 
-void update_scale(float *output, float *delta, int num, int features, float rate, float *space);
-void update_bias(float *delta, int num, int features, float rate, float *space);
+void update_scale(float *norm_x, float *mean, float *variance, float *delta, int num, int features, float momentum, float *space);
+void update_bias(float *delta, int num, int features, float momentum, float *space);
 
 #ifdef  __cplusplus
 }

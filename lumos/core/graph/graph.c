@@ -142,14 +142,23 @@ void refresh_graph(Graph *g, int coretype)
 {
     Node *layer = g->head;
     Layer *l;
+    int i = 0;
     for (;;){
         if (layer){
             l = layer->l;
             if (coretype == GPU && l->refreshgpu) l->refreshgpu(*l);
             if (coretype == CPU && l->refresh) l->refresh(*l);
+            if (i == 5){
+                float *kernel_weights = calloc(l->filters, sizeof(float));
+                cudaMemcpy(kernel_weights, l->kernel_weights, l->filters*sizeof(float), cudaMemcpyDeviceToHost);
+                FILE *fp = fopen("./backup/BN_f", "wb");
+                fwrite(kernel_weights, sizeof(float), l->filters, fp);
+                fclose(fp);
+            }
         } else {
             break;
         }
+        i += 1;
         layer = layer->next;
     }
 }

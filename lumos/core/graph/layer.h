@@ -140,6 +140,7 @@ struct layer{
     float *rolling_variance;
     float *mean_delta;
     float *variance_delta;
+    float *norm_x;
     float bn_momentum;
 
     float *momentum_kernel_v;

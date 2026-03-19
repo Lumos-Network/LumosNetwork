@@ -166,7 +166,7 @@ void connect_layer_SGDOptimizer(Layer l, float rate, float momentum, float decay
         gemm(0, 1, l.output_c, l.output_w,
                 l.input_c, l.input_w, 1,
                 delta_n, input, l.workspace);
-        saxpy_cpu(l.workspace, l.momentum_kernel_v, l.inputs*l.outputs, momentum, l.momentum_kernel_v); //bug
+        saxpy_cpu(l.workspace, l.momentum_kernel_v, l.inputs*l.outputs, momentum, l.momentum_kernel_v);
         if (l.bias){
             saxpy_cpu(delta_n, l.momentum_bias_v, l.outputs, momentum, l.momentum_bias_v);
         }
