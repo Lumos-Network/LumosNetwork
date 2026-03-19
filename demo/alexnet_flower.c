@@ -50,6 +50,7 @@ void alexnet_flower(char *type, char *path)
     std[1] = 0.224;
     std[2] = 0.225;
     transform_normalize_sess(sess, mean, std);
+    transform_resize_sess(sess, 224, 224);
     set_train_params(sess, 20, 32, 32, 0.001);
     SGDOptimizer_sess(sess, 0.9, 0, 0, 0, 0);
     init_session(sess, "./data/flower/train.txt", "./data/flower/train_label.txt");
