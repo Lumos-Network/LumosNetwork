@@ -28,8 +28,8 @@ Layer *make_global_maxpool_layer()
     l->saveweights = NULL;
     l->saveweightsgpu = NULL;
 
-    l->freelayer = free_global_maxpool_layer;
-    l->freelayergpu = free_global_maxpool_layer_gpu;
+    l->zerogradlayer = zerograd_global_maxpool_layer;
+    l->zerogradlayergpu = zerograd_global_maxpool_layer_gpu;
 
     fprintf(stderr, "Global Max Pooling     Layer\n");
     return l;
@@ -71,7 +71,6 @@ void forward_global_maxpool_layer(Layer l, int num)
 
 void backward_global_maxpool_layer(Layer l, int num, float *n_delta)
 {
-    fill_cpu(l.delta, num*l.inputs, 0, 1);
     for (int i = 0; i < num; ++i){
         int offset_i = i * l.inputs;
         int offset_o = i * l.outputs;
@@ -82,9 +81,7 @@ void backward_global_maxpool_layer(Layer l, int num, float *n_delta)
     }
 }
 
-void free_global_maxpool_layer(Layer l)
+void zerograd_global_maxpool_layer(Layer l, int subdivision)
 {
-    free(l.output);
-    free(l.delta);
-    free(l.maxpool_index);
+    fill_cpu(l.delta, subdivision*l.inputs, 0, 1);
 }

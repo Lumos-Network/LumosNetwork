@@ -23,7 +23,7 @@ void init_ce_layer_gpu(Layer *l, int w, int h, int c, int subdivision);
 void forward_ce_layer_gpu(Layer l, int num);
 void backward_ce_layer_gpu(Layer l, int num, float *n_delta);
 
-void free_ce_layer_gpu(Layer l);
+void zerograd_ce_layer_gpu(Layer l, int subdivision);
 
 void cross_entropy_gpu(float *data_a, float *data_b, int len, float *space);
 void delta_cross_entropy_gpu(float *data_a, float *data_b, int len, float *space);

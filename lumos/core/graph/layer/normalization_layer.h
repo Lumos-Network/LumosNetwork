@@ -25,7 +25,7 @@ void normalization_layer_SGDOptimizer(Layer l, float rate, float momentum, float
 void refresh_normalization_layer_weights(Layer l);
 
 void save_normalization_layer_weights(Layer l, FILE *fp);
-void free_normalization_layer(Layer l);
+void zerograd_normalization_layer(Layer l, int subdivision);
 
 #ifdef __cplusplus
 }

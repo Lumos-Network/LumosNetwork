@@ -23,7 +23,7 @@ void init_nll_layer_gpu(Layer *l, int w, int h, int c, int subdivision);
 void forward_nll_layer_gpu(Layer l, int num);
 void backward_nll_layer_gpu(Layer l, int num, float *n_delta);
 
-void free_nll_layer_gpu(Layer l);
+void zerograd_nll_layer_gpu(Layer l, int subdivision);
 
 #ifdef __cplusplus
 }

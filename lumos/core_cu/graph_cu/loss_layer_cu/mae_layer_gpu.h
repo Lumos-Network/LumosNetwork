@@ -23,7 +23,7 @@ void init_mae_layer_gpu(Layer *l, int w, int h, int c, int subdivision);
 void forward_mae_layer_gpu(Layer l, int num);
 void backward_mae_layer_gpu(Layer l, int num, float *n_delta);
 
-void free_mae_layer_gpu(Layer l);
+void zerograd_mae_layer_gpu(Layer l, int subdivision);
 
 void absolute_gpu(float *data, int len, int offset);
 void delta_absolute_gpu(float *data, int len, int offset);

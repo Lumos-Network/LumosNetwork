@@ -38,7 +38,7 @@ void backward_graph(Graph *g, int coretype, int subdivision);
 void update_graph(Graph *g, int coretype, float rate, int subdivision);
 void refresh_graph(Graph *g, int coretype);
 void save_weights(Graph *g, int coretype, FILE *fp);
-void free_graph(Graph *g, int coretype);
+void zerograd_graph(Graph *g, int subdivision, int coretype);
 
 void SGDOptimizer_graph(Graph *g, int coretype, float rate, int subdivision, float momentum, float dampening, float decay, int nesterov, int maximize);
 

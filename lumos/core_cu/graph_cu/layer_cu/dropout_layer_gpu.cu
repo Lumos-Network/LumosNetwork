@@ -41,7 +41,6 @@ void forward_dropout_layer_gpu(Layer l, int num)
 
 void backward_dropout_layer_gpu(Layer l, int num, float *n_delta)
 {
-    fill_gpu(l.delta, num*l.inputs, 0, 1);
     dropout_gradient_gpu(l, num, n_delta);
 }
 
@@ -77,9 +76,7 @@ void dropout_gradient_gpu(Layer l, int num, float *n_delta)
     dropout_gradient_kernel<<<(size+BLOCK-1)/BLOCK, BLOCK>>>(l, num, n_delta, scale);
 }
 
-void free_dropout_layer_gpu(Layer l)
+void zerograd_dropout_layer_gpu(Layer l, int subdivision)
 {
-    cudaFree(l.output);
-    cudaFree(l.delta);
-    cudaFree(l.dropout_rand);
+    fill_gpu(l.delta, subdivision*l.inputs, 0, 1);
 }

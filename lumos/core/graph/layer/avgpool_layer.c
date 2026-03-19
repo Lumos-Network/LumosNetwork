@@ -32,8 +32,8 @@ Layer *make_avgpool_layer(int ksize, int stride, int pad)
     l->saveweights = NULL;
     l->saveweightsgpu = NULL;
 
-    l->freelayer = free_avgpool_layer;
-    l->freelayergpu = free_avgpool_layer_gpu;
+    l->zerogradlayer = zerograd_avgpool_layer;
+    l->zerogradlayergpu = zerograd_avgpool_layer_gpu;
 
     fprintf(stderr, "Avg Pooling     Layer    :    [ksize=%2d]\n", l->ksize);
     return l;
@@ -74,7 +74,6 @@ void forward_avgpool_layer(Layer l, int num)
 
 void backward_avgpool_layer(Layer l, int num, float *n_delta)
 {
-    fill_cpu(l.delta, num*l.inputs, 0, 1);
     for (int i = 0; i < num; ++i)
     {
         int offset_i = i * l.inputs;
@@ -85,8 +84,7 @@ void backward_avgpool_layer(Layer l, int num, float *n_delta)
     }
 }
 
-void free_avgpool_layer(Layer l)
+void zerograd_avgpool_layer(Layer l, int subdivision)
 {
-    free(l.output);
-    free(l.delta);
+    fill_cpu(l.delta, subdivision*l.inputs, 0, 1);
 }

@@ -24,13 +24,13 @@ Layer *make_ce_layer(int group)
     l->sgdoptimizergpu = NULL;
 
     l->refresh = NULL;
-    l->freelayergpu = NULL;
+    l->refreshgpu = NULL;
 
     l->saveweights = NULL;
     l->saveweightsgpu = NULL;
 
-    l->freelayer = free_ce_layer;
-    l->freelayergpu = free_ce_layer_gpu;
+    l->zerogradlayer = zerograd_ce_layer;
+    l->zerogradlayergpu = zerograd_ce_layer_gpu;
 
     fprintf(stderr, "Ce             Layer    :    [output=%4d]\n", 1);
     return l;
@@ -85,10 +85,9 @@ void backward_ce_layer(Layer l, int num, float *n_delta)
     }
 }
 
-void free_ce_layer(Layer l)
+void zerograd_ce_layer(Layer l, int subdivision)
 {
-    free(l.output);
-    free(l.delta);
+    fill_cpu(l.delta, subdivision*l.inputs, 0, 1);
 }
 
 void cross_entropy(float *input, float *truth, int len, float *space)

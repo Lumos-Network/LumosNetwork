@@ -59,8 +59,8 @@ Layer *make_crossentropy_layer(int group)
     l->saveweights = NULL;
     l->saveweightsgpu = NULL;
 
-    l->freelayer = free_crossentropy_layer;
-    l->freelayergpu = free_crossentropy_layer_gpu;
+    l->zerogradlayer = zerograd_crossentropy_layer;
+    l->zerogradlayergpu = zerograd_crossentropy_layer_gpu;
 
     fprintf(stderr, "CrossEntropy             Layer    :    [output=%4d]\n", 1);
     return l;
@@ -119,8 +119,7 @@ void backward_crossentropy_layer(Layer l, int num, float *n_delta)
     }
 }
 
-void free_crossentropy_layer(Layer l)
+void zerograd_crossentropy_layer(Layer l, int subdivision)
 {
-    free(l.output);
-    free(l.delta);
+    fill_cpu(l.delta, subdivision*l.inputs, 0, 1);
 }

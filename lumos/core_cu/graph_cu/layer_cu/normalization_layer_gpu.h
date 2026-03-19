@@ -28,7 +28,7 @@ void normalization_layer_SGDOptimizer_gpu(Layer l, float rate, float momentum, f
 void refresh_normalization_layer_weights_gpu(Layer l);
 
 void save_normalization_layer_weights_gpu(Layer l, FILE *fp);
-void free_normalization_layer_gpu(Layer l);
+void zerograd_normalization_layer_gpu(Layer l, int subdivision);
 
 #ifdef __cplusplus
 }

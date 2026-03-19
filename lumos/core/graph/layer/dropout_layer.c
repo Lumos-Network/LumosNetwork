@@ -29,8 +29,8 @@ Layer *make_dropout_layer(float probability)
     l->saveweights = NULL;
     l->saveweightsgpu = NULL;
 
-    l->freelayer = free_dropout_layer;
-    l->freelayergpu = free_dropout_layer_gpu;
+    l->zerogradlayer = zerograd_dropout_layer;
+    l->zerogradlayergpu = zerograd_dropout_layer_gpu;
 
     fprintf(stderr, "Dropout   Layer    :    [probability=%.2f]\n", l->probability);
     return l;
@@ -74,7 +74,6 @@ void forward_dropout_layer(Layer l, int num)
 
 void backward_dropout_layer(Layer l, int num, float *n_delta)
 {
-    fill_cpu(l.delta, num*l.inputs, 0, 1);
     float scale = 1. / (1.-l.probability);
     for (int i = 0; i < num*l.inputs; ++i){
         float r = l.dropout_rand[i];
@@ -83,9 +82,7 @@ void backward_dropout_layer(Layer l, int num, float *n_delta)
     }
 }
 
-void free_dropout_layer(Layer l)
+void zerograd_dropout_layer(Layer l, int subdivision)
 {
-    free(l.output);
-    free(l.delta);
-    free(l.dropout_rand);
+    fill_cpu(l.delta, subdivision*l.inputs, 0, 1);
 }

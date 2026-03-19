@@ -27,7 +27,7 @@ void update_convolutional_layer(Layer l, float rate, int num, float *n_delta);
 void refresh_convolutional_layer_weights(Layer l);
 
 void save_convolutional_layer_weights(Layer l, FILE *fp);
-void free_convolutional_layer(Layer l);
+void zerograd_convolutional_layer(Layer l, int subdivision);
 
 void convolutional_constant_init(Layer l, float x);
 void convolutional_normal_init(Layer l, float mean, float std);

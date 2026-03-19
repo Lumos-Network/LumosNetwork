@@ -22,7 +22,7 @@ void init_global_maxpool_layer_gpu(Layer *l, int w, int h, int c, int subdivisio
 void forward_global_maxpool_layer_gpu(Layer l, int num);
 void backward_global_maxpool_layer_gpu(Layer l, int num, float *n_delta);
 
-void free_global_maxpool_layer_gpu(Layer l);
+void zerograd_global_maxpool_layer_gpu(Layer l, int subdivision);
 
 #ifdef __cplusplus
 }

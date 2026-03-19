@@ -191,6 +191,7 @@ void train(Session *sess)
                 if (j * sess->batch + k * sess->subdivision + sess->subdivision > sess->train_data_num) break;
                 load_train_data_binary(sess, j * sess->batch + k * sess->subdivision);
                 load_train_label(sess, j * sess->batch + k * sess->subdivision);
+                zerograd_graph(sess->graph, sess->subdivision, sess->coretype);
                 forward_graph(sess->graph, sess->input, sess->coretype, sess->subdivision);
                 backward_graph(sess->graph, sess->coretype, sess->subdivision);
                 if (sess->optimizer == SGD){
@@ -216,7 +217,6 @@ void train(Session *sess)
         save_weights(sess->graph, sess->coretype, fp);
         fclose(fp);
     }
-    free_graph(g, sess->coretype);
     fprintf(stderr, "\n\nSession Training Finished\n");
 }
 
@@ -262,7 +262,6 @@ void detect_classification(Session *sess)
         if (truth[index] == 1) num += 1;
         fprintf(stderr, "Loss:%.4f\n\n", loss[0]);
     }
-    free_graph(g, sess->coretype);
     fprintf(stderr, "Detct Classification: %d/%d  %.2f\n", num, sess->train_data_num, (float)(num)/(float)(sess->train_data_num));
 }
 

@@ -53,10 +53,9 @@ void backward_mae_layer_gpu(Layer l, int num, float *n_delta)
     }
 }
 
-void free_mae_layer_gpu(Layer l)
+void zerograd_mae_layer_gpu(Layer l, int subdivision)
 {
-    cudaFree(l.output);
-    cudaFree(l.delta);
+    fill_gpu(l.delta, subdivision*l.inputs, 0, 1);
 }
 
 __global__ void absolute_kernel(float *data, int len, int offset)

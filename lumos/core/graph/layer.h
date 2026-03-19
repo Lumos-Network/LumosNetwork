@@ -79,10 +79,10 @@ typedef saveweights SaveWeights;
 typedef void (*saveweights_gpu) (struct layer, FILE*);
 typedef saveweights_gpu SaveWeightsGpu;
 
-typedef void (*free_layer) (struct layer);
-typedef free_layer FreeLayer;
-typedef void (*free_layer_gpu) (struct layer);
-typedef free_layer_gpu FreeLayerGpu;
+typedef void (*zerograd_layer) (struct layer, int);
+typedef zerograd_layer ZeroGradLayer;
+typedef void (*zerograd_layer_gpu) (struct layer, int);
+typedef zerograd_layer_gpu ZeroGradLayerGpu;
 
 struct layer{
     LayerType type;
@@ -121,11 +121,8 @@ struct layer{
     int bias;
     // dropout 占比
     float probability;
-
     float *detect; //预测值
-
     Layer *shortcut;
-    int shortcut_index;
 
     float *kernel_weights;
     float *bias_weights;
@@ -169,8 +166,8 @@ struct layer{
     SaveWeights saveweights;
     SaveWeightsGpu saveweightsgpu;
 
-    FreeLayer freelayer;
-    FreeLayerGpu freelayergpu;
+    ZeroGradLayer zerogradlayer;
+    ZeroGradLayerGpu zerogradlayergpu;
 
     InitCpt *initcpt;
 };

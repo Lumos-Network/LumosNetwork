@@ -32,8 +32,8 @@ Layer *make_connect_layer(int output, int bias, char *active)
     l->saveweights = save_connect_layer_weights;
     l->saveweightsgpu = save_connect_layer_weights_gpu;
 
-    l->freelayer = free_connect_layer;
-    l->freelayergpu = free_connect_layer_gpu;
+    l->zerogradlayer = zerograd_connect_layer;
+    l->zerogradlayergpu = zerograd_connect_layer_gpu;
 
     fprintf(stderr, "Connect         Layer    :    [output=%4d, bias=%d, active=%s]\n", l->ksize, l->bias, active);
     return l;
@@ -120,7 +120,6 @@ void forward_connect_layer(Layer l, int num)
 
 void backward_connect_layer(Layer l, int num, float *n_delta)
 {
-    fill_cpu(l.delta, num*l.inputs, 0, 1);
     for (int i = 0; i < num; ++i){
         int offset_i = i * l.inputs;
         int offset_o = i * l.outputs;
@@ -196,16 +195,9 @@ void save_connect_layer_weights(Layer l, FILE *fp)
     }
 }
 
-void free_connect_layer(Layer l)
+void zerograd_connect_layer(Layer l, int subdivision)
 {
-    free(l.output);
-    free(l.delta);
-    free(l.kernel_weights);
-    free(l.update_kernel_weights);
-    if (l.bias){
-        free(l.bias_weights);
-        free(l.update_bias_weights);
-    }
+    fill_cpu(l.delta, subdivision*l.inputs, 0, 1);
 }
 
 void connect_constant_init(Layer l, float x)

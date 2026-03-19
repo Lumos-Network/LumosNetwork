@@ -35,7 +35,6 @@ void forward_avgpool_layer_gpu(Layer l, int num)
 
 void backward_avgpool_layer_gpu(Layer l, int num, float *n_delta)
 {
-    fill_gpu(l.delta, num*l.inputs, 0, 1);
     for (int i = 0; i < num; ++i)
     {
         int offset_i = i * l.inputs;
@@ -46,8 +45,7 @@ void backward_avgpool_layer_gpu(Layer l, int num, float *n_delta)
     }
 }
 
-void free_avgpool_layer_gpu(Layer l)
+void zerograd_avgpool_layer_gpu(Layer l, int subdivision)
 {
-    cudaFree(l.output);
-    cudaFree(l.delta);
+    fill_gpu(l.delta, subdivision*l.inputs, 0, 1);
 }

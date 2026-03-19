@@ -52,8 +52,7 @@ void backward_mse_layer_gpu(Layer l, int num, float *n_delta)
     }
 }
 
-void free_mse_layer_gpu(Layer l)
+void zerograd_mse_layer_gpu(Layer l, int subdivision)
 {
-    cudaFree(l.output);
-    cudaFree(l.delta);
+    fill_gpu(l.delta, subdivision*l.inputs, 0, 1);
 }

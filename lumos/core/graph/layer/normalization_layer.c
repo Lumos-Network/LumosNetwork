@@ -31,8 +31,8 @@ Layer *make_normalization_layer(float momentum, int affine, char *active)
     l->saveweights = save_normalization_layer_weights;
     l->saveweightsgpu = save_normalization_layer_weights_gpu;
 
-    l->freelayer = free_normalization_layer;
-    l->freelayergpu = free_normalization_layer_gpu;
+    l->zerogradlayer = zerograd_normalization_layer;
+    l->zerogradlayergpu = zerograd_normalization_layer_gpu;
 
     fprintf(stderr, "Normalization   Layer    :    [momentum=%f, affine=%d, bias=%d, active=%s]\n",
             l->bn_momentum, l->affine, l->bias, active);
@@ -178,18 +178,7 @@ void save_normalization_layer_weights(Layer l, FILE *fp)
     fwrite(l.rolling_variance, sizeof(float), l.filters, fp);
 }
 
-void free_normalization_layer(Layer l)
+void zerograd_normalization_layer(Layer l, int subdivision)
 {
-    free(l.mean);
-    free(l.variance);
-    free(l.rolling_mean);
-    free(l.rolling_variance);
-    free(l.mean_delta);
-    free(l.variance_delta);
-    free(l.kernel_weights);
-    free(l.bias_weights);
-    if (l.affine){
-        free(l.update_kernel_weights);
-        free(l.update_bias_weights);
-    }
+    fill_cpu(l.delta, subdivision*l.inputs, 0, 1);
 }

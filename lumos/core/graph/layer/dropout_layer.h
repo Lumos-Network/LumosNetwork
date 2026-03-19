@@ -20,7 +20,7 @@ void init_dropout_layer(Layer *l, int w, int h, int c, int subdivision);
 void forward_dropout_layer(Layer l, int num);
 void backward_dropout_layer(Layer l, int num, float *n_delta);
 
-void free_dropout_layer(Layer l);
+void zerograd_dropout_layer(Layer l, int subdivision);
 
 #ifdef __cplusplus
 }

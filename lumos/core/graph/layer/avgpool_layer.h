@@ -17,7 +17,7 @@ void init_avgpool_layer(Layer *l, int w, int h, int c, int subdivision);
 void forward_avgpool_layer(Layer l, int num);
 void backward_avgpool_layer(Layer l, int num, float *n_delta);
 
-void free_avgpool_layer(Layer l);
+void zerograd_avgpool_layer(Layer l, int subdivision);
 
 #ifdef __cplusplus
 }

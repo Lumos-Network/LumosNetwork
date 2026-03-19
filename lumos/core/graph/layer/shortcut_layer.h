@@ -14,14 +14,13 @@
 extern "C" {
 #endif
 
-Layer *make_shortcut_layer(int index, char *active);
-
-void init_shortcut_layer(Layer *l, int w, int h, int c, Layer *shortcut);
+Layer *make_shortcut_layer(Layer *shortcut, char *active);
+void init_shortcut_layer(Layer *l, int w, int h, int c, int subdivision);
 
 void forward_shortcut_layer(Layer l, int num);
 void backward_shortcut_layer(Layer l, int num, float *n_delta);
 
-void free_shortcut_layer(Layer l);
+void zerograd_shortcut_layer(Layer l, int subdivision);
 
 #ifdef __cplusplus
 }

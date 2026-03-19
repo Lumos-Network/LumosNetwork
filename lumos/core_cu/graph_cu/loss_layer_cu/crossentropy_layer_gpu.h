@@ -24,7 +24,7 @@ void init_crossentropy_layer_gpu(Layer *l, int w, int h, int c, int subdivision)
 void forward_crossentropy_layer_gpu(Layer l, int num);
 void backward_crossentropy_layer_gpu(Layer l, int num, float *n_delta);
 
-void free_crossentropy_layer_gpu(Layer l);
+void zerograd_crossentropy_layer_gpu(Layer l, int subdivision);
 
 #ifdef __cplusplus
 }

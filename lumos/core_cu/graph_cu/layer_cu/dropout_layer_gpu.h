@@ -30,7 +30,7 @@ void backward_dropout_layer_gpu(Layer l, int num, float *n_delta);
 void dropout_gpu(Layer l, int num);
 void dropout_gradient_gpu(Layer l, int num, float *n_delta);
 
-void free_dropout_layer_gpu(Layer l);
+void zerograd_dropout_layer_gpu(Layer l, int subdivision);
 
 #ifdef __cplusplus
 }

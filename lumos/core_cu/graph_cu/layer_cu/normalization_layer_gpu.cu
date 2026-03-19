@@ -163,18 +163,7 @@ void save_normalization_layer_weights_gpu(Layer l, FILE *fp)
     free(rolling_variance);
 }
 
-void free_normalization_layer_gpu(Layer l)
+void zerograd_normalization_layer_gpu(Layer l, int subdivision)
 {
-    cudaFree(l.mean);
-    cudaFree(l.variance);
-    cudaFree(l.rolling_mean);
-    cudaFree(l.rolling_variance);
-    cudaFree(l.mean_delta);
-    cudaFree(l.variance_delta);
-    cudaFree(l.kernel_weights);
-    cudaFree(l.bias_weights);
-    if (l.affine){
-        cudaFree(l.update_kernel_weights);
-        cudaFree(l.update_bias_weights);
-    }
+    fill_gpu(l.delta, subdivision*l.inputs, 0, 1);
 }

@@ -1,18 +1,20 @@
 #include "shortcut_layer.h"
 
-Layer *make_shortcut_layer(int index, char *active)
+Layer *make_shortcut_layer(Layer *shortcut, char *active)
 {
     Layer *l = malloc(sizeof(Layer));
     l->type = SHORTCUT;
-    l->shortcut_index = index;
-    l->weights = 0;
-    l->batchnorm = 0;
-    l->bias = 0;
+    l->shortcut = shortcut;
 
-    l->active_str = active;
     Activation type = load_activate_type(active);
     l->active = type;
-    l->gradient = type;
+
+    l->initialize = init_shortcut_layer;
+    l->forward = forward_shortcut_layer;
+    l->backward = backward_shortcut_layer;
+    l->initializegpu = init_shortcut_layer_gpu;
+    l->forwardgpu = forward_shortcut_layer_gpu;
+    l->backwardgpu = backward_shortcut_layer_gpu;
 
     l->update = NULL;
     l->updategpu = NULL;
@@ -23,14 +25,17 @@ Layer *make_shortcut_layer(int index, char *active)
     l->refresh = NULL;
     l->refreshgpu = NULL;
 
-    l->freelayer = free_shortcut_layer;
-    l->freelayergpu = free_shortcut_layer_gpu;
+    l->saveweights = NULL;
+    l->saveweightsgpu = NULL;
 
-    fprintf(stderr, "Shortcut        Layer    :    [index=%d, active=%s]\n", l->shortcut_index, l->active_str);
+    l->zerogradlayer = zerograd_shortcut_layer;
+    l->zerogradlayergpu = zerograd_shortcut_layer_gpu;
+
+    fprintf(stderr, "Shortcut        Layer    :    [active=%s]\n", active);
     return l;
 }
 
-void init_shortcut_layer(Layer *l, int w, int h, int c, Layer *shortcut)
+void init_shortcut_layer(Layer *l, int w, int h, int c, int subdivision)
 {
     l->input_h = h;
     l->input_w = w;
@@ -42,18 +47,9 @@ void init_shortcut_layer(Layer *l, int w, int h, int c, Layer *shortcut)
     l->output_c = c;
     l->outputs = l->output_h * l->output_w * l->output_c;
 
-    l->shortcut = shortcut;
-
     l->workspace_size = 0;
-    l->deltas = l->inputs;
-
-    if (l->coretype == GPU){
-        l->forward = forward_shortcut_layer_gpu;
-        l->backward = backward_shortcut_layer_gpu;
-    } else {
-        l->forward = forward_shortcut_layer;
-        l->backward = backward_shortcut_layer;
-    }
+    l->output = calloc(subdivision*l->outputs, sizeof(float));
+    l->delta = calloc(subdivision*l->inputs, sizeof(float));
 
     fprintf(stderr, "Shortcut        Layer    %3d*%3d*%3d ==> %3d*%3d*%3d\n",
             l->input_w, l->input_h, l->input_c, l->output_w, l->output_h, l->output_c);
@@ -78,7 +74,6 @@ void forward_shortcut_layer(Layer l, int num)
 void backward_shortcut_layer(Layer l, int num, float *n_delta)
 {
     Layer *shortcut = l.shortcut;
-    fill_cpu(l.delta, num*l.inputs, 0, 1);
     for (int i = 0; i < num; ++i){
         int offset_i = i * l.inputs;
         int offset_o = i * l.outputs;
@@ -95,7 +90,7 @@ void backward_shortcut_layer(Layer l, int num, float *n_delta)
     }
 }
 
-void free_shortcut_layer(Layer l)
+void zerograd_shortcut_layer(Layer l, int subdivision)
 {
-    return ;
+    fill_cpu(l.delta, subdivision*l.inputs, 0, 1);
 }

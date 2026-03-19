@@ -90,7 +90,6 @@ void forward_convolutional_layer_gpu(Layer l, int num)
 
 void backward_convolutional_layer_gpu(Layer l, int num, float *n_delta)
 {
-    fill_gpu(l.delta, num*l.inputs, 0, 1);
     for (int i = 0; i < num; ++i){
         int offset_i = i * l.inputs;
         int offset_o = i * l.outputs;
@@ -179,16 +178,9 @@ void save_convolutional_layer_weights_gpu(Layer l, FILE *fp)
     }
 }
 
-void free_convolutional_layer_gpu(Layer l)
+void zerograd_convolutional_layer_gpu(Layer l, int subdivision)
 {
-    cudaFree(l.output);
-    cudaFree(l.delta);
-    cudaFree(l.kernel_weights);
-    cudaFree(l.update_kernel_weights);
-    if (l.bias){
-        cudaFree(l.bias_weights);
-        cudaFree(l.update_bias_weights);
-    }
+    fill_gpu(l.delta, subdivision*l.inputs, 0, 1);
 }
 
 void convolutional_constant_init_gpu(Layer l, float x)

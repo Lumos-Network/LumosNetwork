@@ -108,7 +108,7 @@ OBJ+= 	active_gpu.o bias_gpu.o cpu_gpu.o gemm_gpu.o im2col_gpu.o pooling_gpu.o s
 	  	avgpool_layer_gpu.o maxpool_layer_gpu.o connect_layer_gpu.o convolutional_layer_gpu.o nll_layer.o \
 	  	softmax_layer_gpu.o dropout_layer_gpu.o global_avgpool_layer_gpu.o global_maxpool_layer_gpu.o normalization_layer_gpu.o \
 		mse_layer_gpu.o mae_layer_gpu.o ce_layer_gpu.o logsoftmax_layer_gpu.o nll_layer_gpu.o crossentropy_layer_gpu.o \
-		normalization_layer_gpu.o normalization_layer.o
+		normalization_layer_gpu.o normalization_layer.o shortcut_layer.o shortcut_layer_gpu.o
 
 EXECOBJA=lumos.o
 

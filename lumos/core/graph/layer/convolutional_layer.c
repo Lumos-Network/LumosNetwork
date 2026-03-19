@@ -35,8 +35,8 @@ Layer *make_convolutional_layer(int filters, int ksize, int stride, int pad, int
     l->saveweights = save_convolutional_layer_weights;
     l->saveweightsgpu = save_convolutional_layer_weights_gpu;
 
-    l->freelayer = free_convolutional_layer;
-    l->freelayergpu = free_convolutional_layer_gpu;
+    l->zerogradlayer = zerograd_convolutional_layer;
+    l->zerogradlayergpu = zerograd_convolutional_layer_gpu;
 
     fprintf(stderr, "Convolutional   Layer    :    [filters=%2d, ksize=%2d, stride=%2d, pad=%2d, bias=%d, active=%s]\n",
             l->filters, l->ksize, l->stride, l->pad, l->bias, active);
@@ -124,7 +124,6 @@ void forward_convolutional_layer(Layer l, int num)
 
 void backward_convolutional_layer(Layer l, int num, float *n_delta)
 {
-    fill_cpu(l.delta, num*l.inputs, 0, 1);
     for (int i = 0; i < num; ++i){
         int offset_i = i * l.inputs;
         int offset_o = i * l.outputs;
@@ -208,16 +207,9 @@ void save_convolutional_layer_weights(Layer l, FILE *fp)
     }
 }
 
-void free_convolutional_layer(Layer l)
+void zerograd_convolutional_layer(Layer l, int subdivision)
 {
-    free(l.output);
-    free(l.delta);
-    free(l.kernel_weights);
-    free(l.update_kernel_weights);
-    if (l.bias){
-        free(l.bias_weights);
-        free(l.update_bias_weights);
-    }
+    fill_cpu(l.delta, subdivision*l.inputs, 0, 1);
 }
 
 void convolutional_constant_init(Layer l, float x)

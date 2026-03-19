@@ -142,23 +142,14 @@ void refresh_graph(Graph *g, int coretype)
 {
     Node *layer = g->head;
     Layer *l;
-    int i = 0;
     for (;;){
         if (layer){
             l = layer->l;
             if (coretype == GPU && l->refreshgpu) l->refreshgpu(*l);
             if (coretype == CPU && l->refresh) l->refresh(*l);
-            if (i == 5){
-                float *kernel_weights = calloc(l->filters, sizeof(float));
-                cudaMemcpy(kernel_weights, l->kernel_weights, l->filters*sizeof(float), cudaMemcpyDeviceToHost);
-                FILE *fp = fopen("./backup/BN_f", "wb");
-                fwrite(kernel_weights, sizeof(float), l->filters, fp);
-                fclose(fp);
-            }
         } else {
             break;
         }
-        i += 1;
         layer = layer->next;
     }
 }
@@ -179,15 +170,15 @@ void save_weights(Graph *g, int coretype, FILE *fp)
     }
 }
 
-void free_graph(Graph *g, int coretype)
+void zerograd_graph(Graph *g, int subdivision, int coretype)
 {
     Node *layer = g->head;
     Layer *l;
     for (;;){
         if (layer){
             l = layer->l;
-            if (coretype == GPU && l->freelayergpu) l->freelayergpu(*l);
-            if (coretype == CPU && l->freelayer) l->freelayer(*l);
+            if (coretype == GPU && l->zerogradlayergpu) l->zerogradlayergpu(*l, subdivision);
+            if (coretype == CPU && l->zerogradlayer) l->zerogradlayer(*l, subdivision);
         } else {
             break;
         }

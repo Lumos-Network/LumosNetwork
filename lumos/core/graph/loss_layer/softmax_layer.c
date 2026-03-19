@@ -29,8 +29,8 @@ Layer *make_softmax_layer(int group)
     l->saveweights = NULL;
     l->saveweightsgpu = NULL;
 
-    l->freelayer = free_softmax_layer;
-    l->freelayergpu = free_softmax_layer_gpu;
+    l->zerogradlayer = zerograd_softmax_layer;
+    l->zerogradlayergpu = zerograd_softmax_layer_gpu;
 
     fprintf(stderr, "Softmax         Layer    :    [output=%4d]\n", group);
     return l;
@@ -70,7 +70,6 @@ void forward_softmax_layer(Layer l, int num)
 
 void backward_softmax_layer(Layer l, int num, float *n_delta)
 {
-    fill_cpu(l.delta, num*l.inputs, 0, 1);
     for (int i = 0; i < num; ++i){
         int offset_i = i*l.inputs;
         int offset_o = i*l.outputs;
@@ -82,8 +81,7 @@ void backward_softmax_layer(Layer l, int num, float *n_delta)
     }
 }
 
-void free_softmax_layer(Layer l)
+void zerograd_softmax_layer(Layer l, int subdivision)
 {
-    free(l.output);
-    free(l.delta);
+    fill_cpu(l.delta, subdivision*l.inputs, 0, 1);
 }

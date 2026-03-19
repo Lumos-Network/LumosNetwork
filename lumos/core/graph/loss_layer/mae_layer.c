@@ -29,8 +29,8 @@ Layer *make_mae_layer(int group)
     l->saveweights = NULL;
     l->saveweightsgpu = NULL;
 
-    l->freelayer = free_mae_layer;
-    l->freelayergpu = free_mae_layer_gpu;
+    l->zerogradlayer = zerograd_mae_layer;
+    l->zerogradlayergpu = zerograd_mae_layer_gpu;
 
     fprintf(stderr, "Mae             Layer    :    [output=%4d]\n", 1);
     return l;
@@ -89,10 +89,9 @@ void backward_mae_layer(Layer l, int num, float *n_delta)
     }
 }
 
-void free_mae_layer(Layer l)
+void zerograd_mae_layer(Layer l, int subdivision)
 {
-    free(l.output);
-    free(l.delta);
+    fill_cpu(l.delta, subdivision*l.inputs, 0, 1);
 }
 
 void delta_absolute(float *data, int len, int offset)

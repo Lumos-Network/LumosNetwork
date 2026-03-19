@@ -49,10 +49,9 @@ void backward_ce_layer_gpu(Layer l, int num, float *n_delta)
     }
 }
 
-void free_ce_layer_gpu(Layer l)
+void zerograd_ce_layer_gpu(Layer l, int subdivision)
 {
-    cudaFree(l.output);
-    cudaFree(l.delta);
+    fill_gpu(l.delta, subdivision*l.inputs, 0, 1);
 }
 
 __global__ void cross_entropy_kernel(float *input, float *truth, int len, float *space)

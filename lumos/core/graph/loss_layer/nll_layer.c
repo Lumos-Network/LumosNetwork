@@ -29,8 +29,8 @@ Layer *make_nll_layer(int group)
     l->saveweights = NULL;
     l->saveweightsgpu = NULL;
 
-    l->freelayer = free_nll_layer;
-    l->freelayergpu = free_nll_layer_gpu;
+    l->zerogradlayer = zerograd_nll_layer;
+    l->zerogradlayergpu = zerograd_nll_layer_gpu;
 
     fprintf(stderr, "NLL             Layer    :    [output=%4d]\n", 1);
     return l;
@@ -76,7 +76,6 @@ void forward_nll_layer(Layer l, int num)
 
 void backward_nll_layer(Layer l, int num, float *n_delta)
 {
-    fill_cpu(l.delta, num*l.inputs, 0, 1);
     for (int i = 0; i < num; ++i){
         int offset_i = i*l.inputs;
         int offset_t = i*l.group;
@@ -90,8 +89,7 @@ void backward_nll_layer(Layer l, int num, float *n_delta)
     }
 }
 
-void free_nll_layer(Layer l)
+void zerograd_nll_layer(Layer l, int subdivision)
 {
-    free(l.output);
-    free(l.delta);
+    fill_cpu(l.delta, subdivision*l.inputs, 0, 1);
 }

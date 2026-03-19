@@ -28,7 +28,7 @@ void refresh_connect_layer_weights(Layer l);
 void connect_layer_SGDOptimizer(Layer l, float rate, float momentum, float decay, int nesterov, int maximize, int num, float *n_delta);
 
 void save_connect_layer_weights(Layer l, FILE *fp);
-void free_connect_layer(Layer l);
+void zerograd_connect_layer(Layer l, int subdivision);
 
 void connect_constant_init(Layer l, float x);
 void connect_normal_init(Layer l, float mean, float std);

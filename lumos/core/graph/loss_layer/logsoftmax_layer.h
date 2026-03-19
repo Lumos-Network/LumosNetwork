@@ -21,7 +21,7 @@ void init_logsoftmax_layer(Layer *l, int w, int h, int c, int subdivision);
 void forward_logsoftmax_layer(Layer l, int num);
 void backward_logsoftmax_layer(Layer l, int num, float *n_delta);
 
-void free_logsoftmax_layer(Layer l);
+void zerograd_logsoftmax_layer(Layer l, int subdivision);
 
 #ifdef __cplusplus
 }

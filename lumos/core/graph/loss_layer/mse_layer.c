@@ -29,8 +29,8 @@ Layer *make_mse_layer(int group)
     l->saveweights = NULL;
     l->saveweightsgpu = NULL;
 
-    l->freelayer = free_mse_layer;
-    l->freelayergpu = free_mse_layer_gpu;
+    l->zerogradlayer = zerograd_mse_layer;
+    l->zerogradlayergpu = zerograd_mse_layer_gpu;
 
     fprintf(stderr, "Mse             Layer    :    [output=%4d]\n", 1);
     return l;
@@ -88,8 +88,7 @@ void backward_mse_layer(Layer l, int num, float *n_delta)
     }
 }
 
-void free_mse_layer(Layer l)
+void zerograd_mse_layer(Layer l, int subdivision)
 {
-    free(l.output);
-    free(l.delta);
+    fill_cpu(l.delta, subdivision*l.inputs, 0, 1);
 }
