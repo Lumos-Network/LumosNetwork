@@ -89,19 +89,25 @@ void weightinit_convolutional_layer(Layer l, FILE *fp)
         }
         return;
     }
-    InitCpt initcpt = *l.initcpt;
-    if (initcpt.initype == CONSTANT_I) convolutional_constant_init(l, initcpt.x);
-    else if (initcpt.initype == NORMAL_I) convolutional_normal_init(l, initcpt.mean, initcpt.std);
-    else if (initcpt.initype == KAIMING_NORMAL_I) convolutional_kaiming_normal_init(l, initcpt.a, initcpt.mode, initcpt.nonlinearity);
-    else if (initcpt.initype == KAIMING_UNIFORM_I) convolutional_kaiming_uniform_init(l, initcpt.a, initcpt.mode, initcpt.nonlinearity);
-    else convolutional_constant_init(l, 0);
+    InitCptKernel initcptkernel = *l.initcptkernel;
+    if (initcptkernel.initype == CONSTANT_I) convolutional_constant_kernel_init(l, initcptkernel.x);
+    else if (initcptkernel.initype == NORMAL_I) convolutional_normal_kernel_init(l, initcptkernel.mean, initcptkernel.std);
+    else if (initcptkernel.initype == UNIFORM_I) convolutional_uniform_kernel_init(l, initcptkernel.min, initcptkernel.max);
+    else if (initcptkernel.initype == XAVIER_NORMAL_I) convolutional_xavier_normal_kernel_init(l, initcptkernel.a);
+    else if (initcptkernel.initype == XAVIER_UNIFORM_I) convolutional_xavier_uniform_kernel_init(l, initcptkernel.a);
+    else if (initcptkernel.initype == KAIMING_NORMAL_I) convolutional_kaiming_normal_kernel_init(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
+    else if (initcptkernel.initype == KAIMING_UNIFORM_I) convolutional_kaiming_uniform_kernel_init(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
+    else convolutional_kaiming_uniform_kernel_init(l, sqrt(5.0), "fan_in", "leaky_relu");
     if (l.bias){
-        float fan = l.input_c*l.ksize*l.ksize;
-        float bound = 1 / sqrt(fan);
-        for (int i = 0; i < l.filters; ++i){
-            l.bias_weights[i] = rand_uniform(-bound, bound);
-        }
-        memcpy(l.update_bias_weights, l.bias_weights, l.filters*sizeof(float));
+        InitCptBias initcptbias = *l.initcptbias;
+        if (initcptbias.initype == CONSTANT_I) convolutional_constant_bias_init(l, initcptbias.x);
+        else if (initcptbias.initype == NORMAL_I) convolutional_normal_bias_init(l, initcptbias.mean, initcptbias.std);
+        else if (initcptbias.initype == UNIFORM_I) convolutional_uniform_bias_init(l, initcptbias.min, initcptbias.max);
+        else if (initcptbias.initype == XAVIER_NORMAL_I) convolutional_xavier_normal_bias_init(l, initcptbias.a);
+        else if (initcptbias.initype == XAVIER_UNIFORM_I) convolutional_xavier_uniform_bias_init(l, initcptbias.a);
+        else if (initcptbias.initype == KAIMING_NORMAL_I) convolutional_kaiming_normal_bias_init(l, initcptbias.mode);
+        else if (initcptbias.initype == KAIMING_UNIFORM_I) convolutional_kaiming_uniform_bias_init(l, initcptbias.mode);
+        else convolutional_kaiming_uniform_bias_init(l, "fan_in");
     }
 }
 
@@ -212,43 +218,73 @@ void zerograd_convolutional_layer(Layer l, int subdivision)
     fill_cpu(l.delta, subdivision*l.inputs, 0, 1);
 }
 
-void convolutional_constant_init(Layer l, float x)
+void convolutional_constant_kernel_init(Layer l, float x)
 {
     fill_cpu(l.kernel_weights, l.filters*l.ksize*l.ksize*l.input_c, x, 1);
     memcpy(l.update_kernel_weights, l.kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float));
 }
 
-void convolutional_normal_init(Layer l, float mean, float std)
+void convolutional_normal_kernel_init(Layer l, float mean, float std)
 {
-    for (int i = 0; i < l.ksize*l.ksize*l.input_c; ++i){
+    for (int i = 0; i < l.filters*l.ksize*l.ksize*l.input_c; ++i){
         l.kernel_weights[i] = generate_normal(mean, std);
     }
-    for (int i = 1; i < l.filters; ++i){
-        memcpy(l.kernel_weights+i*(l.ksize*l.ksize*l.input_c), l.kernel_weights, l.ksize*l.ksize*l.input_c*sizeof(float));
-    }
     memcpy(l.update_kernel_weights, l.kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float));
 }
 
-void convolutional_kaiming_normal_init(Layer l, float a, char *mode, char *nonlinearity)
+void convolutional_uniform_kernel_init(Layer l, float min, float max)
 {
-    if (0 == strcmp(nonlinearity, "relu")) a = 0;
-    else if (0 == strcmp(nonlinearity, "leaky relu")) a = 0.1;
-    else a = 0;
-    int num = 0;
-    if (0 == strcmp(mode, "fan_in")) num = l.ksize*l.ksize*l.input_c;
-    else if (0 == strcmp(mode, "fan_out")) num = l.ksize*l.ksize*l.output_c;
-    else num = l.ksize*l.ksize*l.input_c;
-    float scale = sqrt((float)2 / ((1+a*a)*num));
-    for (int i = 0; i < l.ksize*l.ksize*l.input_c; ++i){
-        l.kernel_weights[i] = scale*rand_normal();
-    }
-    for (int i = 1; i < l.filters; ++i){
-        memcpy(l.kernel_weights+i*(l.ksize*l.ksize*l.input_c), l.kernel_weights, l.ksize*l.ksize*l.input_c*sizeof(float));
+    for (int i = 0; i < l.filters*l.ksize*l.ksize*l.input_c; ++i){
+        l.kernel_weights[i] = rand_uniform(min, max);
     }
     memcpy(l.update_kernel_weights, l.kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float));
 }
 
-void convolutional_kaiming_uniform_init(Layer l, float a, char *mode, char *nonlinearity)
+void convolutional_xavier_normal_kernel_init(Layer l, float gain)
+{
+    float fan_in = l.ksize*l.ksize*l.input_c;
+    float fan_out = l.ksize*l.ksize*l.filters;
+    float std = gain * sqrt(2.0 / (fan_in + fan_out));
+    for (int i = 0; i < l.filters*l.ksize*l.ksize*l.input_c; ++i){
+        l.kernel_weights[i] = rand_normal()*std;
+    }
+    memcpy(l.update_kernel_weights, l.kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float));
+}
+
+void convolutional_xavier_uniform_kernel_init(Layer l, float gain)
+{
+    float fan_in = l.ksize*l.ksize*l.input_c;
+    float fan_out = l.ksize*l.ksize*l.filters;
+    float std = gain * sqrt(2.0 / (fan_in + fan_out));
+    float a = sqrt(3.0) * std;
+    for (int i = 0; i < l.filters*l.ksize*l.ksize*l.input_c; ++i){
+        l.kernel_weights[i] = rand_uniform(-a, a);
+    }
+    memcpy(l.update_kernel_weights, l.kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float));
+}
+
+void convolutional_kaiming_normal_kernel_init(Layer l, float a, char *mode, char *nonlinearity)
+{
+    float fan = 0;
+    float std = 0;
+    if (0 == strcmp(mode, "fan_in")) fan = l.ksize*l.ksize*l.input_c;
+    else if (0 == strcmp(mode, "fan_out")) fan = l.ksize*l.ksize*l.filters;
+    if (0 == strcmp(nonlinearity, "sigmoid")) a= 1;
+    else if (0 == strcmp(nonlinearity, "tanh")) a = 5.0/3;
+    else if (0 == strcmp(nonlinearity, "relu")) a = sqrt(2.0);
+    else if (0 == strcmp(nonlinearity, "leaky_relu")){
+        if (a == 0) a = 0.01;
+        a = sqrt(2.0 / (1 + a*a));
+    }
+    else if (0 == strcmp(nonlinearity, "selu")) a = 3.0 / 4;
+    std = a / sqrt(fan);
+    for (int i = 0; i < l.filters*l.ksize*l.ksize*l.input_c; ++i){
+        l.kernel_weights[i] = rand_normal()*std;
+    }
+    memcpy(l.update_kernel_weights, l.kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float));
+}
+
+void convolutional_kaiming_uniform_kernel_init(Layer l, float a, char *mode, char *nonlinearity)
 {
     float fan = 0;
     float std = 0;
@@ -269,4 +305,74 @@ void convolutional_kaiming_uniform_init(Layer l, float a, char *mode, char *nonl
         l.kernel_weights[i] = rand_uniform(-bound, bound);
     }
     memcpy(l.update_kernel_weights, l.kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float));
+}
+
+void convolutional_constant_bias_init(Layer l, float x)
+{
+    fill_cpu(l.bias_weights, l.filters, x, 1);
+    memcpy(l.update_bias_weights, l.bias_weights, l.filters*sizeof(float));
+}
+
+void convolutional_normal_bias_init(Layer l, float mean, float std)
+{
+    for (int i = 0; i < l.filters; ++i){
+        l.bias_weights[i] = generate_normal(mean, std);
+    }
+    memcpy(l.update_bias_weights, l.bias_weights, l.filters*sizeof(float));
+}
+
+void convolutional_uniform_bias_init(Layer l, float min, float max)
+{
+    for (int i = 0; i < l.filters; ++i){
+        l.bias_weights[i] = rand_uniform(min, max);
+    }
+    memcpy(l.update_bias_weights, l.bias_weights, l.filters*sizeof(float));
+}
+
+void convolutional_xavier_normal_bias_init(Layer l, float gain)
+{
+    float fan_in = l.ksize*l.ksize*l.input_c;
+    float fan_out = l.ksize*l.ksize*l.filters;
+    float std = gain * sqrt(2.0 / (fan_in + fan_out));
+    for (int i = 0; i < l.filters; ++i){
+        l.bias_weights[i] = rand_normal()*std;
+    }
+    memcpy(l.update_bias_weights, l.bias_weights, l.filters*sizeof(float));
+}
+
+void convolutional_xavier_uniform_bias_init(Layer l, float gain)
+{
+    float fan_in = l.ksize*l.ksize*l.input_c;
+    float fan_out = l.ksize*l.ksize*l.filters;
+    float std = gain * sqrt(2.0 / (fan_in + fan_out));
+    for (int i = 0; i < l.filters; ++i){
+        l.bias_weights[i] = rand_uniform(-std, std);
+    }
+    memcpy(l.update_bias_weights, l.bias_weights, l.filters*sizeof(float));
+}
+
+void convolutional_kaiming_normal_bias_init(Layer l, char *mode)
+{
+    float fan = 0;
+    if (0 == strcmp(mode, "fan_in")) fan = l.ksize*l.ksize*l.input_c;
+    else if (0 == strcmp(mode, "fan_out")) fan = l.ksize*l.ksize*l.filters;
+    else fan = l.ksize*l.ksize*l.input_c;
+    float std = 1 / sqrt(fan);
+    for (int i = 0; i < l.filters; ++i){
+        l.bias_weights[i] = generate_normal(0, std);
+    }
+    memcpy(l.update_bias_weights, l.bias_weights, l.filters*sizeof(float));
+}
+
+void convolutional_kaiming_uniform_bias_init(Layer l, char *mode)
+{
+    float fan = 0;
+    if (0 == strcmp(mode, "fan_in")) fan = l.ksize*l.ksize*l.input_c;
+    else if (0 == strcmp(mode, "fan_out")) fan = l.ksize*l.ksize*l.filters;
+    else fan = l.ksize*l.ksize*l.input_c;
+    float bound = 1 / sqrt(fan);
+    for (int i = 0; i < l.filters; ++i){
+        l.bias_weights[i] = rand_uniform(-bound, bound);
+    }
+    memcpy(l.update_bias_weights, l.bias_weights, l.filters*sizeof(float));
 }

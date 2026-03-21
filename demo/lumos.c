@@ -6,12 +6,12 @@
 
 #include "random.h"
 #include "normalization_layer.h"
-#include "vgg16.h"
+#include "vgg16_cifar10.h"
 
 int main()
 {
-    // lenet5_mnist("gpu", NULL);
-    // lenet5_mnist_detect("gpu", "./backup/LW_f");
+    // lenet5_mnist("cpu", NULL);
+    // lenet5_mnist_detect("cpu", "./backup/LW_f");
 
     // xor("gpu", NULL);
     // xor_detect("gpu", "./backup/LW_f");
@@ -28,10 +28,10 @@ int main()
     // alexnet_xray("gpu", NULL);
     // alexnet_xray_detect("gpu", "./backup/LW_f");
 
-    // xor("gpu", NULL);
-    // xor_detect("gpu", "./backup/LW_f");
+    // xor("cpu", NULL);
+    // xor_detect("cpu", "./backup/LW_f");
 
-    vgg16("gpu", NULL);
+    vgg16_cifar10("gpu", NULL);
 
     return 0;
 }

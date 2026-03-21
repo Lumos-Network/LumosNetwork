@@ -32,10 +32,21 @@ void refresh_convolutional_layer_weights_gpu(Layer l);
 void save_convolutional_layer_weights_gpu(Layer l, FILE *fp);
 void zerograd_convolutional_layer_gpu(Layer l, int subdivision);
 
-void convolutional_constant_init_gpu(Layer l, float x);
-void convolutional_normal_init_gpu(Layer l, float mean, float std);
-void convolutional_kaiming_normal_init_gpu(Layer l, float a, char *mode, char *nonlinearity);
-void convolutional_kaiming_uniform_init_gpu(Layer l, float a, char *mode, char *nonlinearity);
+void convolutional_constant_kernel_init_gpu(Layer l, float x);
+void convolutional_normal_kernel_init_gpu(Layer l, float mean, float std);
+void convolutional_uniform_kernel_init_gpu(Layer l, float min, float max);
+void convolutional_xavier_normal_kernel_init_gpu(Layer l, float gain);
+void convolutional_xavier_uniform_kernel_init_gpu(Layer l, float gain);
+void convolutional_kaiming_normal_kernel_init_gpu(Layer l, float a, char *mode, char *nonlinearity);
+void convolutional_kaiming_uniform_kernel_init_gpu(Layer l, float a, char *mode, char *nonlinearity);
+
+void convolutional_constant_bias_init_gpu(Layer l, float x);
+void convolutional_normal_bias_init_gpu(Layer l, float mean, float std);
+void convolutional_uniform_bias_init_gpu(Layer l, float min, float max);
+void convolutional_xavier_normal_bias_init_gpu(Layer l, float gain);
+void convolutional_xavier_uniform_bias_init_gpu(Layer l, float gain);
+void convolutional_kaiming_normal_bias_init_gpu(Layer l, char *mode);
+void convolutional_kaiming_uniform_bias_init_gpu(Layer l, char *mode);
 
 void convolutional_layer_SGDOptimizer_gpu(Layer l, float rate, float momentum, float decay, int nesterov, int maximize, int num, float *n_delta);
 

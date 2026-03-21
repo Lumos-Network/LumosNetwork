@@ -289,50 +289,124 @@ void lr_scheduler_cosineannealing(Session *sess, int T_max, float lr_min)
     sess->lrscheduler = lrscheduler;
 }
 
-void init_constant(Layer *l, float x)
+void init_constant_kernel(Layer *l, float x)
 {
-    InitCpt *initcpt = malloc(sizeof(InitCpt));
-    initcpt->initype = CONSTANT_I;
-    initcpt->x = x;
-    l->initcpt = initcpt;
+    InitCptKernel *initcptkernel = malloc(sizeof(InitCptKernel));
+    initcptkernel->initype = CONSTANT_I;
+    initcptkernel->x = x;
+    l->initcptkernel = initcptkernel;
 }
 
-void init_normal(Layer *l, float mean, float std)
+void init_normal_kernel(Layer *l, float mean, float std)
 {
-    InitCpt *initcpt = malloc(sizeof(InitCpt));
-    initcpt->initype = NORMAL_I;
-    initcpt->mean = mean;
-    initcpt->std = std;
-    l->initcpt = initcpt;
+    InitCptKernel *initcptkernel = malloc(sizeof(InitCptKernel));
+    initcptkernel->initype = NORMAL_I;
+    initcptkernel->mean = mean;
+    initcptkernel->std = std;
+    l->initcptkernel = initcptkernel;
 }
 
-void init_uniform(Layer *l, float min, float max)
+void init_uniform_kernel(Layer *l, float min, float max)
 {
-    InitCpt *initcpt = malloc(sizeof(InitCpt));
-    initcpt->initype = UNIFORM_I;
-    initcpt->min = min;
-    initcpt->max = max;
-    l->initcpt = initcpt;
+    InitCptKernel *initcptkernel = malloc(sizeof(InitCptKernel));
+    initcptkernel->initype = UNIFORM_I;
+    initcptkernel->min = min;
+    initcptkernel->max = max;
+    l->initcptkernel = initcptkernel;
 }
 
-void init_kaiming_normal(Layer *l, float a, char *mode, char *nonlinearity)
+void init_xavier_normal_kernel(Layer *l, float gain)
 {
-    InitCpt *initcpt = malloc(sizeof(InitCpt));
-    initcpt->initype = KAIMING_NORMAL_I;
-    initcpt->a = a;
-    initcpt->mode = mode;
-    initcpt->nonlinearity = nonlinearity;
-    l->initcpt = initcpt;
+    InitCptKernel *initcptkernel = malloc(sizeof(InitCptKernel));
+    initcptkernel->initype = XAVIER_NORMAL_I;
+    initcptkernel->a = gain;
+    l->initcptkernel = initcptkernel;
 }
 
-void init_kaiming_uniform(Layer *l, float a, char *mode, char *nonlinearity)
+void init_xavier_uniform_kernel(Layer *l, float gain)
 {
-    InitCpt *initcpt = malloc(sizeof(InitCpt));
-    initcpt->initype = KAIMING_UNIFORM_I;
-    initcpt->a = a;
-    initcpt->mode = mode;
-    initcpt->nonlinearity = nonlinearity;
-    l->initcpt = initcpt;
+    InitCptKernel *initcptkernel = malloc(sizeof(InitCptKernel));
+    initcptkernel->initype = XAVIER_UNIFORM_I;
+    initcptkernel->a = gain;
+    l->initcptkernel = initcptkernel;
+}
+
+void init_kaiming_normal_kernel(Layer *l, float a, char *mode, char *nonlinearity)
+{
+    InitCptKernel *initcptkernel = malloc(sizeof(InitCptKernel));
+    initcptkernel->initype = KAIMING_NORMAL_I;
+    initcptkernel->a = a;
+    initcptkernel->mode = mode;
+    initcptkernel->nonlinearity = nonlinearity;
+    l->initcptkernel = initcptkernel;
+}
+
+void init_kaiming_uniform_kernel(Layer *l, float a, char *mode, char *nonlinearity)
+{
+    InitCptKernel *initcptkernel = malloc(sizeof(InitCptKernel));
+    initcptkernel->initype = KAIMING_UNIFORM_I;
+    initcptkernel->a = a;
+    initcptkernel->mode = mode;
+    initcptkernel->nonlinearity = nonlinearity;
+    l->initcptkernel = initcptkernel;
+}
+
+void init_constant_bias(Layer *l, float x)
+{
+    InitCptBias *initcptbias = malloc(sizeof(InitCptBias));
+    initcptbias->initype = CONSTANT_I;
+    initcptbias->x = x;
+    l->initcptbias = initcptbias;
+}
+
+void init_normal_bias(Layer *l, float mean, float std)
+{
+    InitCptBias *initcptbias = malloc(sizeof(InitCptBias));
+    initcptbias->initype = NORMAL_I;
+    initcptbias->mean = mean;
+    initcptbias->std = std;
+    l->initcptbias = initcptbias;
+}
+
+void init_uniform_bias(Layer *l, float min, float max)
+{
+    InitCptBias *initcptbias = malloc(sizeof(InitCptBias));
+    initcptbias->initype = UNIFORM_I;
+    initcptbias->min = min;
+    initcptbias->max = max;
+    l->initcptbias = initcptbias;
+}
+
+void init_xavier_normal_bias(Layer *l, float gain)
+{
+    InitCptBias *initcptbias = malloc(sizeof(InitCptBias));
+    initcptbias->initype = XAVIER_NORMAL_I;
+    initcptbias->a = gain;
+    l->initcptbias = initcptbias;
+}
+
+void init_xavier_uniform_bias(Layer *l, float gain)
+{
+    InitCptBias *initcptbias = malloc(sizeof(InitCptBias));
+    initcptbias->initype = XAVIER_UNIFORM_I;
+    initcptbias->a = gain;
+    l->initcptbias = initcptbias;
+}
+
+void init_kaiming_normal_bias(Layer *l, char *mode)
+{
+    InitCptBias *initcptbias = malloc(sizeof(InitCptBias));
+    initcptbias->initype = KAIMING_NORMAL_I;
+    initcptbias->mode = mode;
+    l->initcptbias = initcptbias;
+}
+
+void init_kaiming_uniform_bias(Layer *l, char *mode)
+{
+    InitCptBias *initcptbias = malloc(sizeof(InitCptBias));
+    initcptbias->initype = KAIMING_UNIFORM_I;
+    initcptbias->mode = mode;
+    l->initcptbias = initcptbias;
 }
 
 void SGDOptimizer_sess(Session *sess, float momentum, float dampening, float decay, int nesterov, int maximize)

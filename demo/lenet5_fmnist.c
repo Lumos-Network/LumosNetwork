@@ -20,12 +20,19 @@ void lenet5_fmnist(char *type, char *path)
     append_layer2grpah(g, l7);
     append_layer2grpah(g, l8);
 
-    init_kaiming_uniform(l1, sqrt(5.0), "fan_in", "leaky_relu");
-    init_kaiming_uniform(l3, sqrt(5.0), "fan_in", "leaky_relu");
-    init_kaiming_uniform(l5, sqrt(5.0), "fan_in", "leaky_relu");
+    init_kaiming_uniform_kernel(l1, sqrt(5.0), "fan_in", "leaky_relu");
+    init_kaiming_uniform_kernel(l3, sqrt(5.0), "fan_in", "leaky_relu");
+    init_kaiming_uniform_kernel(l5, sqrt(5.0), "fan_in", "leaky_relu");
 
-    init_kaiming_uniform(l6, sqrt(5.0), "fan_in", "leaky_relu");
-    init_kaiming_uniform(l7, sqrt(5.0), "fan_in", "leaky_relu");
+    init_kaiming_uniform_bias(l1, "fan_in");
+    init_kaiming_uniform_bias(l3, "fan_in");
+    init_kaiming_uniform_bias(l5, "fan_in");
+
+    init_kaiming_uniform_kernel(l6, sqrt(5.0), "fan_in", "leaky_relu");
+    init_kaiming_uniform_kernel(l7, sqrt(5.0), "fan_in", "leaky_relu");
+
+    init_kaiming_uniform_bias(l6, "fan_in");
+    init_kaiming_uniform_bias(l7, "fan_in");
 
     Session *sess = create_session(g, 28, 28, 1, 10, type, path);
     set_train_params(sess, 20, 32, 32, 0.01);

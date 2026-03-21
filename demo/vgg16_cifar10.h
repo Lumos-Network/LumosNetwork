@@ -1,5 +1,5 @@
-#ifndef VGG16_H
-#define VGG16_H
+#ifndef VGG16_CIFAR10_H
+#define VGG16_CIFAR10_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,8 +12,8 @@
 extern "C" {
 #endif
 
-void vgg16(char *type, char *path);
-void vgg16_detect(char*type, char *path);
+void vgg16_cifar10(char *type, char *path);
+void vgg16_cifar10_detect(char*type, char *path);
 
 #ifdef __cplusplus
 }

@@ -23,10 +23,10 @@ typedef enum {
 } LayerType;
 
 typedef enum {
-    CONSTANT_I, NORMAL_I, UNIFORM_I, KAIMING_NORMAL_I, KAIMING_UNIFORM_I
+    CONSTANT_I, NORMAL_I, UNIFORM_I, XAVIER_NORMAL_I, XAVIER_UNIFORM_I, KAIMING_NORMAL_I, KAIMING_UNIFORM_I
 } InitType;
 
-typedef struct initcpt{
+typedef struct initcptkernel{
     InitType initype;
     float x;
     float mean;
@@ -36,9 +36,21 @@ typedef struct initcpt{
     float max;
     char *mode;
     char *nonlinearity;
-} initcpt, InitCpt;
+} initcptkernel, InitCptKernel;
 
-typedef struct initcpt InitCpt;
+typedef struct initcptbias{
+    InitType initype;
+    float x;
+    float mean;
+    float std;
+    float a;
+    float min;
+    float max;
+    char *mode;
+    char *nonlinearity;
+} initcptbias, InitCptBias;
+
+typedef struct initcptkernel InitCptKernel;
 typedef struct layer Layer;
 
 typedef void (*forward)  (struct layer, int);
@@ -169,7 +181,8 @@ struct layer{
     ZeroGradLayer zerogradlayer;
     ZeroGradLayerGpu zerogradlayergpu;
 
-    InitCpt *initcpt;
+    InitCptKernel *initcptkernel;
+    InitCptBias *initcptbias;
 };
 
 #ifdef __cplusplus

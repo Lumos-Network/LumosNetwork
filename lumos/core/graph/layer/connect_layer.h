@@ -30,11 +30,21 @@ void connect_layer_SGDOptimizer(Layer l, float rate, float momentum, float decay
 void save_connect_layer_weights(Layer l, FILE *fp);
 void zerograd_connect_layer(Layer l, int subdivision);
 
-void connect_constant_init(Layer l, float x);
-void connect_normal_init(Layer l, float mean, float std);
-void connect_uniform_init(Layer l, float min, float max);
-void connect_kaiming_normal_init(Layer l, float a, char *mode, char *nonlinearity);
-void connect_kaiming_uniform_init(Layer l, float a, char *mode, char *nonlinearity);
+void connect_constant_kernel_init(Layer l, float x);
+void connect_normal_kernel_init(Layer l, float mean, float std);
+void connect_uniform_kernel_init(Layer l, float min, float max);
+void connect_xavier_normal_kernel_init(Layer l, float gain);
+void connect_xavier_uniform_kernel_init(Layer l, float gain);
+void connect_kaiming_normal_kernel_init(Layer l, float a, char *mode, char *nonlinearity);
+void connect_kaiming_uniform_kernel_init(Layer l, float a, char *mode, char *nonlinearity);
+
+void connect_constant_bias_init(Layer l, float x);
+void connect_normal_bias_init(Layer l, float mean, float std);
+void connect_uniform_bias_init(Layer l, float min, float max);
+void connect_xavier_normal_bias_init(Layer l, float gain);
+void connect_xavier_uniform_bias_init(Layer l, float gain);
+void connect_kaiming_normal_bias_init(Layer l, char *mode);
+void connect_kaiming_uniform_bias_init(Layer l, char *mode);
 
 #ifdef __cplusplus
 }

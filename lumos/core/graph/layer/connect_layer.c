@@ -85,20 +85,25 @@ void weightinit_connect_layer(Layer l, FILE *fp)
         }
         return;
     }
-    InitCpt initcpt = *l.initcpt;
-    if (initcpt.initype == CONSTANT_I) connect_constant_init(l, initcpt.x);
-    else if (initcpt.initype == NORMAL_I) connect_normal_init(l, initcpt.mean, initcpt.std);
-    else if (initcpt.initype == UNIFORM_I) connect_uniform_init(l, initcpt.min, initcpt.max);
-    else if (initcpt.initype == KAIMING_NORMAL_I) connect_kaiming_normal_init(l, initcpt.a, initcpt.mode, initcpt.nonlinearity);
-    else if (initcpt.initype == KAIMING_UNIFORM_I) connect_kaiming_uniform_init(l, initcpt.a, initcpt.mode, initcpt.nonlinearity);
-    else connect_constant_init(l, 0);
+    InitCptKernel initcptkernel = *l.initcptkernel;
+    if (initcptkernel.initype == CONSTANT_I) connect_constant_kernel_init(l, initcptkernel.x);
+    else if (initcptkernel.initype == NORMAL_I) connect_normal_kernel_init(l, initcptkernel.mean, initcptkernel.std);
+    else if (initcptkernel.initype == UNIFORM_I) connect_uniform_kernel_init(l, initcptkernel.min, initcptkernel.max);
+    else if (initcptkernel.initype == XAVIER_NORMAL_I) connect_xavier_normal_kernel_init(l, initcptkernel.a);
+    else if (initcptkernel.initype == XAVIER_UNIFORM_I) connect_xavier_uniform_kernel_init(l, initcptkernel.a);
+    else if (initcptkernel.initype == KAIMING_NORMAL_I) connect_kaiming_normal_kernel_init(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
+    else if (initcptkernel.initype == KAIMING_UNIFORM_I) connect_kaiming_uniform_kernel_init(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
+    else connect_kaiming_uniform_kernel_init(l, sqrt(5.0), "fan_in", "leaky_relu");
     if (l.bias){
-        float fan = l.inputs;
-        float bound = 1 / sqrt(fan);
-        for (int i = 0; i < l.outputs; ++i){
-            l.bias_weights[i] = rand_uniform(-bound, bound);
-        }
-        memcpy(l.update_bias_weights, l.bias_weights, l.outputs*sizeof(float));
+        InitCptBias initcptbias = *l.initcptbias;
+        if (initcptbias.initype == CONSTANT_I) connect_constant_bias_init(l, initcptbias.x);
+        else if (initcptbias.initype == NORMAL_I) connect_normal_bias_init(l, initcptbias.mean, initcptbias.std);
+        else if (initcptbias.initype == UNIFORM_I) connect_uniform_bias_init(l, initcptbias.min, initcptbias.max);
+        else if (initcptbias.initype == XAVIER_NORMAL_I) connect_xavier_normal_bias_init(l, initcptbias.a);
+        else if (initcptbias.initype == XAVIER_UNIFORM_I) connect_xavier_uniform_bias_init(l, initcptbias.a);
+        else if (initcptbias.initype == KAIMING_NORMAL_I) connect_kaiming_normal_bias_init(l, initcptbias.mode);
+        else if (initcptbias.initype == KAIMING_UNIFORM_I) connect_kaiming_uniform_bias_init(l, initcptbias.mode);
+        else connect_kaiming_uniform_bias_init(l, "fan_in");
     }
 }
 
@@ -200,15 +205,13 @@ void zerograd_connect_layer(Layer l, int subdivision)
     fill_cpu(l.delta, subdivision*l.inputs, 0, 1);
 }
 
-void connect_constant_init(Layer l, float x)
+void connect_constant_kernel_init(Layer l, float x)
 {
-    for (int i = 0; i < l.inputs*l.outputs; ++i){
-        l.kernel_weights[i] = x;
-    }
+    fill_cpu(l.kernel_weights, l.inputs*l.outputs, x, 1);
     memcpy(l.update_kernel_weights, l.kernel_weights, l.inputs*l.outputs*sizeof(float));
 }
 
-void connect_normal_init(Layer l, float mean, float std)
+void connect_normal_kernel_init(Layer l, float mean, float std)
 {
     for (int i = 0; i < l.inputs*l.outputs; ++i){
         l.kernel_weights[i] = generate_normal(mean, std);
@@ -216,7 +219,7 @@ void connect_normal_init(Layer l, float mean, float std)
     memcpy(l.update_kernel_weights, l.kernel_weights, l.inputs*l.outputs*sizeof(float));
 }
 
-void connect_uniform_init(Layer l, float min, float max)
+void connect_uniform_kernel_init(Layer l, float min, float max)
 {
     for (int i = 0; i < l.inputs*l.outputs; ++i){
         l.kernel_weights[i] = rand_uniform(min, max);
@@ -224,23 +227,51 @@ void connect_uniform_init(Layer l, float min, float max)
     memcpy(l.update_kernel_weights, l.kernel_weights, l.inputs*l.outputs*sizeof(float));
 }
 
-void connect_kaiming_normal_init(Layer l, float a, char *mode, char *nonlinearity)
+void connect_xavier_normal_kernel_init(Layer l, float gain)
 {
-    if (0 == strcmp(nonlinearity, "relu")) a = 0;
-    else if (0 == strcmp(nonlinearity, "leaky relu")) a = 0.1;
-    else a = 0;
-    int num = 0;
-    if (0 == strcmp(mode, "fan_in")) num = l.inputs;
-    else if (0 == strcmp(mode, "fan_out")) num = l.outputs;
-    else num = l.inputs;
-    float scale = sqrt((float)2/((1+a*a)*num));
+    float fan_in = l.inputs;
+    float fan_out = l.outputs;
+    float std = gain * sqrt(2.0 / (fan_in + fan_out));
     for (int i = 0; i < l.inputs*l.outputs; ++i){
-        l.kernel_weights[i] = scale*generate_normal(0, 1);
+        l.kernel_weights[i] = rand_normal()*std;
     }
     memcpy(l.update_kernel_weights, l.kernel_weights, l.inputs*l.outputs*sizeof(float));
 }
 
-void connect_kaiming_uniform_init(Layer l, float a, char *mode, char *nonlinearity)
+void connect_xavier_uniform_kernel_init(Layer l, float gain)
+{
+    float fan_in = l.inputs;
+    float fan_out = l.outputs;
+    float std = gain * sqrt(2.0 / (fan_in + fan_out));
+    float a = sqrt(3.0) * std;
+    for (int i = 0; i < l.inputs*l.outputs; ++i){
+        l.kernel_weights[i] = rand_uniform(-a, a);
+    }
+    memcpy(l.update_kernel_weights, l.kernel_weights, l.inputs*l.outputs*sizeof(float));
+}
+
+void connect_kaiming_normal_kernel_init(Layer l, float a, char *mode, char *nonlinearity)
+{
+    float fan = 0;
+    float std = 0;
+    if (0 == strcmp(mode, "fan_in")) fan = l.inputs;
+    else if (0 == strcmp(mode, "fan_out")) fan = l.outputs;
+    if (0 == strcmp(nonlinearity, "sigmoid")) a= 1;
+    else if (0 == strcmp(nonlinearity, "tanh")) a = 5.0/3;
+    else if (0 == strcmp(nonlinearity, "relu")) a = sqrt(2.0);
+    else if (0 == strcmp(nonlinearity, "leaky_relu")){
+        if (a == 0) a = 0.01;
+        a = sqrt(2.0 / (1 + a*a));
+    }
+    else if (0 == strcmp(nonlinearity, "selu")) a = 3.0 / 4;
+    std = a / sqrt(fan);
+    for (int i = 0; i < l.inputs*l.outputs; ++i){
+        l.kernel_weights[i] = rand_normal()*std;
+    }
+    memcpy(l.update_kernel_weights, l.kernel_weights, l.inputs*l.outputs*sizeof(float));
+}
+
+void connect_kaiming_uniform_kernel_init(Layer l, float a, char *mode, char *nonlinearity)
 {
     float fan = 0;
     float std = 0;
@@ -261,4 +292,74 @@ void connect_kaiming_uniform_init(Layer l, float a, char *mode, char *nonlineari
         l.kernel_weights[i] = rand_uniform(-bound, bound);
     }
     memcpy(l.update_kernel_weights, l.kernel_weights, l.inputs*l.outputs*sizeof(float));
+}
+
+void connect_constant_bias_init(Layer l, float x)
+{
+    fill_cpu(l.bias_weights, l.outputs, x, 1);
+    memcpy(l.update_bias_weights, l.bias_weights, l.outputs*sizeof(float));
+}
+
+void connect_normal_bias_init(Layer l, float mean, float std)
+{
+    for (int i = 0; i < l.outputs; ++i){
+        l.bias_weights[i] = generate_normal(mean, std);
+    }
+    memcpy(l.update_bias_weights, l.bias_weights, l.outputs*sizeof(float));
+}
+
+void connect_uniform_bias_init(Layer l, float min, float max)
+{
+    for (int i = 0; i < l.outputs; ++i){
+        l.bias_weights[i] = rand_uniform(min, max);
+    }
+    memcpy(l.update_bias_weights, l.bias_weights, l.outputs*sizeof(float));
+}
+
+void connect_xavier_normal_bias_init(Layer l, float gain)
+{
+    float fan_in = l.inputs;
+    float fan_out = l.outputs;
+    float std = gain * sqrt(2.0 / (fan_in + fan_out));
+    for (int i = 0; i < l.outputs; ++i){
+        l.bias_weights[i] = rand_normal()*std;
+    }
+    memcpy(l.update_bias_weights, l.bias_weights, l.outputs*sizeof(float));
+}
+
+void connect_xavier_uniform_bias_init(Layer l, float gain)
+{
+    float fan_in = l.inputs;
+    float fan_out = l.outputs;
+    float std = gain * sqrt(2.0 / (fan_in + fan_out));
+    for (int i = 0; i < l.outputs; ++i){
+        l.bias_weights[i] = rand_uniform(-std, std);
+    }
+    memcpy(l.update_bias_weights, l.bias_weights, l.outputs*sizeof(float));
+}
+
+void connect_kaiming_normal_bias_init(Layer l, char *mode)
+{
+    float fan = 0;
+    if (0 == strcmp(mode, "fan_in")) fan = l.inputs;
+    else if (0 == strcmp(mode, "fan_out")) fan = l.outputs;
+    else fan = l.inputs;
+    float std = 1 / sqrt(fan);
+    for (int i = 0; i < l.outputs; ++i){
+        l.bias_weights[i] = generate_normal(0, std);
+    }
+    memcpy(l.update_bias_weights, l.bias_weights, l.outputs*sizeof(float));
+}
+
+void connect_kaiming_uniform_bias_init(Layer l, char *mode)
+{
+    float fan = 0;
+    if (0 == strcmp(mode, "fan_in")) fan = l.inputs;
+    else if (0 == strcmp(mode, "fan_out")) fan = l.outputs;
+    else fan = l.inputs;
+    float bound = 1 / sqrt(fan);
+    for (int i = 0; i < l.outputs; ++i){
+        l.bias_weights[i] = rand_uniform(-bound, bound);
+    }
+    memcpy(l.update_bias_weights, l.bias_weights, l.outputs*sizeof(float));
 }

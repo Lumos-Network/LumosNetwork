@@ -31,15 +31,27 @@ void alexnet_flower(char *type, char *path)
     append_layer2grpah(g, l12);
     append_layer2grpah(g, l13);
     append_layer2grpah(g, l14);
-    init_kaiming_uniform(l1, sqrt(5.0), "fan_in", "leaky_relu");
-    init_kaiming_uniform(l3, sqrt(5.0), "fan_in", "leaky_relu");
-    init_kaiming_uniform(l5, sqrt(5.0), "fan_in", "leaky_relu");
-    init_kaiming_uniform(l6, sqrt(5.0), "fan_in", "leaky_relu");
-    init_kaiming_uniform(l7, sqrt(5.0), "fan_in", "leaky_relu");
 
-    init_kaiming_uniform(l10, sqrt(5.0), "fan_in", "leaky_relu");
-    init_kaiming_uniform(l12, sqrt(5.0), "fan_in", "leaky_relu");
-    init_kaiming_uniform(l13, sqrt(5.0), "fan_in", "leaky_relu");
+    init_kaiming_uniform_kernel(l1, sqrt(5.0), "fan_in", "leaky_relu");
+    init_kaiming_uniform_kernel(l3, sqrt(5.0), "fan_in", "leaky_relu");
+    init_kaiming_uniform_kernel(l5, sqrt(5.0), "fan_in", "leaky_relu");
+    init_kaiming_uniform_kernel(l6, sqrt(5.0), "fan_in", "leaky_relu");
+    init_kaiming_uniform_kernel(l7, sqrt(5.0), "fan_in", "leaky_relu");
+
+    init_kaiming_uniform_bias(l1, "fan_in");
+    init_kaiming_uniform_bias(l3, "fan_in");
+    init_kaiming_uniform_bias(l5, "fan_in");
+    init_kaiming_uniform_bias(l6, "fan_in");
+    init_kaiming_uniform_bias(l7, "fan_in");
+
+    init_kaiming_uniform_kernel(l10, sqrt(5.0), "fan_in", "leaky_relu");
+    init_kaiming_uniform_kernel(l12, sqrt(5.0), "fan_in", "leaky_relu");
+    init_kaiming_uniform_kernel(l13, sqrt(5.0), "fan_in", "leaky_relu");
+
+    init_kaiming_uniform_bias(l10, "fan_in");
+    init_kaiming_uniform_bias(l12, "fan_in");
+    init_kaiming_uniform_bias(l13, "fan_in");
+
     Session *sess = create_session(g, 224, 224, 3, 5, type, path);
     float *mean = calloc(3, sizeof(float));
     float *std = calloc(3, sizeof(float));

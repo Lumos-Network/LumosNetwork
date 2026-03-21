@@ -86,11 +86,21 @@ void lr_scheduler_multistep(Session *sess, int *milestones, int num, float gamma
 void lr_scheduler_exponential(Session *sess, float gamma);
 void lr_scheduler_cosineannealing(Session *sess, int T_max, float lr_min);
 
-void init_constant(Layer *l, float x);
-void init_normal(Layer *l, float mean, float std);
-void init_uniform(Layer *l, float min, float max);
-void init_kaiming_normal(Layer *l, float a, char *mode, char *nonlinearity);
-void init_kaiming_uniform(Layer *l, float a, char *mode, char *nonlinearity);
+void init_constant_kernel(Layer *l, float x);
+void init_normal_kernel(Layer *l, float mean, float std);
+void init_uniform_kernel(Layer *l, float min, float max);
+void init_xavier_normal_kernel(Layer *l, float gain);
+void init_xavier_uniform_kernel(Layer *l, float gain);
+void init_kaiming_normal_kernel(Layer *l, float a, char *mode, char *nonlinearity);
+void init_kaiming_uniform_kernel(Layer *l, float a, char *mode, char *nonlinearity);
+
+void init_constant_bias(Layer *l, float x);
+void init_normal_bias(Layer *l, float mean, float std);
+void init_uniform_bias(Layer *l, float min, float max);
+void init_xavier_normal_bias(Layer *l, float gain);
+void init_xavier_uniform_bias(Layer *l, float gain);
+void init_kaiming_normal_bias(Layer *l, char *mode);
+void init_kaiming_uniform_bias(Layer *l, char *mode);
 
 void SGDOptimizer_sess(Session *sess, float momentum, float dampening, float decay, int nesterov, int maximize);
 
@@ -101,5 +111,4 @@ void transforms_sess(Session *sess);
 #ifdef __cplusplus
 }
 #endif
-
 #endif
