@@ -99,7 +99,7 @@ void gradient_normalize_gpu(float *input, float *mean, float *variance, float *m
     gradient_normalize_kernel<<<(features+BLOCK-1)/BLOCK, BLOCK>>>(input, mean, variance, mean_delta, variance_delta, num, features, n_delta, l_delta);
 }
 
-__global__ void update_scale_kernel(float *norm_x, float *mean, float *variance, float *delta, int num, int features, float momentum, float *space)
+__global__ void gradient_scale_kernel(float *norm_x, float *mean, float *variance, float *delta, int num, int features, float *space)
 {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     if (index >= features) return;
@@ -107,10 +107,10 @@ __global__ void update_scale_kernel(float *norm_x, float *mean, float *variance,
     for (int j = 0; j < num; ++j){
         sum += norm_x[j] * delta[index*num+j];
     }
-    space[index] = momentum*space[index] + sum;
+    space[index] = sum;
 }
 
-__global__ void update_bias_kernel(float *delta, int num, int features, float momentum, float *space)
+__global__ void gradient_bias_kernel(float *delta, int num, int features, float *space)
 {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     if (index >= features) return;
@@ -118,15 +118,15 @@ __global__ void update_bias_kernel(float *delta, int num, int features, float mo
     for (int j = 0; j < num; ++j){
         sum += delta[index*num+j];
     }
-    space[index] = momentum*space[index] + sum;
+    space[index] = sum;
 }
 
-void update_scale_gpu(float *norm_x, float *mean, float *variance, float *delta, int num, int features, float momentum, float *space)
+void gradient_scale_gpu(float *norm_x, float *mean, float *variance, float *delta, int num, int features, float *space)
 {
-    update_scale_kernel<<<(features+BLOCK-1)/BLOCK, BLOCK>>>(norm_x, mean, variance, delta, num, features, momentum, space);
+    gradient_scale_kernel<<<(features+BLOCK-1)/BLOCK, BLOCK>>>(norm_x, mean, variance, delta, num, features, space);
 }
 
-void update_bias_gpu(float *delta, int num, int features, float momentum, float *space)
+void gradient_bias_gpu(float *delta, int num, int features, float *space)
 {
-    update_bias_kernel<<<(features+BLOCK-1)/BLOCK, BLOCK>>>(delta, num, features, momentum, space);
+    gradient_bias_kernel<<<(features+BLOCK-1)/BLOCK, BLOCK>>>(delta, num, features, space);
 }

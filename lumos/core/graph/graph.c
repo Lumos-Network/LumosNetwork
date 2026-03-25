@@ -194,8 +194,8 @@ void SGDOptimizer_graph(Graph *g, int coretype, float rate, int subdivision, flo
     for (;;){
         if (layer){
             l = layer->l;
-            if (coretype == GPU && l->sgdoptimizergpu) l->sgdoptimizergpu(*l, rate, momentum, decay, nesterov, maximize, subdivision, n_delta);
-            if (coretype == CPU && l->sgdoptimizer) l->sgdoptimizer(*l, rate, momentum, decay, nesterov, maximize, subdivision, n_delta);
+            if (coretype == GPU && l->sgdoptimizergpu) l->sgdoptimizergpu(*l, rate, momentum, dampening, decay, nesterov, maximize, subdivision, n_delta);
+            if (coretype == CPU && l->sgdoptimizer) l->sgdoptimizer(*l, rate, momentum, dampening, decay, nesterov, maximize, subdivision, n_delta);
         } else {
             break;
         }

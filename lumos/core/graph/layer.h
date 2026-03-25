@@ -71,8 +71,8 @@ typedef backward_gpu BackwardGpu;
 typedef update_gpu UpdateGpu;
 typedef refresh_gpu RefreshGpu;
 
-typedef void (*sgdoptimizer) (struct layer, float, float, float, int, int, int, float*);
-typedef void (*sgdoptimizer_gpu) (struct layer, float, float, float, int, int, int, float*);
+typedef void (*sgdoptimizer) (struct layer, float, float, float, float, int, int, int, float*);
+typedef void (*sgdoptimizer_gpu) (struct layer, float, float, float, float, int, int, int, float*);
 typedef sgdoptimizer SGDOptimizer;
 typedef sgdoptimizer_gpu SGDOptimizerGpu;
 

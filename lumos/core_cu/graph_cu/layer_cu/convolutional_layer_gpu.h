@@ -48,7 +48,7 @@ void convolutional_xavier_uniform_bias_init_gpu(Layer l, float gain);
 void convolutional_kaiming_normal_bias_init_gpu(Layer l, char *mode);
 void convolutional_kaiming_uniform_bias_init_gpu(Layer l, char *mode);
 
-void convolutional_layer_SGDOptimizer_gpu(Layer l, float rate, float momentum, float decay, int nesterov, int maximize, int num, float *n_delta);
+void convolutional_layer_SGDOptimizer_gpu(Layer l, float rate, float momentum, float dampening, float decay, int nesterov, int maximize, int num, float *n_delta);
 
 #ifdef __cplusplus
 }

@@ -113,12 +113,12 @@ class Vgg16(nn.Module):
         x = torch.relu(self.l23(x))
         x = self.l24(x, labels)
         return x
-nn.init.kaiming_normal
 num_epochs = 50
-batch_size = 128
+batch_size = 32
 train_data = MyDataset('./data/cifar10/train_py.txt', transform=data_transform)
 trainloader = torch.utils.data.DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
 
+optim.Adam()
 model = Vgg16(num_classes=10)
 optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

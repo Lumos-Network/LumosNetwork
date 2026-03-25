@@ -34,7 +34,7 @@ Layer *make_normalization_layer(float momentum, int affine, char *active)
     l->zerogradlayer = zerograd_normalization_layer;
     l->zerogradlayergpu = zerograd_normalization_layer_gpu;
 
-    fprintf(stderr, "Normalization   Layer    :    [momentum=%f, affine=%d, bias=%d, active=%s]\n",
+    fprintf(stderr, "Normalization   Layer    :    [momentum=%.1f, affine=%d, bias=%d, active=%s]\n",
             l->bn_momentum, l->affine, l->bias, active);
     return l;
 }
@@ -54,7 +54,7 @@ void init_normalization_layer(Layer *l, int w, int h, int c, int subdivision)
     l->filters = c;
     l->ksize = h*w;
 
-    l->workspace_size = 0;
+    l->workspace_size = l->filters;
 
     l->mean = calloc(l->filters, sizeof(float));
     l->variance = calloc(l->filters, sizeof(float));
@@ -139,26 +139,49 @@ void backward_normalization_layer(Layer l, int num, float *n_delta)
     }
 }
 
-void normalization_layer_SGDOptimizer(Layer l, float rate, float momentum, float decay, int nesterov, int maximize, int num, float *n_delta)
+void normalization_layer_SGDOptimizer(Layer l, float rate, float momentum, float dampening, float decay, int nesterov, int maximize, int num, float *n_delta)
 {
+    float *momentum_kernel_v;
+    float *momentum_bias_v;
     if (!l.affine) return;
-    multy_cpu(l.update_kernel_weights, l.filters, 1-decay, 1);
-    multy_cpu(l.update_bias_weights, l.filters, 1-decay, 1);
-    if (nesterov){
-        saxpy_cpu(l.update_kernel_weights, l.momentum_kernel_v, l.filters, momentum, l.update_kernel_weights);
-    }
     for (int i = 0; i < num; ++i){
         float *delta_n = n_delta + i*l.outputs;
         float *norm_x = l.norm_x + i*l.inputs;
-        update_scale(norm_x, l.mean, l.variance, delta_n, l.ksize, l.filters, momentum, l.momentum_kernel_v);
-        update_bias(delta_n, l.ksize, l.filters, momentum, l.momentum_bias_v);
+        gradient_scale(norm_x, l.mean, l.variance, delta_n, l.ksize, l.filters, l.workspace);
+        if (decay != 0){
+            saxpy_cpu(l.workspace, l.update_kernel_weights, l.filters, 1-decay, l.workspace);
+        }
+        if (momentum != 0){
+            multy_cpu(l.momentum_kernel_v, l.filters, momentum, 1);
+            saxpy_cpu(l.momentum_kernel_v, l.workspace, l.filters, 1-dampening, l.momentum_kernel_v);
+            if (nesterov){
+                saxpy_cpu(l.workspace, l.momentum_kernel_v, l.filters, momentum, l.workspace);
+                momentum_kernel_v = l.workspace;
+            } else {
+                momentum_kernel_v = l.momentum_kernel_v;
+            }
+        }
+        gradient_bias(delta_n, l.ksize, l.filters, l.workspace);
+        if (decay != 0){
+            saxpy_cpu(l.workspace, l.update_bias_weights, l.filters, 1-decay, l.workspace);
+        }
+        if (momentum != 0){
+            multy_cpu(l.momentum_bias_v, l.filters, momentum, 1);
+            saxpy_cpu(l.momentum_bias_v, l.workspace, l.filters, 1-dampening, l.momentum_bias_v);
+            if (nesterov){
+                saxpy_cpu(l.workspace, l.momentum_bias_v, l.filters, momentum, l.workspace);
+                momentum_bias_v = l.workspace;
+            } else {
+                momentum_bias_v = l.momentum_bias_v;
+            }
+        }
     }
     if (maximize){
-        saxpy_cpu(l.update_kernel_weights, l.momentum_kernel_v, l.filters, -rate, l.update_kernel_weights);
-        saxpy_cpu(l.update_bias_weights, l.momentum_bias_v, l.filters, -rate, l.update_bias_weights);
+        saxpy_cpu(l.update_kernel_weights, momentum_kernel_v, l.filters, -rate, l.update_kernel_weights);
+        saxpy_cpu(l.update_bias_weights, momentum_bias_v, l.filters, -rate, l.update_bias_weights);
     } else {
-        saxpy_cpu(l.update_kernel_weights, l.momentum_kernel_v, l.filters, rate, l.update_kernel_weights);
-        saxpy_cpu(l.update_bias_weights, l.momentum_bias_v, l.filters, rate, l.update_bias_weights);
+        saxpy_cpu(l.update_kernel_weights, momentum_kernel_v, l.filters, rate, l.update_kernel_weights);
+        saxpy_cpu(l.update_bias_weights, momentum_bias_v, l.filters, rate, l.update_bias_weights);
     }
 }
 

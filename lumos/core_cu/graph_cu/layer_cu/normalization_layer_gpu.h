@@ -24,7 +24,7 @@ void weightinit_normalization_layer_gpu(Layer l, FILE *fp);
 
 void forward_normalization_layer_gpu(Layer l, int num);
 void backward_normalization_layer_gpu(Layer l, int num, float *n_delta);
-void normalization_layer_SGDOptimizer_gpu(Layer l, float rate, float momentum, float decay, int nesterov, int maximize, int num, float *n_delta);
+void normalization_layer_SGDOptimizer_gpu(Layer l, float rate, float momentum, float dampening, float decay, int nesterov, int maximize, int num, float *n_delta);
 void refresh_normalization_layer_weights_gpu(Layer l);
 
 void save_normalization_layer_weights_gpu(Layer l, FILE *fp);

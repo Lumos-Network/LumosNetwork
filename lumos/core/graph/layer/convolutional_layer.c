@@ -165,13 +165,10 @@ void update_convolutional_layer(Layer l, float rate, int num, float *n_delta)
     }
 }
 
-void convolutional_layer_SGDOptimizer(Layer l, float rate, float momentum, float decay, int nesterov, int maximize, int num, float *n_delta)
+void convolutional_layer_SGDOptimizer(Layer l, float rate, float momentum, float dampening, float decay, int nesterov, int maximize, int num, float *n_delta)
 {
-    multy_cpu(l.update_kernel_weights, l.filters*l.ksize*l.ksize*l.input_c, 1-decay, 1);
-    multy_cpu(l.update_bias_weights, l.output_c, 1-decay, 1);
-    if (nesterov){
-        saxpy_cpu(l.update_kernel_weights, l.momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, momentum, l.update_kernel_weights);
-    }
+    float *momentum_kernel_v;
+    float *momentum_bias_v;
     for (int i = 0; i < num; ++i)
     {
         int offset_i = i * l.inputs;
@@ -182,18 +179,42 @@ void convolutional_layer_SGDOptimizer(Layer l, float rate, float momentum, float
         gemm(0, 1, l.filters, l.output_h * l.output_w,
              l.ksize * l.ksize * l.input_c, l.output_h * l.output_w, 1,
              delta_n, l.workspace, l.workspace + l.ksize * l.ksize * l.input_c * l.output_h * l.output_w);
-        saxpy_cpu(l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w, l.momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, momentum, l.momentum_kernel_v);
+        if (decay != 0){
+            saxpy_cpu(l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w, l.update_kernel_weights, l.filters*l.ksize*l.ksize*l.input_c, 1-decay, l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w);
+        }
+        if (momentum != 0){
+            multy_cpu(l.momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, momentum, 1);
+            saxpy_cpu(l.momentum_kernel_v, l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w, l.filters*l.ksize*l.ksize*l.input_c, 1-dampening, l.momentum_kernel_v);
+            if (nesterov){
+                saxpy_cpu(l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w, l.momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, momentum, l.workspace);
+                momentum_kernel_v = l.workspace;
+            } else {
+                momentum_kernel_v = l.momentum_kernel_v;
+            }
+        }
         if (l.bias){
             sum_channel_cpu(delta_n, l.output_h, l.output_w, l.output_c, 1, l.workspace);
-            saxpy_cpu(l.workspace, l.momentum_bias_v, l.output_c, momentum, l.momentum_bias_v);
+            if (decay != 0){
+                saxpy_cpu(l.workspace, l.update_bias_weights, l.filters, 1-decay, l.workspace);
+            }
+            if (momentum != 0){
+                multy_cpu(l.momentum_bias_v, l.filters, momentum, 1);
+                saxpy_cpu(l.momentum_bias_v, l.workspace, l.filters, 1-dampening, l.momentum_bias_v);
+                if (nesterov){
+                    saxpy_cpu(l.workspace, l.momentum_bias_v, l.filters, momentum, l.workspace);
+                    momentum_bias_v = l.workspace;
+                } else {
+                    momentum_bias_v = l.momentum_bias_v;
+                }
+            }
         }
     }
     if (maximize){
-        saxpy_cpu(l.update_kernel_weights, l.momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, -rate, l.update_kernel_weights);
-        saxpy_cpu(l.update_bias_weights, l.momentum_bias_v, l.output_c, -rate, l.update_bias_weights);
+        saxpy_cpu(l.update_kernel_weights, momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, -rate, l.update_kernel_weights);
+        saxpy_cpu(l.update_bias_weights, momentum_bias_v, l.output_c, -rate, l.update_bias_weights);
     } else {
-        saxpy_cpu(l.update_kernel_weights, l.momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, rate, l.update_kernel_weights);
-        saxpy_cpu(l.update_bias_weights, l.momentum_bias_v, l.output_c, rate, l.update_bias_weights);
+        saxpy_cpu(l.update_kernel_weights, momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, rate, l.update_kernel_weights);
+        saxpy_cpu(l.update_bias_weights, momentum_bias_v, l.output_c, rate, l.update_bias_weights);
     }
 }
 

@@ -38,6 +38,6 @@ def mean_std(directory):
         std[i] = math.sqrt(std[i])
     return mean, std
 
-mean, std = mean_std("./data/xray/train.txt")
+mean, std = mean_std("./data/coffee/train.txt")
 print(mean)
 print(std)

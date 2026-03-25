@@ -32,7 +32,7 @@ Layer *make_dropout_layer(float probability)
     l->zerogradlayer = zerograd_dropout_layer;
     l->zerogradlayergpu = zerograd_dropout_layer_gpu;
 
-    fprintf(stderr, "Dropout   Layer    :    [probability=%.2f]\n", l->probability);
+    fprintf(stderr, "Dropout         Layer    :    [probability=%.1f]\n", l->probability);
     return l;
 }
 

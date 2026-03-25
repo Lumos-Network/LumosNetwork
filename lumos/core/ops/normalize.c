@@ -68,24 +68,24 @@ void gradient_normalize_cpu(float *input, float *mean, float *variance, float *m
     }
 }
 
-void update_scale(float *norm_x, float *mean, float *variance, float *delta, int num, int features, float momentum, float *space)
+void gradient_scale(float *norm_x, float *mean, float *variance, float *delta, int num, int features, float *space)
 {
     for (int i = 0; i < features; ++i){
         float sum = 0;
         for (int j = 0; j < num; ++j){
             sum += norm_x[j] * delta[i*num+j];
         }
-        space[i] = momentum*space[i] + sum;
+        space[i] = sum;
     }
 }
 
-void update_bias(float *delta, int num, int features, float momentum, float *space)
+void gradient_bias(float *delta, int num, int features, float *space)
 {
     for (int i = 0; i < features; ++i){
         float sum = 0;
         for (int j = 0; j < num; ++j){
             sum += delta[i*num+j];
         }
-        space[i] = momentum*space[i] + sum;
+        space[i] = sum;
     }
 }

@@ -7,6 +7,8 @@
 #include "random.h"
 #include "normalization_layer.h"
 #include "vgg16_cifar10.h"
+#include "cifar.h"
+#include "resnet18.h"
 
 int main()
 {
@@ -23,7 +25,7 @@ int main()
     // lenet5_fmnist_detect("gpu", "./backup/LW_f");
 
     // alexnet_flower("gpu", NULL);
-    // alexnet_flower_detect("gpu", "./backup/LW_f");
+    alexnet_flower_detect("gpu", "./backup/LW_f");
 
     // alexnet_xray("gpu", NULL);
     // alexnet_xray_detect("gpu", "./backup/LW_f");
@@ -31,7 +33,11 @@ int main()
     // xor("cpu", NULL);
     // xor_detect("cpu", "./backup/LW_f");
 
-    vgg16_cifar10("gpu", NULL);
+    // vgg16_cifar10("gpu", NULL);
+
+    // cifar("gpu", NULL);
+
+    // resnet18("gpu", NULL);
 
     return 0;
 }

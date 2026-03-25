@@ -126,13 +126,10 @@ void update_connect_layer_gpu(Layer l, float rate, int num, float *n_delta)
     }
 }
 
-void connect_layer_SGDOptimizer_gpu(Layer l, float rate, float momentum, float decay, int nesterov, int maximize, int num, float *n_delta)
+void connect_layer_SGDOptimizer_gpu(Layer l, float rate, float momentum, float dampening, float decay, int nesterov, int maximize, int num, float *n_delta)
 {
-    multy_gpu(l.update_kernel_weights, l.output_c*l.input_c, 1-decay, 1);
-    multy_gpu(l.update_bias_weights, l.outputs, 1-decay, 1);
-    if (nesterov){
-        saxpy_gpu(l.update_kernel_weights, l.momentum_kernel_v, l.output_c*l.input_c, momentum, l.update_kernel_weights);
-    }
+    float *momentum_kernel_v;
+    float *momentum_bias_v;
     for (int i = 0; i < num; ++i){
         int offset_i = i * l.inputs;
         int offset_o = i * l.outputs;
@@ -141,17 +138,41 @@ void connect_layer_SGDOptimizer_gpu(Layer l, float rate, float momentum, float d
         gemm_gpu(0, 1, l.output_c, l.output_w,
                 l.input_c, l.input_w, 1,
                 delta_n, input, l.workspace);
-        saxpy_gpu(l.workspace, l.momentum_kernel_v, l.output_c*l.input_c, momentum, l.momentum_kernel_v);
+        if (decay != 0){
+            saxpy_gpu(l.workspace, l.update_kernel_weights, l.inputs*l.outputs, 1-decay, l.workspace);
+        }
+        if (momentum != 0){
+            multy_gpu(l.momentum_kernel_v, l.inputs*l.outputs, momentum, 1);
+            saxpy_gpu(l.momentum_kernel_v, l.workspace, l.inputs*l.outputs, 1-dampening, l.momentum_kernel_v);
+            if (nesterov){
+                saxpy_gpu(l.workspace, l.momentum_kernel_v, l.inputs*l.outputs, momentum, l.workspace);
+                momentum_kernel_v = l.workspace;
+            } else {
+                momentum_kernel_v = l.momentum_kernel_v;
+            }
+        }
         if (l.bias){
-            saxpy_gpu(delta_n, l.momentum_bias_v, l.outputs, momentum, l.momentum_bias_v);
+            if (decay != 0){
+                saxpy_gpu(delta_n, l.update_bias_weights, l.outputs, 1-decay, l.workspace);
+            }
+            if (momentum != 0){
+                multy_gpu(l.momentum_bias_v, l.outputs, momentum, 1);
+                saxpy_gpu(l.momentum_bias_v, l.workspace, l.outputs, 1-dampening, l.momentum_bias_v);
+                if (nesterov){
+                    saxpy_gpu(l.workspace, l.momentum_bias_v, l.outputs, momentum, l.workspace);
+                    momentum_bias_v = l.workspace;
+                } else {
+                    momentum_bias_v = l.momentum_bias_v;
+                }
+            }
         }
     }
     if (maximize){
-        saxpy_gpu(l.update_kernel_weights, l.momentum_kernel_v, l.output_c*l.input_c, -rate, l.update_kernel_weights);
-        saxpy_gpu(l.update_bias_weights, l.momentum_bias_v, l.outputs, -rate, l.update_bias_weights);
+        saxpy_gpu(l.update_kernel_weights, momentum_kernel_v, l.inputs*l.outputs, -rate, l.update_kernel_weights);
+        saxpy_gpu(l.update_bias_weights, momentum_bias_v, l.outputs, -rate, l.update_bias_weights);
     } else {
-        saxpy_gpu(l.update_kernel_weights, l.momentum_kernel_v, l.output_c*l.input_c, rate, l.update_kernel_weights);
-        saxpy_gpu(l.update_bias_weights, l.momentum_bias_v, l.outputs, rate, l.update_bias_weights);
+        saxpy_gpu(l.update_kernel_weights, momentum_kernel_v, l.inputs*l.outputs, rate, l.update_kernel_weights);
+        saxpy_gpu(l.update_bias_weights, momentum_bias_v, l.outputs, rate, l.update_bias_weights);
     }
 }
 
