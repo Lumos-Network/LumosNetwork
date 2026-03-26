@@ -26,9 +26,9 @@ void vgg16_cifar10(char *type, char *path)
     Layer *l29 = make_convolutional_layer(512, 3, 1, 1, 1, "relu");
     Layer *l31 = make_maxpool_layer(2, 2, 0);
 
-    // Layer *l32 = make_dropout_layer(0.5);
+    Layer *l32 = make_dropout_layer(0.5);
     Layer *l33 = make_connect_layer(4096, 1, "relu");
-    // Layer *l34 = make_dropout_layer(0.5);
+    Layer *l34 = make_dropout_layer(0.5);
     Layer *l35 = make_connect_layer(4096, 1, "relu");
     Layer *l36 = make_connect_layer(4, 1, "linear");
     Layer *l37 = make_crossentropy_layer(4);
@@ -50,9 +50,9 @@ void vgg16_cifar10(char *type, char *path)
     append_layer2grpah(g, l27);
     append_layer2grpah(g, l29);
     append_layer2grpah(g, l31);
-    // append_layer2grpah(g, l32);
+    append_layer2grpah(g, l32);
     append_layer2grpah(g, l33);
-    // append_layer2grpah(g, l34);
+    append_layer2grpah(g, l34);
     append_layer2grpah(g, l35);
     append_layer2grpah(g, l36);
     append_layer2grpah(g, l37);
@@ -104,7 +104,7 @@ void vgg16_cifar10(char *type, char *path)
     std[2] = 0.225;
     transform_normalize_sess(sess, mean, std);
     transform_resize_sess(sess, 224, 224);
-    set_train_params(sess, 40, 16, 16, 0.001);
+    set_train_params(sess, 40, 32, 32, 0.001);
     SGDOptimizer_sess(sess, 0.9, 0, 0, 0, 0);
     init_session(sess, "./data/coffee/train.txt", "./data/coffee/train_label.txt");
     train(sess);

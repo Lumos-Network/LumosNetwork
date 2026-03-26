@@ -190,33 +190,33 @@ void update_connect_layer(Layer l, float rate, int num, float *n_delta)
     }
 }
 
-void connect_layer_SGDOptimizer(Layer l, float rate, float momentum, float dampening, float decay, int nesterov, int maximize, float *n_delta)
+void connect_layer_SGDOptimizer(Layer l, float rate, float momentum, float dampening, float decay, int nesterov, int maximize)
 {
     float *momentum_kernel_v;
     float *momentum_bias_v;
     if (decay != 0){
-        saxpy_cpu(l.kernel_weights_delta, l.update_kernel_weights, l.inputs*l.outputs, 1-decay, l.workspace);
+        saxpy_cpu(l.kernel_weights_delta, l.update_kernel_weights, l.inputs*l.outputs, decay, l.kernel_weights_delta);
     }
     if (momentum != 0){
         multy_cpu(l.momentum_kernel_v, l.inputs*l.outputs, momentum, 1);
-        saxpy_cpu(l.momentum_kernel_v, l.workspace, l.inputs*l.outputs, 1-dampening, l.momentum_kernel_v);
+        saxpy_cpu(l.momentum_kernel_v, l.kernel_weights_delta, l.inputs*l.outputs, 1-dampening, l.momentum_kernel_v);
         if (nesterov){
-            saxpy_cpu(l.workspace, l.momentum_kernel_v, l.inputs*l.outputs, momentum, l.workspace);
-            momentum_kernel_v = l.workspace;
+            saxpy_cpu(l.kernel_weights_delta, l.momentum_kernel_v, l.inputs*l.outputs, momentum, l.kernel_weights_delta);
+            momentum_kernel_v = l.kernel_weights_delta;
         } else {
             momentum_kernel_v = l.momentum_kernel_v;
         }
     }
     if (l.bias){
         if (decay != 0){
-            saxpy_cpu(l.bias_delta, l.update_bias_weights, l.outputs, 1-decay, l.workspace);
+            saxpy_cpu(l.bias_delta, l.update_bias_weights, l.outputs, decay, l.bias_delta);
         }
         if (momentum != 0){
             multy_cpu(l.momentum_bias_v, l.outputs, momentum, 1);
-            saxpy_cpu(l.momentum_bias_v, l.workspace, l.outputs, 1-dampening, l.momentum_bias_v);
+            saxpy_cpu(l.momentum_bias_v, l.bias_delta, l.outputs, 1-dampening, l.momentum_bias_v);
             if (nesterov){
-                saxpy_cpu(l.workspace, l.momentum_bias_v, l.outputs, momentum, l.workspace);
-                momentum_bias_v = l.workspace;
+                saxpy_cpu(l.bias_delta, l.momentum_bias_v, l.outputs, momentum, l.bias_delta);
+                momentum_bias_v = l.bias_delta;
             } else {
                 momentum_bias_v = l.momentum_bias_v;
             }

@@ -142,7 +142,7 @@ data_transform = transforms.Compose([
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
 
-num_epochs = 1
+num_epochs = 2
 batch_size = 4
 train_data = MyDataset('./data/flower/train_test.txt', transform=data_transform)
 trainloader = torch.utils.data.DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
@@ -169,7 +169,7 @@ for name, param in model.named_parameters():
     if ("bias" in name):
         data = param.tolist()
         data_f += data
-# print(len(data_f))
+print(len(data_f))
 for i in range(len(data_f)):
     fp.write(struct.pack('f', data_f[i]))
 fp.close()
@@ -206,25 +206,26 @@ fp = open("./backup/LWF_py", "wb")
 data_f = []
 for name, param in model.named_parameters():
     # print(f"Layer: {name}, Parameter Shape: {param.shape}") #param.shape [filters, channels, ksize, ksize]  [outputs, inputs]
-    # if ("weight" in name and len(param.shape) == 4):
-    #     data = param.tolist()
-    #     for i in range(param.shape[0]):
-    #         for j in range(param.shape[1]):
-    #             for k in range(param.shape[2]):
-    #                 data_f += data[i][j][k]
-    # if ("weight" in name and len(param.shape) == 2):
-    #     data = param.tolist()
-    #     for i in range(param.shape[0]):
-    #         data_f += data[i]
-    # if ("weight" in name and len(param.shape) == 1):
-    #     data_f += param.tolist()
-    if ("bias" in name and "bn1" in name):
+    if ("weight" in name and len(param.shape) == 4):
+        data = param.tolist()
+        for i in range(param.shape[0]):
+            for j in range(param.shape[1]):
+                for k in range(param.shape[2]):
+                    data_f += data[i][j][k]
+    if ("weight" in name and len(param.shape) == 2):
+        data = param.tolist()
+        for i in range(param.shape[0]):
+            data_f += data[i]
+    if ("weight" in name and len(param.shape) == 1):
+        data_f += param.tolist()
+    if ("bias" in name):
         data = param.tolist()
         data_f += data
 print(len(data_f))
 for i in range(len(data_f)):
     fp.write(struct.pack('f', data_f[i]))
 fp.close()
+
 #     # if param.grad is not None:
 #     #     print(f"Parameter: {name}, Gradient: {param.grad}")
 #     # # 每轮训练结束后，在验证集上测试效果
