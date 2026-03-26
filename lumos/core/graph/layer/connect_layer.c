@@ -67,9 +67,11 @@ void init_connect_layer(Layer *l, int w, int h, int c, int subdivision)
     l->delta = calloc(subdivision*l->inputs, sizeof(float));
     l->kernel_weights = calloc(l->inputs * l->outputs, sizeof(float));
     l->update_kernel_weights = calloc(l->inputs * l->outputs, sizeof(float));
+    l->kernel_weights_delta = calloc(l->inputs * l->outputs, sizeof(float));
     if (l->bias){
         l->bias_weights = calloc(l->outputs, sizeof(float));
         l->update_bias_weights = calloc(l->outputs, sizeof(float));
+        l->bias_delta= calloc(l->outputs, sizeof(float));
         if (l->optimizer == SGD){
             l->momentum_bias_v = calloc(l->outputs, sizeof(float));
             fill_cpu(l->momentum_bias_v, l->outputs, 0, 1);
@@ -155,6 +157,7 @@ void backward_connect_layer(Layer l, int num, float *n_delta)
     for (int i = 0; i < num; ++i){
         int offset_i = i * l.inputs;
         int offset_o = i * l.outputs;
+        float *input = l.input + offset_i;
         float *output = l.output + offset_o;
         float *delta_l = l.delta + offset_i;
         float *delta_n = n_delta + offset_o;
@@ -162,6 +165,11 @@ void backward_connect_layer(Layer l, int num, float *n_delta)
         matrix_multiply_cpu(delta_n, l.workspace, l.outputs, delta_n);
         gemm(1, 0, l.output_c, l.input_c, l.output_c, l.input_w, 1,
              l.kernel_weights, delta_n, delta_l);
+        gemm(0, 1, l.output_c, l.output_w,
+             l.input_c, l.input_w, 1,
+             delta_n, input, l.workspace);
+        saxpy_cpu(l.kernel_weights_delta, l.workspace, l.inputs*l.outputs, 1./num, l.kernel_weights_delta);
+        if (l.bias) saxpy_cpu(l.bias_delta, delta_n, l.outputs, 1./num, l.bias_delta);
     }
 }
 
@@ -182,86 +190,79 @@ void update_connect_layer(Layer l, float rate, int num, float *n_delta)
     }
 }
 
-void connect_layer_SGDOptimizer(Layer l, float rate, float momentum, float dampening, float decay, int nesterov, int maximize, int num, float *n_delta)
+void connect_layer_SGDOptimizer(Layer l, float rate, float momentum, float dampening, float decay, int nesterov, int maximize, float *n_delta)
 {
     float *momentum_kernel_v;
     float *momentum_bias_v;
-    for (int i = 0; i < num; ++i){
-        int offset_i = i * l.inputs;
-        int offset_o = i * l.outputs;
-        float *input = l.input + offset_i;
-        float *delta_n = n_delta + offset_o;
-        gemm(0, 1, l.output_c, l.output_w,
-                l.input_c, l.input_w, 1,
-                delta_n, input, l.workspace);
+    if (decay != 0){
+        saxpy_cpu(l.kernel_weights_delta, l.update_kernel_weights, l.inputs*l.outputs, 1-decay, l.workspace);
+    }
+    if (momentum != 0){
+        multy_cpu(l.momentum_kernel_v, l.inputs*l.outputs, momentum, 1);
+        saxpy_cpu(l.momentum_kernel_v, l.workspace, l.inputs*l.outputs, 1-dampening, l.momentum_kernel_v);
+        if (nesterov){
+            saxpy_cpu(l.workspace, l.momentum_kernel_v, l.inputs*l.outputs, momentum, l.workspace);
+            momentum_kernel_v = l.workspace;
+        } else {
+            momentum_kernel_v = l.momentum_kernel_v;
+        }
+    }
+    if (l.bias){
         if (decay != 0){
-            saxpy_cpu(l.workspace, l.update_kernel_weights, l.inputs*l.outputs, 1-decay, l.workspace);
+            saxpy_cpu(l.bias_delta, l.update_bias_weights, l.outputs, 1-decay, l.workspace);
         }
         if (momentum != 0){
-            multy_cpu(l.momentum_kernel_v, l.inputs*l.outputs, momentum, 1);
-            saxpy_cpu(l.momentum_kernel_v, l.workspace, l.inputs*l.outputs, 1-dampening, l.momentum_kernel_v);
+            multy_cpu(l.momentum_bias_v, l.outputs, momentum, 1);
+            saxpy_cpu(l.momentum_bias_v, l.workspace, l.outputs, 1-dampening, l.momentum_bias_v);
             if (nesterov){
-                saxpy_cpu(l.workspace, l.momentum_kernel_v, l.inputs*l.outputs, momentum, l.workspace);
-                momentum_kernel_v = l.workspace;
+                saxpy_cpu(l.workspace, l.momentum_bias_v, l.outputs, momentum, l.workspace);
+                momentum_bias_v = l.workspace;
             } else {
-                momentum_kernel_v = l.momentum_kernel_v;
-            }
-        }
-        if (l.bias){
-            if (decay != 0){
-                saxpy_cpu(delta_n, l.update_bias_weights, l.outputs, 1-decay, l.workspace);
-            }
-            if (momentum != 0){
-                multy_cpu(l.momentum_bias_v, l.outputs, momentum, 1);
-                saxpy_cpu(l.momentum_bias_v, l.workspace, l.outputs, 1-dampening, l.momentum_bias_v);
-                if (nesterov){
-                    saxpy_cpu(l.workspace, l.momentum_bias_v, l.outputs, momentum, l.workspace);
-                    momentum_bias_v = l.workspace;
-                } else {
-                    momentum_bias_v = l.momentum_bias_v;
-                }
+                momentum_bias_v = l.momentum_bias_v;
             }
         }
     }
     if (maximize){
         saxpy_cpu(l.update_kernel_weights, momentum_kernel_v, l.inputs*l.outputs, -rate, l.update_kernel_weights);
-        saxpy_cpu(l.update_bias_weights, momentum_bias_v, l.outputs, -rate, l.update_bias_weights);
+        if (l.bias) saxpy_cpu(l.update_bias_weights, momentum_bias_v, l.outputs, -rate, l.update_bias_weights);
     } else {
         saxpy_cpu(l.update_kernel_weights, momentum_kernel_v, l.inputs*l.outputs, rate, l.update_kernel_weights);
-        saxpy_cpu(l.update_bias_weights, momentum_bias_v, l.outputs, rate, l.update_bias_weights);
+        if (l.bias) saxpy_cpu(l.update_bias_weights, momentum_bias_v, l.outputs, rate, l.update_bias_weights);
     }
 }
 
-void connect_layer_AdamOptimizer(Layer l, float rate, float beta1, float beta2, float decay, int amsgrad, int maximize, int num, float *n_delta)
+void connect_layer_AdamOptimizer(Layer l, float rate, float beta1, float beta2, float decay, int amsgrad, int maximize, float *n_delta)
 {
     l.step_t += 1;
     float correction1 = 1 - pow(beta1, l.step_t);
     float correction2 = 1 - pow(beta2, l.step_t);
     float step_size = rate / correction1;
     float correction2_sqrt = sqrt(correction2);
-    for (int i = 0; i < num; ++i){
-        int offset_i = i * l.inputs;
-        int offset_o = i * l.outputs;
-        float *input = l.input + offset_i;
-        float *delta_n = n_delta + offset_o;
-        gemm(0, 1, l.output_c, l.output_w,
-             l.input_c, l.input_w, 1,
-             delta_n, input, l.workspace);
+    if (decay != 0){
+        saxpy_cpu(l.kernel_weights_delta, l.update_kernel_weights, l.inputs*l.outputs, 1-decay, l.workspace);
+    }
+    lerp_cpu(l.exp_avg_kernel, l.workspace, l.inputs*l.outputs, beta1, l.exp_avg_kernel);
+    lerp2_cpu(l.exp_avg_sq_kernel, l.workspace, l.inputs*l.outputs, beta2, l.exp_avg_sq_kernel);
+    if (amsgrad){
+        maximum_cpu(l.exp_avg_sq_kernel_max, l.exp_avg_sq_kernel, l.inputs*l.outputs, l.exp_avg_sq_kernel_max);
+        denom_cpu(l.exp_avg_sq_kernel_max, correction2_sqrt, 0.00001, l.inputs*l.outputs, l.workspace);
+    } else {
+        denom_cpu(l.exp_avg_sq_kernel, correction2_sqrt, 0.00001, l.inputs*l.outputs, l.workspace);
+    }
+    addcdiv_cpu(l.update_kernel_weights, l.exp_avg_kernel, l.workspace, step_size, l.inputs*l.outputs, l.update_kernel_weights);
+    if (l.bias){
         if (decay != 0){
-            saxpy_cpu(l.workspace, l.update_kernel_weights, l.inputs*l.outputs, 1-decay, l.workspace);
+            saxpy_cpu(l.bias_delta, l.update_bias_weights, l.outputs, 1-decay, l.workspace);
         }
-        lerp_cpu(l.exp_avg_kernel, l.workspace, l.inputs*l.outputs, beta1, l.exp_avg_kernel);
-        lerp2_cpu(l.exp_avg_sq_kernel, l.workspace, l.inputs*l.outputs, beta2, l.exp_avg_sq_kernel);
+        lerp_cpu(l.exp_avg_bias, l.workspace, l.outputs, beta1, l.exp_avg_bias);
+        lerp2_cpu(l.exp_avg_sq_bias, l.workspace, l.outputs, beta2, l.exp_avg_sq_bias);
         if (amsgrad){
-            maximum_cpu(l.exp_avg_sq_kernel_max, l.exp_avg_sq_kernel, l.inputs*l.outputs, l.exp_avg_sq_kernel_max);
-            denom_cpu(l.exp_avg_sq_kernel_max, correction2_sqrt, 0.00001, l.inputs*l.outputs, l.workspace);
+            maximum_cpu(l.exp_avg_sq_bias_max, l.exp_avg_sq_bias, l.outputs, l.exp_avg_sq_bias_max);
+            denom_cpu(l.exp_avg_sq_bias_max, correction2_sqrt, 0.00001, l.outputs, l.workspace);
         } else {
-            denom_cpu(l.exp_avg_sq_kernel, correction2_sqrt, 0.00001, l.inputs*l.outputs, l.workspace);
+            denom_cpu(l.exp_avg_sq_bias, correction2_sqrt, 0.00001, l.outputs, l.workspace);
         }
-        addcdiv_cpu(l.update_kernel_weights, l.exp_avg_kernel, l.workspace, step_size, l.inputs*l.outputs, l.update_kernel_weights);
-        if (l.bias){
-            saxpy_cpu(l.update_bias_weights, delta_n, l.outputs, rate, l.update_bias_weights);
-        }
+        addcdiv_cpu(l.update_bias_weights, l.exp_avg_bias, l.workspace, step_size, l.outputs, l.update_bias_weights);
     }
 }
 
@@ -284,6 +285,8 @@ void save_connect_layer_weights(Layer l, FILE *fp)
 void zerograd_connect_layer(Layer l, int subdivision)
 {
     fill_cpu(l.delta, subdivision*l.inputs, 0, 1);
+    fill_cpu(l.kernel_weights_delta, l.inputs*l.outputs, 0, 1);
+    fill_cpu(l.bias_delta, l.outputs, 0, 1);
 }
 
 void connect_constant_kernel_init(Layer l, float x)

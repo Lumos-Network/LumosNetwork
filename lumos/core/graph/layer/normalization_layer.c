@@ -133,48 +133,47 @@ void backward_normalization_layer(Layer l, int num, float *n_delta)
     for (int i = 0; i < num; ++i){
         float *input = l.input + i*l.inputs;
         float *delta_l = l.delta + i*l.inputs;
+        float *delta_n = n_delta + i*l.outputs;
+        float *norm_x = l.norm_x + i*l.inputs;
         scale_bias(delta_l, l.kernel_weights, l.filters, l.ksize);
         gradient_normalize_mean(delta_l, l.variance, l.ksize, l.filters, l.mean_delta);
         gradient_normalize_variance(delta_l, input, l.mean, l.variance, l.ksize, l.filters, l.variance_delta);
         gradient_normalize_cpu(input, l.mean, l.variance, l.mean_delta, l.variance_delta, l.ksize, l.filters, delta_l, delta_l);
+        gradient_scale(norm_x, l.mean, l.variance, delta_n, l.ksize, l.filters, l.workspace);
+        saxpy_cpu(l.kernel_weights_delta, l.workspace, l.filters, 1./num, l.kernel_weights_delta);
+        gradient_bias(delta_n, l.ksize, l.filters, l.workspace);
+        saxpy_cpu(l.bias_delta, l.workspace, l.filters, 1./num, l.bias_delta);
     }
 }
 
-void normalization_layer_SGDOptimizer(Layer l, float rate, float momentum, float dampening, float decay, int nesterov, int maximize, int num, float *n_delta)
+void normalization_layer_SGDOptimizer(Layer l, float rate, float momentum, float dampening, float decay, int nesterov, int maximize, float *n_delta)
 {
     float *momentum_kernel_v;
     float *momentum_bias_v;
-    if (!l.affine) return;
-    for (int i = 0; i < num; ++i){
-        float *delta_n = n_delta + i*l.outputs;
-        float *norm_x = l.norm_x + i*l.inputs;
-        gradient_scale(norm_x, l.mean, l.variance, delta_n, l.ksize, l.filters, l.workspace);
-        if (decay != 0){
-            saxpy_cpu(l.workspace, l.update_kernel_weights, l.filters, 1-decay, l.workspace);
+    if (decay != 0){
+        saxpy_cpu(l.kernel_weights_delta, l.update_kernel_weights, l.filters, 1-decay, l.workspace);
+    }
+    if (momentum != 0){
+        multy_cpu(l.momentum_kernel_v, l.filters, momentum, 1);
+        saxpy_cpu(l.momentum_kernel_v, l.workspace, l.filters, 1-dampening, l.momentum_kernel_v);
+        if (nesterov){
+            saxpy_cpu(l.workspace, l.momentum_kernel_v, l.filters, momentum, l.workspace);
+            momentum_kernel_v = l.workspace;
+        } else {
+            momentum_kernel_v = l.momentum_kernel_v;
         }
-        if (momentum != 0){
-            multy_cpu(l.momentum_kernel_v, l.filters, momentum, 1);
-            saxpy_cpu(l.momentum_kernel_v, l.workspace, l.filters, 1-dampening, l.momentum_kernel_v);
-            if (nesterov){
-                saxpy_cpu(l.workspace, l.momentum_kernel_v, l.filters, momentum, l.workspace);
-                momentum_kernel_v = l.workspace;
-            } else {
-                momentum_kernel_v = l.momentum_kernel_v;
-            }
-        }
-        gradient_bias(delta_n, l.ksize, l.filters, l.workspace);
-        if (decay != 0){
-            saxpy_cpu(l.workspace, l.update_bias_weights, l.filters, 1-decay, l.workspace);
-        }
-        if (momentum != 0){
-            multy_cpu(l.momentum_bias_v, l.filters, momentum, 1);
-            saxpy_cpu(l.momentum_bias_v, l.workspace, l.filters, 1-dampening, l.momentum_bias_v);
-            if (nesterov){
-                saxpy_cpu(l.workspace, l.momentum_bias_v, l.filters, momentum, l.workspace);
-                momentum_bias_v = l.workspace;
-            } else {
-                momentum_bias_v = l.momentum_bias_v;
-            }
+    }
+    if (decay != 0){
+        saxpy_cpu(l.bias_delta, l.update_bias_weights, l.filters, 1-decay, l.workspace);
+    }
+    if (momentum != 0){
+        multy_cpu(l.momentum_bias_v, l.filters, momentum, 1);
+        saxpy_cpu(l.momentum_bias_v, l.workspace, l.filters, 1-dampening, l.momentum_bias_v);
+        if (nesterov){
+            saxpy_cpu(l.workspace, l.momentum_bias_v, l.filters, momentum, l.workspace);
+            momentum_bias_v = l.workspace;
+        } else {
+            momentum_bias_v = l.momentum_bias_v;
         }
     }
     if (maximize){
@@ -205,4 +204,6 @@ void save_normalization_layer_weights(Layer l, FILE *fp)
 void zerograd_normalization_layer(Layer l, int subdivision)
 {
     fill_cpu(l.delta, subdivision*l.inputs, 0, 1);
+    fill_cpu(l.kernel_weights_delta, l.filters, 0, 1);
+    fill_cpu(l.bias_delta, l.filters, 0, 1);
 }

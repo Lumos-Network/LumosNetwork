@@ -72,12 +72,12 @@ typedef backward_gpu BackwardGpu;
 typedef update_gpu UpdateGpu;
 typedef refresh_gpu RefreshGpu;
 
-typedef void (*sgdoptimizer) (struct layer, float, float, float, float, int, int, int, float*);
-typedef void (*sgdoptimizer_gpu) (struct layer, float, float, float, float, int, int, int, float*);
+typedef void (*sgdoptimizer) (struct layer, float, float, float, float, int, int, float*);
+typedef void (*sgdoptimizer_gpu) (struct layer, float, float, float, float, int, int, float*);
 typedef sgdoptimizer SGDOptimizer;
 typedef sgdoptimizer_gpu SGDOptimizerGpu;
-typedef void (*adamoptimizer) (struct layer, float, float, float, float, int, int, int, float*);
-typedef void (*adamoptimizer_gpu) (struct layer, float, float, float, float, int, int, int, float*);
+typedef void (*adamoptimizer) (struct layer, float, float, float, float, int, int, float*);
+typedef void (*adamoptimizer_gpu) (struct layer, float, float, float, float, int, int, float*);
 typedef adamoptimizer AdamOptimizer;
 typedef adamoptimizer_gpu AdamOptimizerGpu;
 
@@ -124,6 +124,8 @@ struct layer{
     float *truth;
     float *loss;
     float *workspace;
+    float *kernel_weights_delta;
+    float *bias_delta;
 
     int *maxpool_index;
     //为社么是指针

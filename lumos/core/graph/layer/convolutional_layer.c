@@ -133,6 +133,7 @@ void backward_convolutional_layer(Layer l, int num, float *n_delta)
     for (int i = 0; i < num; ++i){
         int offset_i = i * l.inputs;
         int offset_o = i * l.outputs;
+        float *input = l.input + offset_i;
         float *output = l.output + offset_o;
         float *delta_l = l.delta + offset_i;
         float *delta_n = n_delta + offset_o;
@@ -142,6 +143,15 @@ void backward_convolutional_layer(Layer l, int num, float *n_delta)
              l.filters, l.output_h * l.output_w, 1,
              l.kernel_weights, delta_n, l.workspace);
         col2im(l.workspace, l.ksize, l.stride, l.pad, l.input_h, l.input_w, l.input_c, delta_l);
+        im2col(input, l.input_h, l.input_w, l.input_c, l.ksize, l.stride, l.pad, l.workspace);
+        gemm(0, 1, l.filters, l.output_h * l.output_w,
+             l.ksize * l.ksize * l.input_c, l.output_h * l.output_w, 1,
+             delta_n, l.workspace, l.workspace + l.ksize * l.ksize * l.input_c * l.output_h * l.output_w);
+        saxpy_cpu(l.kernel_weights_delta, l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w, l.filters*l.ksize*l.ksize*l.input_c, 1./num, l.kernel_weights_delta);
+        if (l.bias) {
+            sum_channel_cpu(delta_n, l.output_h, l.output_w, l.output_c, 1, l.workspace);
+            saxpy_cpu(l.bias_delta, l.workspace, l.filters, 1./num, l.bias_delta);
+        }
     }
 }
 
@@ -165,57 +175,44 @@ void update_convolutional_layer(Layer l, float rate, int num, float *n_delta)
     }
 }
 
-void convolutional_layer_SGDOptimizer(Layer l, float rate, float momentum, float dampening, float decay, int nesterov, int maximize, int num, float *n_delta)
+void convolutional_layer_SGDOptimizer(Layer l, float rate, float momentum, float dampening, float decay, int nesterov, int maximize, float *n_delta)
 {
     float *momentum_kernel_v;
     float *momentum_bias_v;
-    for (int i = 0; i < num; ++i)
-    {
-        int offset_i = i * l.inputs;
-        int offset_o = i * l.outputs;
-        float *input = l.input + offset_i;
-        float *delta_n = n_delta + offset_o;
-        im2col(input, l.input_h, l.input_w, l.input_c, l.ksize, l.stride, l.pad, l.workspace);
-        gemm(0, 1, l.filters, l.output_h * l.output_w,
-             l.ksize * l.ksize * l.input_c, l.output_h * l.output_w, 1,
-             delta_n, l.workspace, l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w);
-        
+    if (decay != 0){
+        saxpy_cpu(l.kernel_weights_delta, l.update_kernel_weights, l.filters*l.ksize*l.ksize*l.input_c, 1-decay, l.workspace);
+    }
+    if (momentum != 0){
+        multy_cpu(l.momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, momentum, 1);
+        saxpy_cpu(l.momentum_kernel_v, l.workspace, l.filters*l.ksize*l.ksize*l.input_c, 1-dampening, l.momentum_kernel_v);
+        if (nesterov){
+            saxpy_cpu(l.workspace, l.momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, momentum, l.workspace);
+            momentum_kernel_v = l.workspace;
+        } else {
+            momentum_kernel_v = l.momentum_kernel_v;
+        }
+    }
+    if (l.bias){
         if (decay != 0){
-            saxpy_cpu(l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w, l.update_kernel_weights, l.filters*l.ksize*l.ksize*l.input_c, 1-decay, l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w);
+            saxpy_cpu(l.bias_delta, l.update_bias_weights, l.filters, 1-decay, l.workspace);
         }
         if (momentum != 0){
-            multy_cpu(l.momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, momentum, 1);
-            saxpy_cpu(l.momentum_kernel_v, l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w, l.filters*l.ksize*l.ksize*l.input_c, 1-dampening, l.momentum_kernel_v);
+            multy_cpu(l.momentum_bias_v, l.filters, momentum, 1);
+            saxpy_cpu(l.momentum_bias_v, l.workspace, l.filters, 1-dampening, l.momentum_bias_v);
             if (nesterov){
-                saxpy_cpu(l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w, l.momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, momentum, l.workspace);
-                momentum_kernel_v = l.workspace;
+                saxpy_cpu(l.workspace, l.momentum_bias_v, l.filters, momentum, l.workspace);
+                momentum_bias_v = l.workspace;
             } else {
-                momentum_kernel_v = l.momentum_kernel_v;
-            }
-        }
-        if (l.bias){
-            sum_channel_cpu(delta_n, l.output_h, l.output_w, l.output_c, 1, l.workspace);
-            if (decay != 0){
-                saxpy_cpu(l.workspace, l.update_bias_weights, l.filters, 1-decay, l.workspace);
-            }
-            if (momentum != 0){
-                multy_cpu(l.momentum_bias_v, l.filters, momentum, 1);
-                saxpy_cpu(l.momentum_bias_v, l.workspace, l.filters, 1-dampening, l.momentum_bias_v);
-                if (nesterov){
-                    saxpy_cpu(l.workspace, l.momentum_bias_v, l.filters, momentum, l.workspace);
-                    momentum_bias_v = l.workspace;
-                } else {
-                    momentum_bias_v = l.momentum_bias_v;
-                }
+                momentum_bias_v = l.momentum_bias_v;
             }
         }
     }
     if (maximize){
         saxpy_cpu(l.update_kernel_weights, momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, -rate, l.update_kernel_weights);
-        saxpy_cpu(l.update_bias_weights, momentum_bias_v, l.output_c, -rate, l.update_bias_weights);
+        if (l.bias) saxpy_cpu(l.update_bias_weights, momentum_bias_v, l.filters, -rate, l.update_bias_weights);
     } else {
         saxpy_cpu(l.update_kernel_weights, momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, rate, l.update_kernel_weights);
-        saxpy_cpu(l.update_bias_weights, momentum_bias_v, l.output_c, rate, l.update_bias_weights);
+        if (l.bias) saxpy_cpu(l.update_bias_weights, momentum_bias_v, l.filters, rate, l.update_bias_weights);
     }
 }
 
@@ -238,6 +235,8 @@ void save_convolutional_layer_weights(Layer l, FILE *fp)
 void zerograd_convolutional_layer(Layer l, int subdivision)
 {
     fill_cpu(l.delta, subdivision*l.inputs, 0, 1);
+    fill_cpu(l.kernel_weights_delta, l.filters*l.ksize*l.ksize*l.input_c, 0, 1);
+    fill_cpu(l.bias_delta, l.filters, 0, 1);
 }
 
 void convolutional_constant_kernel_init(Layer l, float x)

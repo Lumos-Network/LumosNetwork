@@ -88,8 +88,8 @@ void forward_convolutional_layer_gpu(Layer l, int num)
         if (l.bias){
             add_bias_gpu(output, l.bias_weights, l.filters, l.output_h * l.output_w);
         }
-        activate_list_gpu(output, l.outputs, l.active);
     }
+    activate_list_gpu(l.output, num*l.outputs, l.output, l.active);
 }
 
 void backward_convolutional_layer_gpu(Layer l, int num, float *n_delta)
@@ -97,15 +97,25 @@ void backward_convolutional_layer_gpu(Layer l, int num, float *n_delta)
     for (int i = 0; i < num; ++i){
         int offset_i = i * l.inputs;
         int offset_o = i * l.outputs;
+        float *input = l.input + offset_i;
         float *output = l.output + offset_o;
         float *delta_l = l.delta + offset_i;
         float *delta_n = n_delta + offset_o;
-        gradient_list_gpu(output, l.outputs, l.active);
-        matrix_multiply_gpu(delta_n, output, l.outputs, delta_n);
+        gradient_list_gpu(output, l.outputs, l.workspace, l.active);
+        matrix_multiply_gpu(delta_n, l.workspace, l.outputs, delta_n);
         gemm_gpu(1, 0, l.filters, l.ksize * l.ksize * l.input_c,
              l.filters, l.output_h * l.output_w, 1,
              l.kernel_weights, delta_n, l.workspace);
         col2im_gpu(l.workspace, l.ksize, l.stride, l.pad, l.input_h, l.input_w, l.input_c, delta_l);
+        im2col_gpu(input, l.input_h, l.input_w, l.input_c, l.ksize, l.stride, l.pad, l.workspace);
+        gemm_gpu(0, 1, l.filters, l.output_h * l.output_w,
+             l.ksize * l.ksize * l.input_c, l.output_h * l.output_w, 1,
+             delta_n, l.workspace, l.workspace + l.ksize * l.ksize * l.input_c * l.output_h * l.output_w);
+        saxpy_gpu(l.kernel_weights_delta, l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w, l.filters*l.ksize*l.ksize*l.input_c, 1./num, l.kernel_weights_delta);
+        if (l.bias) {
+            sum_channel_gpu(delta_n, l.output_h, l.output_w, l.output_c, 1, l.workspace);
+            saxpy_gpu(l.bias_delta, l.workspace, l.filters, 1./num, l.bias_delta);
+        }
     }
 }
 
@@ -128,62 +138,44 @@ void update_convolutional_layer_gpu(Layer l, float rate, int num, float *n_delta
     }
 }
 
-void convolutional_layer_SGDOptimizer_gpu(Layer l, float rate, float momentum, float dampening, float decay, int nesterov, int maximize, int num, float *n_delta)
+void convolutional_layer_SGDOptimizer_gpu(Layer l, float rate, float momentum, float dampening, float decay, int nesterov, int maximize, float *n_delta)
 {
     float *momentum_kernel_v;
     float *momentum_bias_v;
-    for (int i = 0; i < num; ++i)
-    {
-        int offset_i = i * l.inputs;
-        int offset_o = i * l.outputs;
-        float *input = l.input + offset_i;
-        float *delta_n = n_delta + offset_o;
-        im2col_gpu(input, l.input_h, l.input_w, l.input_c, l.ksize, l.stride, l.pad, l.workspace);
-        gemm_gpu(0, 1, l.filters, l.output_h * l.output_w,
-             l.ksize * l.ksize * l.input_c, l.output_h * l.output_w, 1,
-             delta_n, l.workspace, l.workspace + l.ksize * l.ksize * l.input_c * l.output_h * l.output_w);
-        // float *t_delta = (float*)calloc(l.filters*l.ksize*l.ksize*l.input_c, sizeof(float));
-        // cudaMemcpy(t_delta, l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w, l.filters*l.ksize*l.ksize*l.input_c, cudaMemcpyDeviceToHost);
-        // FILE *fp = fopen("./backup/grad_kc", "wb");
-        // fwrite(t_delta, sizeof(float), l.filters*l.ksize*l.ksize*l.input_c, fp);
-        // fclose(fp);
-        // free(t_delta);
+    if (decay != 0){
+        saxpy_gpu(l.kernel_weights_delta, l.update_kernel_weights, l.filters*l.ksize*l.ksize*l.input_c, 1-decay, l.workspace);
+    }
+    if (momentum != 0){
+        multy_gpu(l.momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, momentum, 1);
+        saxpy_gpu(l.momentum_kernel_v, l.workspace, l.filters*l.ksize*l.ksize*l.input_c, 1-dampening, l.momentum_kernel_v);
+        if (nesterov){
+            saxpy_gpu(l.workspace, l.momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, momentum, l.workspace);
+            momentum_kernel_v = l.workspace;
+        } else {
+            momentum_kernel_v = l.momentum_kernel_v;
+        }
+    }
+    if (l.bias){
         if (decay != 0){
-            saxpy_gpu(l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w, l.update_kernel_weights, l.filters*l.ksize*l.ksize*l.input_c, 1-decay, l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w);
+            saxpy_gpu(l.bias_delta, l.update_bias_weights, l.filters, 1-decay, l.workspace);
         }
         if (momentum != 0){
-            multy_gpu(l.momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, momentum, 1);
-            saxpy_gpu(l.momentum_kernel_v, l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w, l.filters*l.ksize*l.ksize*l.input_c, 1-dampening, l.momentum_kernel_v);
+            multy_gpu(l.momentum_bias_v, l.filters, momentum, 1);
+            saxpy_gpu(l.momentum_bias_v, l.workspace, l.filters, 1-dampening, l.momentum_bias_v);
             if (nesterov){
-                saxpy_gpu(l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w, l.momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, momentum, l.workspace);
-                momentum_kernel_v = l.workspace;
+                saxpy_gpu(l.workspace, l.momentum_bias_v, l.filters, momentum, l.workspace);
+                momentum_bias_v = l.workspace;
             } else {
-                momentum_kernel_v = l.momentum_kernel_v;
-            }
-        }
-        if (l.bias){
-            sum_channel_gpu(delta_n, l.output_h, l.output_w, l.output_c, 1, l.workspace);
-            if (decay != 0){
-                saxpy_gpu(l.workspace, l.update_bias_weights, l.filters, 1-decay, l.workspace);
-            }
-            if (momentum != 0){
-                multy_gpu(l.momentum_bias_v, l.filters, momentum, 1);
-                saxpy_gpu(l.momentum_bias_v, l.workspace, l.filters, 1-dampening, l.momentum_bias_v);
-                if (nesterov){
-                    saxpy_gpu(l.workspace, l.momentum_bias_v, l.filters, momentum, l.workspace);
-                    momentum_bias_v = l.workspace;
-                } else {
-                    momentum_bias_v = l.momentum_bias_v;
-                }
+                momentum_bias_v = l.momentum_bias_v;
             }
         }
     }
     if (maximize){
         saxpy_gpu(l.update_kernel_weights, momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, -rate, l.update_kernel_weights);
-        saxpy_gpu(l.update_bias_weights, momentum_bias_v, l.output_c, -rate, l.update_bias_weights);
+        if (l.bias) saxpy_gpu(l.update_bias_weights, momentum_bias_v, l.filters, -rate, l.update_bias_weights);
     } else {
         saxpy_gpu(l.update_kernel_weights, momentum_kernel_v, l.filters*l.ksize*l.ksize*l.input_c, rate, l.update_kernel_weights);
-        saxpy_gpu(l.update_bias_weights, momentum_bias_v, l.output_c, rate, l.update_bias_weights);
+        if (l.bias) saxpy_gpu(l.update_bias_weights, momentum_bias_v, l.filters, rate, l.update_bias_weights);
     }
 }
 
@@ -212,6 +204,8 @@ void save_convolutional_layer_weights_gpu(Layer l, FILE *fp)
 void zerograd_convolutional_layer_gpu(Layer l, int subdivision)
 {
     fill_gpu(l.delta, subdivision*l.inputs, 0, 1);
+    fill_gpu(l.kernel_weights_delta, l.filters*l.ksize*l.ksize*l.input_c, 0, 1);
+    fill_gpu(l.bias_delta, l.filters, 0, 1);
 }
 
 void convolutional_constant_kernel_init_gpu(Layer l, float x)

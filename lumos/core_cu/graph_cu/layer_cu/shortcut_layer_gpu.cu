@@ -33,7 +33,7 @@ void forward_shortcut_layer_gpu(Layer l, int num)
         shortcut_gpu(add, shortcut->output_w, shortcut->output_h, shortcut->output_c, \
                      input, l.input_w, l.input_h, l.input_c, 1, 1, output);
     }
-    activate_list_gpu(l.output, num*l.outputs, l.active);
+    activate_list_gpu(l.output, num*l.outputs, l.output, l.active);
 }
 
 void backward_shortcut_layer_gpu(Layer l, int num, float *n_delta)
@@ -47,8 +47,8 @@ void backward_shortcut_layer_gpu(Layer l, int num, float *n_delta)
         float *delta_l = l.delta + offset_i;
         float *delta_n = n_delta + offset_o;
         float *out = shortcut->delta + offset_c;
-        gradient_list_gpu(output, l.outputs, l.active);
-        matrix_multiply_gpu(output, delta_n, l.inputs, delta_l);
+        gradient_list_gpu(output, l.outputs, l.workspace, l.active);
+        matrix_multiply_gpu(l.workspace, delta_n, l.inputs, delta_l);
         shortcut_gpu(delta_l, l.input_w, l.input_h, l.input_c, \
                      out, shortcut->input_w, shortcut->input_h, shortcut->input_c, \
                      1, 1, out);
