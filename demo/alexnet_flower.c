@@ -11,9 +11,9 @@ void alexnet_flower(char *type, char *path)
     Layer *l6 = make_convolutional_layer(384, 3, 1, 1, 1, "relu");
     Layer *l7 = make_convolutional_layer(256, 3, 1, 1, 1, "relu");
     Layer *l8 = make_maxpool_layer(3, 2, 0);
-    Layer *l9 = make_dropout_layer(0.5);
+    // Layer *l9 = make_dropout_layer(0.5);
     Layer *l10 = make_connect_layer(4096, 1, "relu");
-    Layer *l11 = make_dropout_layer(0.5);
+    // Layer *l11 = make_dropout_layer(0.5);
     Layer *l12 = make_connect_layer(4096, 1, "relu");
     Layer *l13 = make_connect_layer(5, 1, "linear");
     Layer *l14 = make_crossentropy_layer(5);
@@ -25,9 +25,9 @@ void alexnet_flower(char *type, char *path)
     append_layer2grpah(g, l6);
     append_layer2grpah(g, l7);
     append_layer2grpah(g, l8);
-    append_layer2grpah(g, l9);
+    // append_layer2grpah(g, l9);
     append_layer2grpah(g, l10);
-    append_layer2grpah(g, l11);
+    // append_layer2grpah(g, l11);
     append_layer2grpah(g, l12);
     append_layer2grpah(g, l13);
     append_layer2grpah(g, l14);
@@ -63,9 +63,9 @@ void alexnet_flower(char *type, char *path)
     std[2] = 0.225;
     transform_normalize_sess(sess, mean, std);
     transform_resize_sess(sess, 224, 224);
-    set_train_params(sess, 20, 32, 32, 0.001);
+    set_train_params(sess, 1, 4, 4, 0.001);
     SGDOptimizer_sess(sess, 0.9, 0, 0, 0, 0);
-    init_session(sess, "./data/flower/train.txt", "./data/flower/train_label.txt");
+    init_session(sess, "./data/flower/train_c.txt", "./data/flower/train_c_label.txt");
     train(sess);
 }
 

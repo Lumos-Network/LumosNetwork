@@ -15,6 +15,7 @@ extern "C" {
 #define GPU 1
 
 #define SGD 0
+#define ADAM 1
 
 typedef enum {
     CONVOLUTIONAL, CONNECT, IM2COL, MAXPOOL, AVGPOOL, GLOBALMAX, GLOBALAVG, \
@@ -75,6 +76,10 @@ typedef void (*sgdoptimizer) (struct layer, float, float, float, float, int, int
 typedef void (*sgdoptimizer_gpu) (struct layer, float, float, float, float, int, int, int, float*);
 typedef sgdoptimizer SGDOptimizer;
 typedef sgdoptimizer_gpu SGDOptimizerGpu;
+typedef void (*adamoptimizer) (struct layer, float, float, float, float, int, int, int, float*);
+typedef void (*adamoptimizer_gpu) (struct layer, float, float, float, float, int, int, int, float*);
+typedef adamoptimizer AdamOptimizer;
+typedef adamoptimizer_gpu AdamOptimizerGpu;
 
 typedef void (*initialize) (struct layer *, int, int, int, int);
 typedef void (*initialize_gpu) (struct layer *, int, int, int, int);
@@ -155,6 +160,14 @@ struct layer{
     float *momentum_kernel_v;
     float *momentum_bias_v;
 
+    int step_t;
+    float *exp_avg_kernel;
+    float *exp_avg_sq_kernel;
+    float *exp_avg_bias;
+    float *exp_avg_sq_bias;
+    float *exp_avg_sq_kernel_max;
+    float *exp_avg_sq_bias_max;
+
     Forward forward;
     Backward backward;
     Update update;
@@ -167,6 +180,9 @@ struct layer{
 
     SGDOptimizer sgdoptimizer;
     SGDOptimizerGpu sgdoptimizergpu;
+
+    AdamOptimizer adamoptimizer;
+    AdamOptimizerGpu adamoptimizergpu;
 
     Initialize initialize;
     InitializeGpu initializegpu;

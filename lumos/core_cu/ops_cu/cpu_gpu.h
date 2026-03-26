@@ -33,6 +33,11 @@ void matrix_divide_gpu(float *data_a, float *data_b, int num, float *space);
 void saxpy_gpu(float *data_a, float *data_b, int num, float x, float *space);
 void sum_channel_gpu(float *data, int h, int w, int c, float ALPHA, float *space);
 
+void lerp_gpu(float *data_a, float *data_b, int num, float x, float *space);
+void lerp2_gpu(float *data_a, float *data_b, int num, float x, float *space);
+void maximum_gpu(float *data_a, float *data_b, int num, float *space);
+void addcdiv_gpu(float *input, float *data_a, float *data_b, float x, int num, float *space);
+
 void exp_list_gpu(float *data, int num, float *space, float *ALPHA);
 
 #ifdef __cplusplus

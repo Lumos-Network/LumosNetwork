@@ -142,6 +142,54 @@ __global__ void min_kernel(float *data, int num, float *space)
     }
 }
 
+__global__ void lerp_kernel(float *data_a, float *data_b, int num, float x, float *space)
+{
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
+    if (index >= num) return;
+    space[index] = data_a[index]*x + data_b[index]*(1-x);
+}
+
+void lerp_gpu(float *data_a, float *data_b, int num, float x, float *space)
+{
+    lerp_kernel<<<(num+BLOCK-1)/BLOCK, BLOCK>>>(data_a, data_b, num, x, space);
+}
+
+__global__ void lerp2_kernel(float *data_a, float *data_b, int num, float x, float *space)
+{
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
+    if (index >= num) return;
+    space[index] = data_a[index]*x + pow(data_b[index], 2)*(1-x);
+}
+
+void lerp2_gpu(float *data_a, float *data_b, int num, float x, float *space)
+{
+    lerp2_kernel<<<(num+BLOCK-1)/BLOCK, BLOCK>>>(data_a, data_b, num, x, space);
+}
+
+__global__ void maximum_kernel(float *data_a, float *data_b, int num, float *space)
+{
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
+    if (index >= num) return;
+    space[index] = (data_a[index] > data_b[index]) ? data_a[index] : data_b[index];
+}
+
+void maximum_gpu(float *data_a, float *data_b, int num, float *space)
+{
+    maximum_kernel<<<(num+BLOCK-1)/BLOCK, BLOCK>>>(data_a, data_b, num, space);
+}
+
+__global__ void addcdiv_kernel(float *input, float *data_a, float *data_b, float x, int num, float *space)
+{
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
+    if (index >= num) return;
+    space[index] = input[index] + x*(data_a[index]/data_b[index]);
+}
+
+void addcdiv_gpu(float *input, float *data_a, float *data_b, float x, int num, float *space)
+{
+    addcdiv_kernel<<<(num+BLOCK-1)/BLOCK, BLOCK>>>(input, data_a, data_b, x, num, space);
+}
+
 __global__ void max_kernel(float *data, int num, float *space)
 {
     int gid = blockIdx.x * blockDim.x + threadIdx.x;

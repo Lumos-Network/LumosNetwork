@@ -24,8 +24,8 @@ int main()
     // lenet5_fmnist("gpu", NULL);
     // lenet5_fmnist_detect("gpu", "./backup/LW_f");
 
-    // alexnet_flower("gpu", NULL);
-    alexnet_flower_detect("gpu", "./backup/LW_f");
+    alexnet_flower("cpu", "./backup/LW_py");
+    // alexnet_flower_detect("gpu", "./backup/LW_f");
 
     // alexnet_xray("gpu", NULL);
     // alexnet_xray_detect("gpu", "./backup/LW_f");

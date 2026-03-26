@@ -41,6 +41,7 @@ void save_weights(Graph *g, int coretype, FILE *fp);
 void zerograd_graph(Graph *g, int subdivision, int coretype);
 
 void SGDOptimizer_graph(Graph *g, int coretype, float rate, int subdivision, float momentum, float dampening, float decay, int nesterov, int maximize);
+void AdamOptimizer_graph(Graph *g, int coretype, float rate, int subdivision, float beta1, float beta2, float decay, int amsgrad, int maximize);
 
 #ifdef __cplusplus
 }

@@ -124,8 +124,8 @@ void forward_convolutional_layer(Layer l, int num)
         if (l.bias){
             add_bias(output, l.bias_weights, l.filters, l.output_h * l.output_w);
         }
-        activate_list(output, l.outputs, l.active);
     }
+    activate_list(l.output, num*l.outputs, l.output, l.active);
 }
 
 void backward_convolutional_layer(Layer l, int num, float *n_delta)
@@ -136,8 +136,8 @@ void backward_convolutional_layer(Layer l, int num, float *n_delta)
         float *output = l.output + offset_o;
         float *delta_l = l.delta + offset_i;
         float *delta_n = n_delta + offset_o;
-        gradient_list(output, l.outputs, l.active);
-        matrix_multiply_cpu(delta_n, output, l.outputs, delta_n);
+        gradient_list(output, l.outputs, l.workspace, l.active);
+        matrix_multiply_cpu(delta_n, l.workspace, l.outputs, delta_n);
         gemm(1, 0, l.filters, l.ksize * l.ksize * l.input_c,
              l.filters, l.output_h * l.output_w, 1,
              l.kernel_weights, delta_n, l.workspace);
@@ -178,7 +178,8 @@ void convolutional_layer_SGDOptimizer(Layer l, float rate, float momentum, float
         im2col(input, l.input_h, l.input_w, l.input_c, l.ksize, l.stride, l.pad, l.workspace);
         gemm(0, 1, l.filters, l.output_h * l.output_w,
              l.ksize * l.ksize * l.input_c, l.output_h * l.output_w, 1,
-             delta_n, l.workspace, l.workspace + l.ksize * l.ksize * l.input_c * l.output_h * l.output_w);
+             delta_n, l.workspace, l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w);
+        
         if (decay != 0){
             saxpy_cpu(l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w, l.update_kernel_weights, l.filters*l.ksize*l.ksize*l.input_c, 1-decay, l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w);
         }

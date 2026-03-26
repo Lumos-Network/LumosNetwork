@@ -142,6 +142,12 @@ void convolutional_layer_SGDOptimizer_gpu(Layer l, float rate, float momentum, f
         gemm_gpu(0, 1, l.filters, l.output_h * l.output_w,
              l.ksize * l.ksize * l.input_c, l.output_h * l.output_w, 1,
              delta_n, l.workspace, l.workspace + l.ksize * l.ksize * l.input_c * l.output_h * l.output_w);
+        // float *t_delta = (float*)calloc(l.filters*l.ksize*l.ksize*l.input_c, sizeof(float));
+        // cudaMemcpy(t_delta, l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w, l.filters*l.ksize*l.ksize*l.input_c, cudaMemcpyDeviceToHost);
+        // FILE *fp = fopen("./backup/grad_kc", "wb");
+        // fwrite(t_delta, sizeof(float), l.filters*l.ksize*l.ksize*l.input_c, fp);
+        // fclose(fp);
+        // free(t_delta);
         if (decay != 0){
             saxpy_gpu(l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w, l.update_kernel_weights, l.filters*l.ksize*l.ksize*l.input_c, 1-decay, l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w);
         }

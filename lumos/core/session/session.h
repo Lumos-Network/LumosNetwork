@@ -56,6 +56,10 @@ typedef struct session{
     int nesterov;
     int maximize;
 
+    float beta1;
+    float beta2;
+    int amsgrad;
+
     int resize;
     int row;
     int col;
@@ -103,6 +107,7 @@ void init_kaiming_normal_bias(Layer *l, char *mode);
 void init_kaiming_uniform_bias(Layer *l, char *mode);
 
 void SGDOptimizer_sess(Session *sess, float momentum, float dampening, float decay, int nesterov, int maximize);
+void AdamOptimizer_sess(Session *sess, float beta1, float beta2, float decay, int amsgrad, int maximize);
 
 void transform_resize_sess(Session *sess, int height, int width);
 void transform_normalize_sess(Session *sess, float *mean, float *std);

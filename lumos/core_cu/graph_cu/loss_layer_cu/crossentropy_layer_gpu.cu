@@ -83,11 +83,9 @@ void forward_crossentropy_layer_gpu(Layer l, int num)
 void backward_crossentropy_layer_gpu(Layer l, int num, float *n_delta)
 {
     for (int i = 0; i < num; ++i){
-        int offset_i = i*l.inputs;
-        int offset_t = i*l.group;
-        float *input = l.input+offset_i;
-        float *delta_l = l.delta+offset_i;
-        float *truth = l.truth+offset_t;
+        float *input = l.input+i*l.inputs;
+        float *delta_l = l.delta+i*l.inputs;
+        float *truth = l.truth+i*l.group;
         crossentropy_gradient_gpu(input, truth, l.inputs, l.workspace, delta_l);
     }
 }

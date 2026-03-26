@@ -135,11 +135,11 @@ float activate_x(Activation TYPE, float x)
     return res;
 }
 
-void activate_list(float *origin, int num, Activation TYPE)
+void activate_list(float *origin, int num, float *space, Activation TYPE)
 {
     for (int i = 0; i < num; ++i)
     {
-        origin[i] = activate_x(TYPE, origin[i]);
+        space[i] = activate_x(TYPE, origin[i]);
     }
 }
 
@@ -177,10 +177,10 @@ float gradient_x(Activation TYPE, float x)
     return res;
 }
 
-void gradient_list(float *origin, int num, Activation TYPE)
+void gradient_list(float *origin, int num, float *space, Activation TYPE)
 {
     for (int i = 0; i < num; ++i)
     {
-        origin[i] = gradient_x(TYPE, origin[i]);
+        space[i] = gradient_x(TYPE, origin[i]);
     }
 }

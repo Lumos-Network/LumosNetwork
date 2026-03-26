@@ -47,7 +47,7 @@ void init_shortcut_layer(Layer *l, int w, int h, int c, int subdivision)
     l->output_c = c;
     l->outputs = l->output_h * l->output_w * l->output_c;
 
-    l->workspace_size = 0;
+    l->workspace_size = l->outputs;
     l->output = calloc(subdivision*l->outputs, sizeof(float));
     l->delta = calloc(subdivision*l->inputs, sizeof(float));
 
@@ -68,7 +68,7 @@ void forward_shortcut_layer(Layer l, int num)
         shortcut_cpu(add, shortcut->output_w, shortcut->output_h, shortcut->output_c, \
                      input, l.input_w, l.input_h, l.input_c, 1, 1, output);
     }
-    activate_list(l.output, num*l.outputs, l.active);
+    activate_list(l.output, num*l.outputs, l.output, l.active);
 }
 
 void backward_shortcut_layer(Layer l, int num, float *n_delta)
@@ -82,8 +82,8 @@ void backward_shortcut_layer(Layer l, int num, float *n_delta)
         float *delta_l = l.delta + offset_i;
         float *delta_n = n_delta + offset_o;
         float *out = shortcut->delta + offset_c;
-        gradient_list(output, l.outputs, l.active);
-        matrix_multiply_cpu(output, delta_n, l.inputs, delta_l);
+        gradient_list(output, l.outputs, l.workspace, l.active);
+        matrix_multiply_cpu(l.workspace, delta_n, l.inputs, delta_l);
         shortcut_cpu(delta_l, l.input_w, l.input_h, l.input_c, \
                      out, shortcut->input_w, shortcut->input_h, shortcut->input_c, \
                      1, 1, out);

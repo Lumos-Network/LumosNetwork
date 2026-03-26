@@ -21,13 +21,14 @@ from torch.utils.data import DataLoader
 
 def forward_hook(module, input, output):
     shape = input[0].shape
+    print(shape)
     data_f = []
     data = input[0].tolist()
     with open("./backup/in_py", "wb") as fp:
         for i in range(shape[0]):
-            for j in range(shape[1]):
-                for k in range(shape[2]):
-                    data_f += data[i][j][k]
+            # for j in range(shape[1]):
+            #     for k in range(shape[2]):
+            data_f += data[i]
         for i in range(len(data_f)):
             fp.write(struct.pack('f', data_f[i]))
         fp.close()
@@ -53,7 +54,8 @@ def forward_hook(module, input, output):
 # ‌nn.ReLU‌（无参数）：
 # grad_input 仅包含：[input_grad]
 def backward_hook(module, grad_input, grad_output):
-    input_grad = grad_input[0]
+    # print("gradshape:{}".format(grad_input[0].shape))
+    input_grad = grad_output[0]
     shape = input_grad.shape
     grad = input_grad.tolist()
     data = []
@@ -62,6 +64,7 @@ def backward_hook(module, grad_input, grad_output):
             for j in range(shape[1]):
                 for k in range(shape[2]):
                     data += grad[i][j][k]
+        print(len(data))
         for i in range(len(data)):
             fp.write(struct.pack('f', data[i]))
         fp.close()
@@ -97,7 +100,7 @@ class AlexNet(nn.Module):
         self.l3 = nn.Conv2d(96, 256, kernel_size=5, padding=2)
         self.l4 = nn.MaxPool2d(kernel_size=3, stride=2)
         self.l5 = nn.Conv2d(256, 384, kernel_size=3, padding=1)
-        self.bn1 = nn.BatchNorm2d(384)
+        # self.bn1 = nn.BatchNorm2d(384)
         self.l6 = nn.Conv2d(384, 384, kernel_size=3, padding=1)
         self.l7 = nn.Conv2d(384, 256, kernel_size=3, padding=1)
         self.l8 = nn.MaxPool2d(kernel_size=3, stride=2)
@@ -117,7 +120,7 @@ class AlexNet(nn.Module):
         x = torch.relu(self.l3(x))
         x = self.l4(x)
         x = torch.relu(self.l5(x))
-        x = self.bn1(x)
+        # x = self.bn1(x)
         x = torch.relu(self.l6(x))
         x = torch.relu(self.l7(x))
         x = self.l8(x)
@@ -140,7 +143,7 @@ data_transform = transforms.Compose([
 ])
 
 num_epochs = 1
-batch_size = 1
+batch_size = 4
 train_data = MyDataset('./data/flower/train_test.txt', transform=data_transform)
 trainloader = torch.utils.data.DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
 
@@ -150,7 +153,7 @@ optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)  # lr是学习
 fp = open("./backup/LW_py", "wb")
 data_f = []
 for name, param in model.named_parameters():
-    print(f"Layer: {name}, Parameter Shape: {param.shape}") #param.shape [filters, channels, ksize, ksize]  [outputs, inputs]
+    # print(f"Layer: {name}, Parameter Shape: {param.shape}") #param.shape [filters, channels, ksize, ksize]  [outputs, inputs]
     if ("weight" in name and len(param.shape) == 4):
         data = param.tolist()
         for i in range(param.shape[0]):
@@ -171,8 +174,8 @@ for i in range(len(data_f)):
     fp.write(struct.pack('f', data_f[i]))
 fp.close()
 
-# model.l6.register_forward_hook(forward_hook)
-model.bn1.register_backward_hook(backward_hook)
+# model.l14.register_forward_hook(forward_hook)
+# model.l1.register_backward_hook(backward_hook)
 
 # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")
@@ -202,7 +205,7 @@ for epoch in range(num_epochs):
 fp = open("./backup/LWF_py", "wb")
 data_f = []
 for name, param in model.named_parameters():
-    print(f"Layer: {name}, Parameter Shape: {param.shape}") #param.shape [filters, channels, ksize, ksize]  [outputs, inputs]
+    # print(f"Layer: {name}, Parameter Shape: {param.shape}") #param.shape [filters, channels, ksize, ksize]  [outputs, inputs]
     # if ("weight" in name and len(param.shape) == 4):
     #     data = param.tolist()
     #     for i in range(param.shape[0]):

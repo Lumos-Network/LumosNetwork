@@ -81,6 +81,7 @@ void forward_graph(Graph *g, float *input, int coretype, int subdivision)
 {
     Node *layer = g->head;
     Layer *l;
+    int i = 0;
     for (;;){
         if (layer){
             l = layer->l;
@@ -91,9 +92,18 @@ void forward_graph(Graph *g, float *input, int coretype, int subdivision)
             } else {
                 l->forward(*l, subdivision);
             }
+            // if (i == 11){
+            //     float *in = calloc(subdivision*l->inputs, sizeof(float));
+            //     cudaMemcpy(in, l->input, subdivision*l->inputs*sizeof(float), cudaMemcpyDeviceToHost);
+            //     FILE *fp = fopen("./backup/in_c", "wb");
+            //     fwrite(in, sizeof(float), subdivision*l->inputs, fp);
+            //     fclose(fp);
+            //     free(in);
+            // }
         } else {
             break;
         }
+        i += 1;
         layer = layer->next;
         input = l->output;
     }
@@ -104,6 +114,7 @@ void backward_graph(Graph *g, int coretype, int subdivision)
     Node *layer = g->tail;
     Layer *l;
     float *n_delta;
+    int i = 0;
     for (;;){
         if (layer){
             l = layer->l;
@@ -112,9 +123,17 @@ void backward_graph(Graph *g, int coretype, int subdivision)
             } else {
                 l->backward(*l, subdivision, n_delta);
             }
+            // if (i == 10){
+            //     float *delta = calloc(subdivision*l->inputs, sizeof(float));
+            //     cudaMemcpy(delta, l->delta, subdivision*l->inputs*sizeof(float), cudaMemcpyDeviceToHost);
+            //     FILE *fp = fopen("./backup/grad_c", "wb");
+            //     fwrite(delta, sizeof(float), subdivision*l->inputs, fp);
+            //     fclose(fp);
+            // }
         } else {
             break;
         }
+        i += 1;
         layer = layer->head;
         n_delta = l->delta;
     }
@@ -196,6 +215,24 @@ void SGDOptimizer_graph(Graph *g, int coretype, float rate, int subdivision, flo
             l = layer->l;
             if (coretype == GPU && l->sgdoptimizergpu) l->sgdoptimizergpu(*l, rate, momentum, dampening, decay, nesterov, maximize, subdivision, n_delta);
             if (coretype == CPU && l->sgdoptimizer) l->sgdoptimizer(*l, rate, momentum, dampening, decay, nesterov, maximize, subdivision, n_delta);
+        } else {
+            break;
+        }
+        layer = layer->head;
+        n_delta = l->delta;
+    }
+}
+
+void AdamOptimizer_graph(Graph *g, int coretype, float rate, int subdivision, float beta1, float beta2, float decay, int amsgrad, int maximize)
+{
+    Node *layer = g->tail;
+    Layer *l;
+    float *n_delta;
+    for (;;){
+        if (layer){
+            l = layer->l;
+            if (coretype == GPU && l->sgdoptimizergpu) l->adamoptimizergpu(*l, rate, beta1, beta2, decay, amsgrad, maximize, subdivision, n_delta);
+            if (coretype == CPU && l->sgdoptimizer) l->adamoptimizer(*l, rate, beta1, beta2, decay, amsgrad, maximize, subdivision, n_delta);
         } else {
             break;
         }

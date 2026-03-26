@@ -65,7 +65,7 @@ void mean_cpu(float *data, int num, float *space)
 void variance_cpu(float *data, float mean, int num, float *space)
 {
     for (int i = 0; i < num; ++i){
-        space[0] += powf((data[i] - mean), 2);
+        space[0] += pow((data[i] - mean), 2);
     }
     space[0] *= 1./num;
 }
@@ -121,6 +121,34 @@ void sum_channel_cpu(float *data, int h, int w, int c, float ALPHA, float *space
             }
         }
         space[k] = sum;
+    }
+}
+
+void lerp_cpu(float *data_a, float *data_b, int num, float x, float *space)
+{
+    for (int i = 0; i < num; ++i){
+        space[i] = data_a[i]*x + data_b[i]*(1-x);
+    }
+}
+
+void lerp2_cpu(float *data_a, float *data_b, int num, float x, float *space)
+{
+    for (int i = 0; i < num; ++i){
+        space[i] = data_a[i]*x + pow(data_b[i], 2)*(1-x);
+    }
+}
+
+void maximum_cpu(float *data_a, float *data_b, int num, float *space)
+{
+    for (int i = 0; i < num; ++i){
+        space[i] = (data_a[i] > data_b[i]) ? data_a[i] : data_b[i];
+    }
+}
+
+void addcdiv_cpu(float *input, float *data_a, float *data_b, float x, int num, float *space)
+{
+    for (int i = 0; i < num; ++i){
+        space[i] = input[i] + x*(data_a[i]/data_b[i]);
     }
 }
 

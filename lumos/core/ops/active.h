@@ -105,8 +105,8 @@ Gradient load_gradient(Activation TYPE);
 
 float activate_x(Activation TYPE, float x);
 float gradient_x(Activation TYPE, float x);
-void activate_list(float *origin, int num, Activation TYPE);
-void gradient_list(float *origin, int num, Activation TYPE);
+void activate_list(float *origin, int num, float *space, Activation TYPE);
+void gradient_list(float *origin, int num, float *space, Activation TYPE);
 
 #ifdef  __cplusplus
 }

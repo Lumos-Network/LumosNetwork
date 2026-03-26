@@ -1,5 +1,12 @@
 #include "connect_layer.h"
 
+void denom_cpu(float *data, float x, float eps, int num, float *space)
+{
+    for (int i = 0; i < num; ++i){
+        space[i] = sqrt(data[i]) / x + eps;
+    }
+}
+
 Layer *make_connect_layer(int output, int bias, char *active)
 {
     Layer *l = malloc(sizeof(Layer));
@@ -22,6 +29,9 @@ Layer *make_connect_layer(int output, int bias, char *active)
 
     l->sgdoptimizer = connect_layer_SGDOptimizer;
     l->sgdoptimizergpu = connect_layer_SGDOptimizer_gpu;
+
+    l->adamoptimizer = connect_layer_AdamOptimizer;
+    // l->adamoptimizergpu = connect_layer_AdamOptimizer_gpu;
 
     l->weightinit = weightinit_connect_layer;
     l->weightinitgpu = weightinit_connect_layer_gpu;
@@ -64,10 +74,27 @@ void init_connect_layer(Layer *l, int w, int h, int c, int subdivision)
             l->momentum_bias_v = calloc(l->outputs, sizeof(float));
             fill_cpu(l->momentum_bias_v, l->outputs, 0, 1);
         }
+        if (l->optimizer == ADAM){
+            l->exp_avg_bias = calloc(l->outputs, sizeof(float));
+            l->exp_avg_sq_bias = calloc(l->outputs, sizeof(float));
+            l->exp_avg_sq_bias_max = calloc(l->outputs, sizeof(float));
+            fill_cpu(l->exp_avg_bias, l->outputs, 0, 1);
+            fill_cpu(l->exp_avg_sq_bias, l->outputs, 0, 1);
+            fill_cpu(l->exp_avg_sq_bias_max, l->outputs, 0, 1);
+        }
     }
     if (l->optimizer == SGD){
         l->momentum_kernel_v = calloc(l->inputs*l->outputs, sizeof(float));
         fill_cpu(l->momentum_kernel_v, l->inputs*l->outputs, 0, 1);
+    }
+    if (l->optimizer == ADAM){
+        l->step_t = 0;
+        l->exp_avg_kernel = calloc(l->inputs*l->outputs, sizeof(float));
+        l->exp_avg_sq_kernel = calloc(l->inputs*l->outputs, sizeof(float));
+        l->exp_avg_sq_kernel_max = calloc(l->inputs*l->outputs, sizeof(float));
+        fill_cpu(l->exp_avg_kernel, l->inputs*l->outputs, 0, 1);
+        fill_cpu(l->exp_avg_sq_kernel, l->inputs*l->outputs, 0, 1);
+        fill_cpu(l->exp_avg_sq_kernel_max, l->inputs*l->outputs, 0, 1);
     }
 
     fprintf(stderr, "Connect         Layer    %3d*%3d*%3d ==> %3d*%3d*%3d\n",
@@ -119,8 +146,8 @@ void forward_connect_layer(Layer l, int num)
         if (l.bias){
             add_bias(output, l.bias_weights, l.ksize, 1);
         }
-        activate_list(output, l.outputs, l.active);
     }
+    activate_list(l.output, num*l.outputs, l.output, l.active);
 }
 
 void backward_connect_layer(Layer l, int num, float *n_delta)
@@ -131,8 +158,8 @@ void backward_connect_layer(Layer l, int num, float *n_delta)
         float *output = l.output + offset_o;
         float *delta_l = l.delta + offset_i;
         float *delta_n = n_delta + offset_o;
-        gradient_list(output, l.outputs, l.active);
-        matrix_multiply_cpu(delta_n, output, l.outputs, delta_n);
+        gradient_list(output, l.outputs, l.workspace, l.active);
+        matrix_multiply_cpu(delta_n, l.workspace, l.outputs, delta_n);
         gemm(1, 0, l.output_c, l.input_c, l.output_c, l.input_w, 1,
              l.kernel_weights, delta_n, delta_l);
     }
@@ -147,8 +174,8 @@ void update_connect_layer(Layer l, float rate, int num, float *n_delta)
         float *delta_n = n_delta + offset_o;
         gemm(0, 1, l.output_c, l.output_w,
              l.input_c, l.input_w, 1,
-             delta_n, input, l.workspace);
-        saxpy_cpu(l.update_kernel_weights, l.workspace, l.inputs*l.outputs, rate, l.update_kernel_weights);
+             delta_n, input, l.kernel_weights);
+        saxpy_cpu(l.update_kernel_weights, l.kernel_weights, l.inputs*l.outputs, rate, l.update_kernel_weights);
         if (l.bias){
             saxpy_cpu(l.update_bias_weights, delta_n, l.outputs, rate, l.update_bias_weights);
         }
@@ -202,6 +229,39 @@ void connect_layer_SGDOptimizer(Layer l, float rate, float momentum, float dampe
     } else {
         saxpy_cpu(l.update_kernel_weights, momentum_kernel_v, l.inputs*l.outputs, rate, l.update_kernel_weights);
         saxpy_cpu(l.update_bias_weights, momentum_bias_v, l.outputs, rate, l.update_bias_weights);
+    }
+}
+
+void connect_layer_AdamOptimizer(Layer l, float rate, float beta1, float beta2, float decay, int amsgrad, int maximize, int num, float *n_delta)
+{
+    l.step_t += 1;
+    float correction1 = 1 - pow(beta1, l.step_t);
+    float correction2 = 1 - pow(beta2, l.step_t);
+    float step_size = rate / correction1;
+    float correction2_sqrt = sqrt(correction2);
+    for (int i = 0; i < num; ++i){
+        int offset_i = i * l.inputs;
+        int offset_o = i * l.outputs;
+        float *input = l.input + offset_i;
+        float *delta_n = n_delta + offset_o;
+        gemm(0, 1, l.output_c, l.output_w,
+             l.input_c, l.input_w, 1,
+             delta_n, input, l.workspace);
+        if (decay != 0){
+            saxpy_cpu(l.workspace, l.update_kernel_weights, l.inputs*l.outputs, 1-decay, l.workspace);
+        }
+        lerp_cpu(l.exp_avg_kernel, l.workspace, l.inputs*l.outputs, beta1, l.exp_avg_kernel);
+        lerp2_cpu(l.exp_avg_sq_kernel, l.workspace, l.inputs*l.outputs, beta2, l.exp_avg_sq_kernel);
+        if (amsgrad){
+            maximum_cpu(l.exp_avg_sq_kernel_max, l.exp_avg_sq_kernel, l.inputs*l.outputs, l.exp_avg_sq_kernel_max);
+            denom_cpu(l.exp_avg_sq_kernel_max, correction2_sqrt, 0.00001, l.inputs*l.outputs, l.workspace);
+        } else {
+            denom_cpu(l.exp_avg_sq_kernel, correction2_sqrt, 0.00001, l.inputs*l.outputs, l.workspace);
+        }
+        addcdiv_cpu(l.update_kernel_weights, l.exp_avg_kernel, l.workspace, step_size, l.inputs*l.outputs, l.update_kernel_weights);
+        if (l.bias){
+            saxpy_cpu(l.update_bias_weights, delta_n, l.outputs, rate, l.update_bias_weights);
+        }
     }
 }
 

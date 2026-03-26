@@ -54,7 +54,7 @@ void init_normalization_layer(Layer *l, int w, int h, int c, int subdivision)
     l->filters = c;
     l->ksize = h*w;
 
-    l->workspace_size = l->filters;
+    l->workspace_size = subdivision*l->outputs;
 
     l->mean = calloc(l->filters, sizeof(float));
     l->variance = calloc(l->filters, sizeof(float));
@@ -122,12 +122,13 @@ void forward_normalization_layer(Layer l, int num)
         scale_bias(output, l.kernel_weights, l.filters, l.ksize);
         add_bias(output, l.bias_weights, l.filters, l.ksize);
     }
+    activate_list(l.output, num*l.outputs, l.output, l.active);
 }
 
 void backward_normalization_layer(Layer l, int num, float *n_delta)
 {
-    gradient_list(l.output, num*l.outputs, l.active);
-    matrix_multiply_cpu(n_delta, l.output, num*l.outputs, n_delta);
+    gradient_list(l.output, num*l.outputs, l.workspace, l.active);
+    matrix_multiply_cpu(n_delta, l.workspace, num*l.outputs, n_delta);
     memcpy(l.delta, n_delta, num*l.inputs*sizeof(float));
     for (int i = 0; i < num; ++i){
         float *input = l.input + i*l.inputs;

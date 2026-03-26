@@ -196,6 +196,8 @@ void train(Session *sess)
                 backward_graph(sess->graph, sess->coretype, sess->subdivision);
                 if (sess->optimizer == SGD){
                     SGDOptimizer_graph(sess->graph, sess->coretype, rate, sess->subdivision, sess->momentum, sess->dampening, sess->decay, sess->nesterov, sess->maximize);
+                } else if (sess->optimizer == ADAM){
+                    AdamOptimizer_graph(sess->graph, sess->coretype, rate, sess->subdivision, sess->beta1, sess->beta2, sess->decay, sess->amsgrad, sess->maximize);
                 } else {
                     update_graph(sess->graph, sess->coretype, rate, sess->subdivision);
                 }
@@ -417,6 +419,16 @@ void SGDOptimizer_sess(Session *sess, float momentum, float dampening, float dec
     sess->nesterov = nesterov;
     sess->maximize = maximize;
     sess->optimizer = SGD;
+}
+
+void AdamOptimizer_sess(Session *sess, float beta1, float beta2, float decay, int amsgrad, int maximize)
+{
+    sess->beta1 = beta1;
+    sess->beta2 = beta2;
+    sess->decay = decay;
+    sess->amsgrad = amsgrad;
+    sess->maximize = maximize;
+    sess->optimizer = ADAM;
 }
 
 void transform_resize_sess(Session *sess, int height, int width)
