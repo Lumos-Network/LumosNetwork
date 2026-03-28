@@ -20,31 +20,25 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 def forward_hook(module, input, output):
-    shape = input[0].shape
+    flag = "input"
+    shape = None
+    data = None
+    if (flag == "input"):
+        shape = input[0].shape
+        data = input[0].tolist()
+    else:
+        shape = output.shape
+        data = output.tolist()
     print(shape)
     data_f = []
-    data = input[0].tolist()
     with open("./backup/in_py", "wb") as fp:
         for i in range(shape[0]):
-            # for j in range(shape[1]):
-            #     for k in range(shape[2]):
-            data_f += data[i]
+            for j in range(shape[1]):
+                for k in range(shape[2]):
+                    data_f += data[i][j][k]
         for i in range(len(data_f)):
             fp.write(struct.pack('f', data_f[i]))
         fp.close()
-
-    # shape = output.shape
-    # print(shape)
-    # data_f = []
-    # data = output.tolist()
-    # with open("./backup/out_py", "wb") as fp:
-    #     for i in range(shape[0]):
-    #         for j in range(shape[1]):
-    #             for k in range(output.shape[2]):
-    #                 data_f += data[i][j][k]
-    #     for i in range(len(data_f)):
-    #         fp.write(struct.pack('f', data_f[i]))
-    #     fp.close()
 
 # grad_input 中各部分梯度的‌顺序取决于模块 forward 函数的输入顺序‌：
 # ‌nn.Linear‌（有 bias）：
@@ -55,9 +49,11 @@ def forward_hook(module, input, output):
 # grad_input 仅包含：[input_grad]
 def backward_hook(module, grad_input, grad_output):
     # print("gradshape:{}".format(grad_input[0].shape))
-    input_grad = grad_output[0]
+    input_grad = grad_input[1]
     shape = input_grad.shape
+    print(shape)
     grad = input_grad.tolist()
+    # print(grad)
     data = []
     with open("./backup/grad_py", "wb") as fp:
         for i in range(shape[0]):
@@ -91,48 +87,87 @@ class MyDataset(Dataset):
     def __len__(self):
         return len(self.imgs)
 
-class AlexNet(nn.Module):
-    def __init__(self, num_classes=2):  # num_classes：类别数，默认1000（ImageNet）
-        super(AlexNet, self).__init__()
-        # 卷积部分：5层卷积+3层池化
-        self.l1 = nn.Conv2d(3, 96, kernel_size=11, stride=4, padding=2)  # 输入3通道，输出96通道
-        self.l2 = nn.MaxPool2d(kernel_size=3, stride=2)  # 池化
-        self.l3 = nn.Conv2d(96, 256, kernel_size=5, padding=2)
-        self.l4 = nn.MaxPool2d(kernel_size=3, stride=2)
-        self.l5 = nn.Conv2d(256, 384, kernel_size=3, padding=1)
-        # self.bn1 = nn.BatchNorm2d(384)
-        self.l6 = nn.Conv2d(384, 384, kernel_size=3, padding=1)
-        self.l7 = nn.Conv2d(384, 256, kernel_size=3, padding=1)
-        self.l8 = nn.MaxPool2d(kernel_size=3, stride=2)
+class ResNet(nn.Module):
+    def __init__(self, num_classes=10):
+        super(ResNet, self).__init__()
 
-        # self.l9 = nn.Dropout(p=0.5)
-        self.l10 = nn.Linear(256 * 6 * 6, 4096)
-        # self.l11 = nn.Dropout(p=0.5)
-        self.l12 = nn.Linear(4096, 4096)
-        self.l13 = nn.Linear(4096, num_classes)
+        self.l1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3)
+        self.l2 = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
-        self.l14 = nn.CrossEntropyLoss()
-    
-    # 前向传播：定义数据在网络里的流动路径
+        self.l3 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1)
+        self.l4 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1)
+
+        self.l5 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1)
+        self.l6 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1)
+
+        self.l7 = nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1)
+        self.l8 = nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1)
+        self.l9 = nn.Conv2d(64, 128, kernel_size=1, stride=2)
+
+        self.l10 = nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1)
+        self.l11 = nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1)
+
+        self.l12 = nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1)
+        self.l13 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
+        self.l14 = nn.Conv2d(128, 256, kernel_size=1, stride=2)
+
+        self.l15 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
+        self.l16 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
+
+        self.l17 = nn.Conv2d(256, 512, kernel_size=3, stride=2, padding=1)
+        self.l18 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
+        self.l19 = nn.Conv2d(256, 512, kernel_size=1, stride=2)
+
+        self.l20 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
+        self.l21 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
+
+        self.l22 = nn.AvgPool2d(kernel_size=7)
+        self.l23 = nn.Linear(512, num_classes)
+        self.l24 = nn.CrossEntropyLoss()
+
     def forward(self, x, labels):
         x = torch.relu(self.l1(x))
         x = self.l2(x)
-        x = torch.relu(self.l3(x))
-        x = self.l4(x)
-        x = torch.relu(self.l5(x))
-        # x = self.bn1(x)
-        x = torch.relu(self.l6(x))
-        x = torch.relu(self.l7(x))
-        x = self.l8(x)
+
+        y = torch.relu(self.l3(x))
+        y = self.l4(y)
+        x = torch.relu(x+y)
+
+        y = torch.relu(self.l5(x))
+        y = self.l6(y)
+        x = torch.relu(x+y)
+
+        y = torch.relu(self.l7(x))
+        y = self.l8(y)
+        z = self.l9(x)
+        x = torch.relu(z+y)
+
+        y = torch.relu(self.l10(x))
+        y = self.l11(y)
+        x = torch.relu(x+y)
         
+        y = torch.relu(self.l12(x))
+        y = self.l13(y)
+        z = self.l14(x)
+        x = torch.relu(z+y)
+        
+        y = torch.relu(self.l15(x))
+        y = self.l16(y)
+        x = torch.relu(x+y)
+        
+        y = torch.relu(self.l17(x))
+        y = self.l18(y)
+        z = self.l19(x)
+        x = torch.relu(z+y)
+        
+        y = torch.relu(self.l20(x))
+        y = self.l21(y)
+        x = torch.relu(x+y)
+        
+        x = self.l22(x) # 需要激活
         x = torch.flatten(x, start_dim=1)
-        # x = self.l9(x)
-        x = torch.relu(self.l10(x))
-        # x = self.l11(x)
-        x = torch.relu(self.l12(x))
-        x = self.l13(x)
-        x = self.l14(x, labels)
-        # x = self.l15(x, labels)
+        x = self.l23(x)
+        x = self.l24(x, labels)
         return x
 
 data_transform = transforms.Compose([
@@ -142,13 +177,13 @@ data_transform = transforms.Compose([
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
 
-num_epochs = 2
+num_epochs = 4
 batch_size = 4
 train_data = MyDataset('./data/flower/train_test.txt', transform=data_transform)
 trainloader = torch.utils.data.DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
 
-model = AlexNet(num_classes=5)
-optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)  # lr是学习率，控制更新速度
+model = ResNet(num_classes=5)
+optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 
 fp = open("./backup/LW_py", "wb")
 data_f = []
@@ -169,13 +204,13 @@ for name, param in model.named_parameters():
     if ("bias" in name):
         data = param.tolist()
         data_f += data
-print(len(data_f))
+# print(len(data_f))
 for i in range(len(data_f)):
     fp.write(struct.pack('f', data_f[i]))
 fp.close()
 
-# model.l14.register_forward_hook(forward_hook)
-# model.l1.register_backward_hook(backward_hook)
+# model.l9.register_forward_hook(forward_hook)
+# model.l16.register_backward_hook(backward_hook)
 
 # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")
@@ -190,67 +225,12 @@ for epoch in range(num_epochs):
         inputs, labels = data[0].to(device), data[1].to(device)
         optimizer.zero_grad()
         outputs = model(inputs, labels)
-        # print(labels)
-        # print(outputs.item())
         outputs.backward()
         optimizer.step()
-        # print(outputs.item())
+        print(outputs.item())
         # running_loss += outputs.item()
         # 每100个批量打印一次训练情况
         # if i % 100 == 99:
         #     print(f'[{epoch + 1}, {i + 1}] loss: {running_loss / 100:.3f}')
         #     running_loss = 0.0
         # print("loss: {}".format(outputs.item()))
-
-fp = open("./backup/LWF_py", "wb")
-data_f = []
-for name, param in model.named_parameters():
-    # print(f"Layer: {name}, Parameter Shape: {param.shape}") #param.shape [filters, channels, ksize, ksize]  [outputs, inputs]
-    if ("weight" in name and len(param.shape) == 4):
-        data = param.tolist()
-        for i in range(param.shape[0]):
-            for j in range(param.shape[1]):
-                for k in range(param.shape[2]):
-                    data_f += data[i][j][k]
-    if ("weight" in name and len(param.shape) == 2):
-        data = param.tolist()
-        for i in range(param.shape[0]):
-            data_f += data[i]
-    if ("weight" in name and len(param.shape) == 1):
-        data_f += param.tolist()
-    if ("bias" in name):
-        data = param.tolist()
-        data_f += data
-print(len(data_f))
-for i in range(len(data_f)):
-    fp.write(struct.pack('f', data_f[i]))
-fp.close()
-
-#     # if param.grad is not None:
-#     #     print(f"Parameter: {name}, Gradient: {param.grad}")
-#     # # 每轮训练结束后，在验证集上测试效果
-#     # model.eval()  # 评估模式：关闭Dropout
-#     # correct = 0  # 正确预测的数量
-#     # total = 0    # 总图片数量
-    
-#     # # 验证集不需要计算梯度，节省资源
-#     # with torch.no_grad():
-#     #     for data in trainloader:
-#     #         images, labels = data[0].to(device), data[1].to(device)
-#     #         outputs = model(images, labels)
-#     #         # 取概率最大的作为预测结果
-#     #         _, predicted = torch.max(outputs.data, 1)
-#     #         total += labels.size(0)
-#     #         correct += (predicted == labels).sum().item()
-    
-#     # # 打印每轮的验证准确率
-#     # print(f'Epoch {epoch + 1}, 验证准确率: {100 * correct / total:.2f}%')
-
-# # print('训练完成！')
-
-# # # 保存训练好的模型，方便后续使用
-# # torch.save(model.state_dict(), 'alexnet_flower.pth')
-# # print('模型已保存为 alexnet_flower.pth')
-
-
-

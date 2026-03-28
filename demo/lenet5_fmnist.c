@@ -35,7 +35,8 @@ void lenet5_fmnist(char *type, char *path)
     init_kaiming_uniform_bias(l7, "fan_in");
 
     Session *sess = create_session(g, 28, 28, 1, 10, type, path);
-    set_train_params(sess, 20, 32, 32, 0.01);
+    set_train_params(sess, 40, 32, 32, 0.01);
+    transform_resize_sess(sess, 28, 28);
     SGDOptimizer_sess(sess, 0.9, 0, 0, 0, 0);
     init_session(sess, "./data/fmnist/train.txt", "./data/fmnist/label.txt");
     train(sess);
@@ -61,6 +62,7 @@ void lenet5_fmnist_detect(char*type, char *path)
     append_layer2grpah(g, l7);
     append_layer2grpah(g, l8);
     Session *sess = create_session(g, 28, 28, 1, 10, type, path);
+    transform_resize_sess(sess, 28, 28);
     set_detect_params(sess);
     init_session(sess, "./data/fmnist/train.txt", "./data/fmnist/label.txt");
     detect_classification(sess);

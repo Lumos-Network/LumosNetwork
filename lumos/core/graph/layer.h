@@ -17,6 +17,9 @@ extern "C" {
 #define SGD 0
 #define ADAM 1
 
+#define BASIC 0
+#define SHORT 1
+
 typedef enum {
     CONVOLUTIONAL, CONNECT, IM2COL, MAXPOOL, AVGPOOL, GLOBALMAX, GLOBALAVG, \
     DROPOUT, SOFTMAX, LOGSOFTMAX, SHORTCUT, NORMALIZE, \
@@ -142,6 +145,7 @@ struct layer{
     float probability;
     float *detect; //预测值
     Layer *shortcut;
+    int shortcut_type;
 
     float *kernel_weights;
     float *bias_weights;

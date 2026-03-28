@@ -6,7 +6,6 @@
 
 #include "layer.h"
 #include "cpu.h"
-#include "shortcut.h"
 
 #include "shortcut_layer_gpu.h"
 
@@ -14,7 +13,7 @@
 extern "C" {
 #endif
 
-Layer *make_shortcut_layer(Layer *shortcut, char *active);
+Layer *make_shortcut_layer(Layer *shortcut, int shortcuttype, char *active);
 void init_shortcut_layer(Layer *l, int w, int h, int c, int subdivision);
 
 void forward_shortcut_layer(Layer l, int num);

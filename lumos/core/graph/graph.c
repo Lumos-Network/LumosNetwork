@@ -81,6 +81,7 @@ void forward_graph(Graph *g, float *input, int coretype, int subdivision)
 {
     Node *layer = g->head;
     Layer *l;
+    int i = 0;
     for (;;){
         if (layer){
             l = layer->l;
@@ -94,6 +95,7 @@ void forward_graph(Graph *g, float *input, int coretype, int subdivision)
         } else {
             break;
         }
+        i += 1;
         layer = layer->next;
         input = l->output;
     }

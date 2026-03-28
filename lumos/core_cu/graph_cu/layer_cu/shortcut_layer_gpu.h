@@ -12,7 +12,6 @@
 #include "gpu.h"
 #include "cpu_gpu.h"
 #include "layer.h"
-#include "shortcut_gpu.h"
 
 #ifdef __cplusplus
 extern "C" {
