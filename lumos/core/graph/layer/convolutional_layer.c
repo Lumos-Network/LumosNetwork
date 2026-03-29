@@ -238,7 +238,7 @@ void zerograd_convolutional_layer(Layer l, int subdivision)
 {
     fill_cpu(l.delta, subdivision*l.inputs, 0, 1);
     fill_cpu(l.kernel_weights_delta, l.filters*l.ksize*l.ksize*l.input_c, 0, 1);
-    fill_cpu(l.bias_delta, l.filters, 0, 1);
+    if (l.bias) fill_cpu(l.bias_delta, l.filters, 0, 1);
 }
 
 void convolutional_constant_kernel_init(Layer l, float x)

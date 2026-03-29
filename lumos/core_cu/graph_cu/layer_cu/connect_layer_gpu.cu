@@ -200,7 +200,7 @@ void zerograd_connect_layer_gpu(Layer l, int subdivision)
 {
     fill_gpu(l.delta, subdivision*l.inputs, 0, 1);
     fill_gpu(l.kernel_weights_delta, l.inputs*l.outputs, 0, 1);
-    fill_gpu(l.bias_delta, l.outputs, 0, 1);
+    if (l.bias) fill_gpu(l.bias_delta, l.outputs, 0, 1);
 }
 
 void connect_constant_kernel_init_gpu(Layer l, float x)

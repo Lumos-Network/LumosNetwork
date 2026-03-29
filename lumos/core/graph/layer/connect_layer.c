@@ -286,7 +286,7 @@ void zerograd_connect_layer(Layer l, int subdivision)
 {
     fill_cpu(l.delta, subdivision*l.inputs, 0, 1);
     fill_cpu(l.kernel_weights_delta, l.inputs*l.outputs, 0, 1);
-    fill_cpu(l.bias_delta, l.outputs, 0, 1);
+    if (l.bias) fill_cpu(l.bias_delta, l.outputs, 0, 1);
 }
 
 void connect_constant_kernel_init(Layer l, float x)

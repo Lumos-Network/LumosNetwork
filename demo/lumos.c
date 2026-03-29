@@ -31,8 +31,8 @@ int main()
 
     // vgg16_cifar10("gpu", NULL);
 
-
-    resnet18("gpu", "./backup/LW_py");
+    // resnet18("gpu", NULL);
+    // resnet18_detect("gpu", "./backup/LW_f");
 
     return 0;
 }
