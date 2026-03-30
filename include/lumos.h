@@ -17,10 +17,9 @@ void set_train_params(Session *sess, int epoch, int batch, int subdivision, floa
 void set_detect_params(Session *sess);
 void train(Session *sess);
 void detect_classification(Session *sess);
-void lr_scheduler_step(Session *sess, int step_size, float gamma);
-void lr_scheduler_multistep(Session *sess, int *milestones, int num, float gamma);
-void lr_scheduler_exponential(Session *sess, float gamma);
-void lr_scheduler_cosineannealing(Session *sess, int T_max, float lr_min);
+void SGDOptimizer_sess(Session *sess, float momentum, float dampening, float decay, int nesterov, int maximize);
+void transform_resize_sess(Session *sess, int height, int width);
+void transform_normalize_sess(Session *sess, float *mean, float *std);
 
 Graph *create_graph();
 void append_layer2grpah(Graph *graph, Layer *l);
@@ -56,10 +55,5 @@ void init_xavier_normal_bias(Layer *l, float gain);
 void init_xavier_uniform_bias(Layer *l, float gain);
 void init_kaiming_normal_bias(Layer *l, char *mode);
 void init_kaiming_uniform_bias(Layer *l, char *mode);
-
-void SGDOptimizer_sess(Session *sess, float momentum, float dampening, float decay, int nesterov, int maximize);
-
-void transform_resize_sess(Session *sess, int height, int width);
-void transform_normalize_sess(Session *sess, float *mean, float *std);
 
 #endif

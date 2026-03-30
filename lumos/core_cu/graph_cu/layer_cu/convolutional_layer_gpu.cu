@@ -56,24 +56,32 @@ void weightinit_convolutional_layer_gpu(Layer l, FILE *fp)
     }
     char *def_mode = (char *)"fan_in";
     char *def_nonlinearity = (char *)"leaky_relu";
-    InitCptKernel initcptkernel = *l.initcptkernel;
-    if (initcptkernel.initype == CONSTANT_I) convolutional_constant_kernel_init_gpu(l, initcptkernel.x);
-    else if (initcptkernel.initype == NORMAL_I) convolutional_normal_kernel_init_gpu(l, initcptkernel.mean, initcptkernel.std);
-    else if (initcptkernel.initype == XAVIER_NORMAL_I) convolutional_xavier_normal_kernel_init_gpu(l, initcptkernel.a);
-    else if (initcptkernel.initype == XAVIER_UNIFORM_I) convolutional_xavier_uniform_kernel_init_gpu(l, initcptkernel.a);
-    else if (initcptkernel.initype == KAIMING_NORMAL_I) convolutional_kaiming_normal_kernel_init_gpu(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
-    else if (initcptkernel.initype == KAIMING_UNIFORM_I) convolutional_kaiming_uniform_kernel_init_gpu(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
-    else convolutional_kaiming_uniform_kernel_init_gpu(l, sqrt(5.0), def_mode, def_nonlinearity);
+    if (l.initcptkernel == NULL){
+        convolutional_kaiming_uniform_kernel_init_gpu(l, sqrt(5.0), def_mode, def_nonlinearity);
+    } else {
+        InitCptKernel initcptkernel = *l.initcptkernel;
+        if (initcptkernel.initype == CONSTANT_I) convolutional_constant_kernel_init_gpu(l, initcptkernel.x);
+        else if (initcptkernel.initype == NORMAL_I) convolutional_normal_kernel_init_gpu(l, initcptkernel.mean, initcptkernel.std);
+        else if (initcptkernel.initype == XAVIER_NORMAL_I) convolutional_xavier_normal_kernel_init_gpu(l, initcptkernel.a);
+        else if (initcptkernel.initype == XAVIER_UNIFORM_I) convolutional_xavier_uniform_kernel_init_gpu(l, initcptkernel.a);
+        else if (initcptkernel.initype == KAIMING_NORMAL_I) convolutional_kaiming_normal_kernel_init_gpu(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
+        else if (initcptkernel.initype == KAIMING_UNIFORM_I) convolutional_kaiming_uniform_kernel_init_gpu(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
+        else convolutional_kaiming_uniform_kernel_init_gpu(l, sqrt(5.0), def_mode, def_nonlinearity);
+    }
     if (l.bias){
-        InitCptBias initcptbias = *l.initcptbias;
-        if (initcptbias.initype == CONSTANT_I) convolutional_constant_bias_init_gpu(l, initcptbias.x);
-        else if (initcptbias.initype == NORMAL_I) convolutional_normal_bias_init_gpu(l, initcptbias.mean, initcptbias.std);
-        else if (initcptbias.initype == UNIFORM_I) convolutional_uniform_bias_init_gpu(l, initcptbias.min, initcptbias.max);
-        else if (initcptbias.initype == XAVIER_NORMAL_I) convolutional_xavier_normal_bias_init_gpu(l, initcptbias.a);
-        else if (initcptbias.initype == XAVIER_UNIFORM_I) convolutional_xavier_uniform_bias_init_gpu(l, initcptbias.a);
-        else if (initcptbias.initype == KAIMING_NORMAL_I) convolutional_kaiming_normal_bias_init_gpu(l, initcptbias.mode);
-        else if (initcptbias.initype == KAIMING_UNIFORM_I) convolutional_kaiming_uniform_bias_init_gpu(l, initcptbias.mode);
-        else convolutional_kaiming_uniform_bias_init_gpu(l, def_mode);
+        if (l.initcptbias == NULL){
+            convolutional_kaiming_uniform_bias_init_gpu(l, def_mode);
+        } else {
+            InitCptBias initcptbias = *l.initcptbias;
+            if (initcptbias.initype == CONSTANT_I) convolutional_constant_bias_init_gpu(l, initcptbias.x);
+            else if (initcptbias.initype == NORMAL_I) convolutional_normal_bias_init_gpu(l, initcptbias.mean, initcptbias.std);
+            else if (initcptbias.initype == UNIFORM_I) convolutional_uniform_bias_init_gpu(l, initcptbias.min, initcptbias.max);
+            else if (initcptbias.initype == XAVIER_NORMAL_I) convolutional_xavier_normal_bias_init_gpu(l, initcptbias.a);
+            else if (initcptbias.initype == XAVIER_UNIFORM_I) convolutional_xavier_uniform_bias_init_gpu(l, initcptbias.a);
+            else if (initcptbias.initype == KAIMING_NORMAL_I) convolutional_kaiming_normal_bias_init_gpu(l, initcptbias.mode);
+            else if (initcptbias.initype == KAIMING_UNIFORM_I) convolutional_kaiming_uniform_bias_init_gpu(l, initcptbias.mode);
+            else convolutional_kaiming_uniform_bias_init_gpu(l, def_mode);
+        }
     }
 }
 

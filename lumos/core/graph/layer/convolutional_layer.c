@@ -91,25 +91,33 @@ void weightinit_convolutional_layer(Layer l, FILE *fp)
         }
         return;
     }
-    InitCptKernel initcptkernel = *l.initcptkernel;
-    if (initcptkernel.initype == CONSTANT_I) convolutional_constant_kernel_init(l, initcptkernel.x);
-    else if (initcptkernel.initype == NORMAL_I) convolutional_normal_kernel_init(l, initcptkernel.mean, initcptkernel.std);
-    else if (initcptkernel.initype == UNIFORM_I) convolutional_uniform_kernel_init(l, initcptkernel.min, initcptkernel.max);
-    else if (initcptkernel.initype == XAVIER_NORMAL_I) convolutional_xavier_normal_kernel_init(l, initcptkernel.a);
-    else if (initcptkernel.initype == XAVIER_UNIFORM_I) convolutional_xavier_uniform_kernel_init(l, initcptkernel.a);
-    else if (initcptkernel.initype == KAIMING_NORMAL_I) convolutional_kaiming_normal_kernel_init(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
-    else if (initcptkernel.initype == KAIMING_UNIFORM_I) convolutional_kaiming_uniform_kernel_init(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
-    else convolutional_kaiming_uniform_kernel_init(l, sqrt(5.0), "fan_in", "leaky_relu");
+    if (l.initcptkernel == NULL){
+        convolutional_kaiming_uniform_kernel_init(l, sqrt(5.0), "fan_in", "leaky_relu");
+    } else {
+        InitCptKernel initcptkernel = *l.initcptkernel;
+        if (initcptkernel.initype == CONSTANT_I) convolutional_constant_kernel_init(l, initcptkernel.x);
+        else if (initcptkernel.initype == NORMAL_I) convolutional_normal_kernel_init(l, initcptkernel.mean, initcptkernel.std);
+        else if (initcptkernel.initype == UNIFORM_I) convolutional_uniform_kernel_init(l, initcptkernel.min, initcptkernel.max);
+        else if (initcptkernel.initype == XAVIER_NORMAL_I) convolutional_xavier_normal_kernel_init(l, initcptkernel.a);
+        else if (initcptkernel.initype == XAVIER_UNIFORM_I) convolutional_xavier_uniform_kernel_init(l, initcptkernel.a);
+        else if (initcptkernel.initype == KAIMING_NORMAL_I) convolutional_kaiming_normal_kernel_init(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
+        else if (initcptkernel.initype == KAIMING_UNIFORM_I) convolutional_kaiming_uniform_kernel_init(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
+        else convolutional_kaiming_uniform_kernel_init(l, sqrt(5.0), "fan_in", "leaky_relu");
+    }
     if (l.bias){
-        InitCptBias initcptbias = *l.initcptbias;
-        if (initcptbias.initype == CONSTANT_I) convolutional_constant_bias_init(l, initcptbias.x);
-        else if (initcptbias.initype == NORMAL_I) convolutional_normal_bias_init(l, initcptbias.mean, initcptbias.std);
-        else if (initcptbias.initype == UNIFORM_I) convolutional_uniform_bias_init(l, initcptbias.min, initcptbias.max);
-        else if (initcptbias.initype == XAVIER_NORMAL_I) convolutional_xavier_normal_bias_init(l, initcptbias.a);
-        else if (initcptbias.initype == XAVIER_UNIFORM_I) convolutional_xavier_uniform_bias_init(l, initcptbias.a);
-        else if (initcptbias.initype == KAIMING_NORMAL_I) convolutional_kaiming_normal_bias_init(l, initcptbias.mode);
-        else if (initcptbias.initype == KAIMING_UNIFORM_I) convolutional_kaiming_uniform_bias_init(l, initcptbias.mode);
-        else convolutional_kaiming_uniform_bias_init(l, "fan_in");
+        if (l.initcptbias == NULL){
+            convolutional_kaiming_uniform_bias_init(l, "fan_in");
+        } else {
+            InitCptBias initcptbias = *l.initcptbias;
+            if (initcptbias.initype == CONSTANT_I) convolutional_constant_bias_init(l, initcptbias.x);
+            else if (initcptbias.initype == NORMAL_I) convolutional_normal_bias_init(l, initcptbias.mean, initcptbias.std);
+            else if (initcptbias.initype == UNIFORM_I) convolutional_uniform_bias_init(l, initcptbias.min, initcptbias.max);
+            else if (initcptbias.initype == XAVIER_NORMAL_I) convolutional_xavier_normal_bias_init(l, initcptbias.a);
+            else if (initcptbias.initype == XAVIER_UNIFORM_I) convolutional_xavier_uniform_bias_init(l, initcptbias.a);
+            else if (initcptbias.initype == KAIMING_NORMAL_I) convolutional_kaiming_normal_bias_init(l, initcptbias.mode);
+            else if (initcptbias.initype == KAIMING_UNIFORM_I) convolutional_kaiming_uniform_bias_init(l, initcptbias.mode);
+            else convolutional_kaiming_uniform_bias_init(l, "fan_in");
+        }
     }
 }
 

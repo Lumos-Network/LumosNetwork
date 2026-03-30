@@ -11,17 +11,10 @@ void xor(char *type, char *path)
     append_layer2grpah(g, l2);
     append_layer2grpah(g, l3);
     append_layer2grpah(g, l4);
-    init_kaiming_uniform_kernel(l1, sqrt(5.0), "fan_in", "leaky_relu");
-    init_kaiming_uniform_kernel(l2, sqrt(5.0), "fan_in", "leaky_relu");
-    init_kaiming_uniform_kernel(l3, sqrt(5.0), "fan_in", "leaky_relu");
-
-    init_kaiming_uniform_bias(l1, "fan_in");
-    init_kaiming_uniform_bias(l2, "fan_in");
-    init_kaiming_uniform_bias(l3, "fan_in");
     Session *sess = create_session(g, 1, 2, 1, 2, type, path);
     set_train_params(sess, 50, 4, 4, 0.1);
     SGDOptimizer_sess(sess, 0.9, 0, 0, 0, 0);
-    init_session(sess, "./data/xor/data.txt", "./data/xor/label.txt");
+    init_session(sess, "./demo/xor/data.txt", "./demo/xor/label.txt");
     train(sess);
 }
 
@@ -38,6 +31,6 @@ void xor_detect(char *type, char *path)
     append_layer2grpah(g, l4);
     Session *sess = create_session(g, 1, 2, 1, 2, type, path);
     set_detect_params(sess);
-    init_session(sess, "./data/xor/data.txt", "./data/xor/label.txt");
+    init_session(sess, "./demo/xor/data.txt", "./demo/xor/label.txt");
     detect_classification(sess);
 }

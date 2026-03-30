@@ -56,25 +56,33 @@ void weightinit_connect_layer_gpu(Layer l, FILE *fp)
     }
     char *def_mode = (char *)"fan_in";
     char *def_nonlinearity = (char *)"leaky_relu";
-    InitCptKernel initcptkernel = *l.initcptkernel;
-    if (initcptkernel.initype == CONSTANT_I) connect_constant_kernel_init_gpu(l, initcptkernel.x);
-    else if (initcptkernel.initype == NORMAL_I) connect_normal_kernel_init_gpu(l, initcptkernel.mean, initcptkernel.std);
-    else if (initcptkernel.initype == UNIFORM_I) connect_uniform_kernel_init_gpu(l, initcptkernel.min, initcptkernel.max);
-    else if (initcptkernel.initype == XAVIER_NORMAL_I) connect_xavier_normal_kernel_init_gpu(l, initcptkernel.a);
-    else if (initcptkernel.initype == XAVIER_UNIFORM_I) connect_xavier_uniform_kernel_init_gpu(l, initcptkernel.a);
-    else if (initcptkernel.initype == KAIMING_NORMAL_I) connect_kaiming_normal_kernel_init_gpu(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
-    else if (initcptkernel.initype == KAIMING_UNIFORM_I) connect_kaiming_uniform_kernel_init_gpu(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
-    else connect_kaiming_uniform_kernel_init_gpu(l, sqrt(5.0), def_mode, def_nonlinearity);
+    if (l.initcptkernel == NULL){
+        connect_kaiming_uniform_kernel_init_gpu(l, sqrt(5.0), def_mode, def_nonlinearity);
+    } else {
+        InitCptKernel initcptkernel = *l.initcptkernel;
+        if (initcptkernel.initype == CONSTANT_I) connect_constant_kernel_init_gpu(l, initcptkernel.x);
+        else if (initcptkernel.initype == NORMAL_I) connect_normal_kernel_init_gpu(l, initcptkernel.mean, initcptkernel.std);
+        else if (initcptkernel.initype == UNIFORM_I) connect_uniform_kernel_init_gpu(l, initcptkernel.min, initcptkernel.max);
+        else if (initcptkernel.initype == XAVIER_NORMAL_I) connect_xavier_normal_kernel_init_gpu(l, initcptkernel.a);
+        else if (initcptkernel.initype == XAVIER_UNIFORM_I) connect_xavier_uniform_kernel_init_gpu(l, initcptkernel.a);
+        else if (initcptkernel.initype == KAIMING_NORMAL_I) connect_kaiming_normal_kernel_init_gpu(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
+        else if (initcptkernel.initype == KAIMING_UNIFORM_I) connect_kaiming_uniform_kernel_init_gpu(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
+        else connect_kaiming_uniform_kernel_init_gpu(l, sqrt(5.0), def_mode, def_nonlinearity);
+    }
     if (l.bias){
-        InitCptBias initcptbias = *l.initcptbias;
-        if (initcptbias.initype == CONSTANT_I) connect_constant_bias_init_gpu(l, initcptbias.x);
-        else if (initcptbias.initype == NORMAL_I) connect_normal_bias_init_gpu(l, initcptbias.mean, initcptbias.std);
-        else if (initcptbias.initype == UNIFORM_I) connect_uniform_bias_init_gpu(l, initcptbias.min, initcptbias.max);
-        else if (initcptbias.initype == XAVIER_NORMAL_I) connect_xavier_normal_bias_init_gpu(l, initcptbias.a);
-        else if (initcptbias.initype == XAVIER_UNIFORM_I) connect_xavier_uniform_bias_init_gpu(l, initcptbias.a);
-        else if (initcptbias.initype == KAIMING_NORMAL_I) connect_kaiming_normal_bias_init_gpu(l, initcptbias.mode);
-        else if (initcptbias.initype == KAIMING_UNIFORM_I) connect_kaiming_uniform_bias_init_gpu(l, initcptbias.mode);
-        else connect_kaiming_uniform_bias_init_gpu(l, def_mode);
+        if (l.initcptbias == NULL){
+            connect_kaiming_uniform_bias_init_gpu(l, def_mode);
+        } else {
+            InitCptBias initcptbias = *l.initcptbias;
+            if (initcptbias.initype == CONSTANT_I) connect_constant_bias_init_gpu(l, initcptbias.x);
+            else if (initcptbias.initype == NORMAL_I) connect_normal_bias_init_gpu(l, initcptbias.mean, initcptbias.std);
+            else if (initcptbias.initype == UNIFORM_I) connect_uniform_bias_init_gpu(l, initcptbias.min, initcptbias.max);
+            else if (initcptbias.initype == XAVIER_NORMAL_I) connect_xavier_normal_bias_init_gpu(l, initcptbias.a);
+            else if (initcptbias.initype == XAVIER_UNIFORM_I) connect_xavier_uniform_bias_init_gpu(l, initcptbias.a);
+            else if (initcptbias.initype == KAIMING_NORMAL_I) connect_kaiming_normal_bias_init_gpu(l, initcptbias.mode);
+            else if (initcptbias.initype == KAIMING_UNIFORM_I) connect_kaiming_uniform_bias_init_gpu(l, initcptbias.mode);
+            else connect_kaiming_uniform_bias_init_gpu(l, def_mode);
+        }
     }
 }
 
