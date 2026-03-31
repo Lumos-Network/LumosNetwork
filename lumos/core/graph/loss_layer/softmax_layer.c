@@ -20,6 +20,18 @@ Layer *make_softmax_layer(int group)
     l->update = NULL;
     l->updategpu = NULL;
 
+    l->sgdoptimizer = NULL;
+    l->sgdoptimizergpu = NULL;
+
+    l->refresh = NULL;
+    l->refreshgpu = NULL;
+
+    l->saveweights = NULL;
+    l->saveweightsgpu = NULL;
+
+    l->zerogradlayer = zerograd_softmax_layer;
+    l->zerogradlayergpu = zerograd_softmax_layer_gpu;
+
     fprintf(stderr, "Softmax         Layer    :    [output=%4d]\n", group);
     return l;
 }
@@ -56,7 +68,7 @@ void forward_softmax_layer(Layer l, int num)
     }
 }
 
-void backward_softmax_layer(Layer l, float rate, int num, float *n_delta)
+void backward_softmax_layer(Layer l, int num, float *n_delta)
 {
     for (int i = 0; i < num; ++i){
         int offset_i = i*l.inputs;
@@ -64,7 +76,12 @@ void backward_softmax_layer(Layer l, float rate, int num, float *n_delta)
         float *input = l.input + offset_i;
         float *delta_l = l.delta + offset_i;
         float *delta_n = n_delta + offset_o;
-        softmax_grident(input, l.inputs, delta_l);
+        softmax_gradient(input, l.inputs, delta_l);
         matrix_multiply_cpu(delta_n, delta_l, l.inputs, delta_l);
     }
+}
+
+void zerograd_softmax_layer(Layer l, int subdivision)
+{
+    fill_cpu(l.delta, subdivision*l.inputs, 0, 1);
 }

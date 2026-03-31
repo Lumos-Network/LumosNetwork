@@ -23,19 +23,23 @@ void append_layer2grpah(Graph *graph, Layer *l)
     if (graph->head == NULL) graph->head = layer;
 }
 
-void init_graph(Graph *g, int w, int h, int c, int coretype, int subdivision, char *weights_path)
+void init_graph(Graph *g, int w, int h, int c, int coretype, int subdivision, int group, int optimizer, char *weights_path)
 {
     fprintf(stderr, "\nStart To Init Graph\n");
     fprintf(stderr, "[Lumos]                     Inputs         Outputs\n");
     Node *layer = g->head;
     Layer *l;
     FILE *fp = NULL;
+    if (coretype == GPU) cudaMalloc((void**)&g->detect, subdivision*group*sizeof(float));
+    else g->detect = calloc(subdivision*group, sizeof(float));
     if (weights_path){
         fp = fopen(weights_path, "rb");
     }
     for (;;){
         if (layer){
             l = layer->l;
+            l->optimizer = optimizer;
+            l->detect = g->detect;
             if (coretype == GPU){
                 l->initializegpu(l, w, h, c, subdivision);
                 if (l->weightinitgpu) l->weightinitgpu(*l, fp);
@@ -77,9 +81,11 @@ void forward_graph(Graph *g, float *input, int coretype, int subdivision)
 {
     Node *layer = g->head;
     Layer *l;
+    int i = 0;
     for (;;){
         if (layer){
             l = layer->l;
+            l->status = g->status;
             l->input = input;
             if (coretype == GPU){
                 l->forwardgpu(*l, subdivision);
@@ -89,12 +95,13 @@ void forward_graph(Graph *g, float *input, int coretype, int subdivision)
         } else {
             break;
         }
+        i += 1;
         layer = layer->next;
         input = l->output;
     }
 }
 
-void backward_graph(Graph *g, float rate, int coretype, int subdivision)
+void backward_graph(Graph *g, int coretype, int subdivision)
 {
     Node *layer = g->tail;
     Layer *l;
@@ -103,9 +110,9 @@ void backward_graph(Graph *g, float rate, int coretype, int subdivision)
         if (layer){
             l = layer->l;
             if (coretype == GPU){
-                l->backwardgpu(*l, rate, subdivision, n_delta);
+                l->backwardgpu(*l, subdivision, n_delta);
             } else {
-                l->backward(*l, rate, subdivision, n_delta);
+                l->backward(*l, subdivision, n_delta);
             }
         } else {
             break;
@@ -115,15 +122,33 @@ void backward_graph(Graph *g, float rate, int coretype, int subdivision)
     }
 }
 
-void update_graph(Graph *g, int coretype)
+void update_graph(Graph *g, int coretype, float rate, int subdivision)
+{
+    Node *layer = g->tail;
+    Layer *l;
+    float *n_delta;
+    for (;;){
+        if (layer){
+            l = layer->l;
+            if (coretype == GPU && l->updategpu) l->updategpu(*l, rate, subdivision, n_delta);
+            if (coretype == CPU && l->update) l->update(*l, rate, subdivision, n_delta);
+        } else {
+            break;
+        }
+        layer = layer->head;
+        n_delta = l->delta;
+    }
+}
+
+void refresh_graph(Graph *g, int coretype)
 {
     Node *layer = g->head;
     Layer *l;
     for (;;){
         if (layer){
             l = layer->l;
-            if (coretype == GPU && l->updategpu) l->updategpu(*l);
-            if (coretype == CPU && l->update) l->update(*l);
+            if (coretype == GPU && l->refreshgpu) l->refreshgpu(*l);
+            if (coretype == CPU && l->refresh) l->refresh(*l);
         } else {
             break;
         }
@@ -144,5 +169,55 @@ void save_weights(Graph *g, int coretype, FILE *fp)
             break;
         }
         layer = layer->next;
+    }
+}
+
+void zerograd_graph(Graph *g, int subdivision, int coretype)
+{
+    Node *layer = g->head;
+    Layer *l;
+    for (;;){
+        if (layer){
+            l = layer->l;
+            if (coretype == GPU && l->zerogradlayergpu) l->zerogradlayergpu(*l, subdivision);
+            if (coretype == CPU && l->zerogradlayer) l->zerogradlayer(*l, subdivision);
+        } else {
+            break;
+        }
+        layer = layer->next;
+    }
+}
+
+void SGDOptimizer_graph(Graph *g, int coretype, float rate, float momentum, float dampening, float decay, int nesterov, int maximize)
+{
+    Node *layer = g->tail;
+    Layer *l;
+    for (;;){
+        if (layer){
+            l = layer->l;
+            if (coretype == GPU && l->sgdoptimizergpu) l->sgdoptimizergpu(*l, rate, momentum, dampening, decay, nesterov, maximize);
+            if (coretype == CPU && l->sgdoptimizer) l->sgdoptimizer(*l, rate, momentum, dampening, decay, nesterov, maximize);
+        } else {
+            break;
+        }
+        layer = layer->head;
+    }
+}
+
+void AdamOptimizer_graph(Graph *g, int coretype, float rate, float beta1, float beta2, float decay, int amsgrad, int maximize)
+{
+    Node *layer = g->tail;
+    Layer *l;
+    float *n_delta;
+    for (;;){
+        if (layer){
+            l = layer->l;
+            if (coretype == GPU && l->sgdoptimizergpu) l->adamoptimizergpu(*l, rate, beta1, beta2, decay, amsgrad, maximize, n_delta);
+            if (coretype == CPU && l->sgdoptimizer) l->adamoptimizer(*l, rate, beta1, beta2, decay, amsgrad, maximize, n_delta);
+        } else {
+            break;
+        }
+        layer = layer->head;
+        n_delta = l->delta;
     }
 }

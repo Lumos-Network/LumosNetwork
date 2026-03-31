@@ -1,5 +1,5 @@
-#ifndef SHORTCUT_GPU_H
-#define SHORTCUT_GPU_H
+#ifndef DEBUG_DATA_H
+#define DEBUG_DATA_H
 
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
@@ -9,14 +9,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "gpu.h"
-#include "cpu_gpu.h"
+#include "text_f.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void shortcut_gpu(float *add, int aw, int ah, int ac, float *out, int ow, int oh, int oc, float beta, float alpha, float *space);
+void debug_cu_data_f(float *data, int h, int w, int c, char *path);
 
 #ifdef __cplusplus
 }

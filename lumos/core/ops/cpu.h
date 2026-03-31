@@ -28,7 +28,13 @@ void matrix_divide_cpu(float *data_a, float *data_b, int num, float *space);
 void saxpy_cpu(float *data_a, float *data_b, int num, float x, float *space);
 void sum_channel_cpu(float *data, int h, int w, int c, float ALPHA, float *space);
 
+void lerp_cpu(float *data_a, float *data_b, int num, float x, float *space);
+void lerp2_cpu(float *data_a, float *data_b, int num, float x, float *space);
+void maximum_cpu(float *data_a, float *data_b, int num, float *space);
+void addcdiv_cpu(float *input, float *data_a, float *data_b, float x, int num, float *space);
+
 void one_hot_encoding(int n, int label, float *space);
+int find_max(float *data, int num);
 
 #ifdef __cplusplus
 }

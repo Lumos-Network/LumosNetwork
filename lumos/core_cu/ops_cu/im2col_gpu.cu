@@ -31,51 +31,36 @@ void im2col_gpu(float *img, int height, int width, int channel, int ksize, int s
     im2col_kernel<<<(height_col*width_col*channels_col+BLOCK-1)/BLOCK, BLOCK>>>(img, height, width, channel, ksize, stride, pad, space);
 }
 
-__global__ void col2im_kernel(float *img, int ksize, int stride, int pad, int out_h, int out_w, int out_c, float *space)
+__global__ void col2im_kernel(int n, float *img, int ksize, int stride, int pad, int out_h, int out_w, int out_c, int height_col, int width_col, float *space)
 {
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
-    int height_col = (out_h + 2 * pad - ksize) / stride + 1;
-    int width_col = (out_w + 2 * pad - ksize) / stride + 1;
-    if (index >= out_h*out_w*out_c) return;
-    int c = index / (out_h*out_w);
-    int i = (index % (out_h*out_w)) / out_w;
-    int j = (index % (out_h*out_w)) % out_w;
-    int kernel_h_index = (i + pad) / stride;
-    int h_index = (i + pad) % stride;
-    int o_flag = 0;
-    if (kernel_h_index + 1 > height_col)
-    {
-        h_index = (kernel_h_index - height_col + 1) * stride + h_index;
-        kernel_h_index = height_col - 1;
-    }
-    if (h_index + 1 > ksize)
-        o_flag = 1;
-    if (o_flag){
-        space[c * out_h * out_w + i * out_w + j] += 0;
-    }
-    else
-    {
-        int kernel_w_index = (j + pad) / stride;
-        int w_index = (j + pad) % stride;
-        if (kernel_w_index + 1 > width_col)
-        {
-            w_index = (kernel_w_index - width_col + 1) * stride + w_index;
-            kernel_w_index = width_col - 1;
+    int index = blockIdx.x*blockDim.x+threadIdx.x;
+    for(; index < n; index += blockDim.x*gridDim.x){
+        float val = 0;
+        int w = index % out_w + pad;
+        int h = (index / out_w) % out_h + pad;
+        int c = index / (out_w * out_h);
+        // compute the start and end of the output
+        int w_col_start = (w < ksize) ? 0 : (w - ksize) / stride + 1;
+        int w_col_end = min(w / stride + 1, width_col);
+        int h_col_start = (h < ksize) ? 0 : (h - ksize) / stride + 1;
+        int h_col_end = min(h / stride + 1, height_col);
+        // equivalent implementation
+        int offset = (c * ksize * ksize + h * ksize + w) * height_col * width_col;
+        int coeff_h_col = (1 - stride * ksize * height_col) * width_col;
+        int coeff_w_col = (1 - stride * height_col * width_col);
+        for (int h_col = h_col_start; h_col < h_col_end; ++h_col) {
+            for (int w_col = w_col_start; w_col < w_col_end; ++w_col) {
+                val += img[offset + h_col * coeff_h_col + w_col * coeff_w_col];
+            }
         }
-        if (w_index + 1 > ksize){
-            space[c * out_h * out_w + i * out_w + j] += 0;
-        }
-        else
-        {
-            int index_w = kernel_h_index * width_col + kernel_w_index;
-            int index_h = c * ksize * ksize + h_index * ksize + w_index;
-            space[c * out_h * out_w + i * out_w + j] += img[index_h * height_col * width_col + index_w];
-        }
+        space[index] += val;
     }
 }
 
 void col2im_gpu(float *img, int ksize, int stride, int pad, int out_h, int out_w, int out_c, float *space)
 {
-    fill_gpu(space, out_h*out_w*out_c, 0, 1);
-    col2im_kernel<<<(out_h*out_w*out_c+BLOCK-1)/BLOCK, BLOCK>>>(img, ksize, stride, pad, out_h, out_w, out_c, space);
+    int height_col = (out_h + 2 * pad - ksize) / stride + 1;
+    int width_col = (out_w + 2 * pad - ksize) / stride + 1;
+    int num_kernels = out_h * out_w * out_c;
+    col2im_kernel<<<(ksize*ksize*out_c*height_col*width_col+BLOCK-1)/BLOCK, BLOCK>>>(num_kernels, img, ksize, stride, pad, out_h, out_w, out_c, height_col, width_col, space);
 }

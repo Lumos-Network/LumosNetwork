@@ -177,16 +177,16 @@ __device__ float activate_x_kernel(Activation TYPE, float x)
     return res;
 }
 
-__global__ void activate_list_kernel(float *origin, int num, Activation TYPE)
+__global__ void activate_list_kernel(float *origin, int num, float *space, Activation TYPE)
 {
     int index = threadIdx.x + blockIdx.x * blockDim.x;
     if (index >= num) return;
-    origin[index] = activate_x_kernel(TYPE, origin[index]);
+    space[index] = activate_x_kernel(TYPE, origin[index]);
 }
 
-void activate_list_gpu(float *origin, int num, Activation TYPE)
+void activate_list_gpu(float *origin, int num, float *space, Activation TYPE)
 {
-    activate_list_kernel<<<(num+BLOCK-1)/BLOCK, BLOCK>>>(origin, num, TYPE);
+    activate_list_kernel<<<(num+BLOCK-1)/BLOCK, BLOCK>>>(origin, num, space, TYPE);
 }
 
 __device__ float gradient_x_kernel(Activation TYPE, float x)
@@ -223,14 +223,14 @@ __device__ float gradient_x_kernel(Activation TYPE, float x)
     return res;
 }
 
-__global__ void gradient_list_kernel(float *origin, int num, Activation TYPE)
+__global__ void gradient_list_kernel(float *origin, int num, float *space, Activation TYPE)
 {
     int index = threadIdx.x + blockIdx.x * blockDim.x;
     if (index >= num) return;
-    origin[index] = gradient_x_kernel(TYPE, origin[index]);
+    space[index] = gradient_x_kernel(TYPE, origin[index]);
 }
 
-void gradient_list_gpu(float *origin, int num, Activation TYPE)
+void gradient_list_gpu(float *origin, int num, float *space, Activation TYPE)
 {
-    gradient_list_kernel<<<(num+BLOCK-1)/BLOCK, BLOCK>>>(origin, num, TYPE);
+    gradient_list_kernel<<<(num+BLOCK-1)/BLOCK, BLOCK>>>(origin, num, space, TYPE);
 }

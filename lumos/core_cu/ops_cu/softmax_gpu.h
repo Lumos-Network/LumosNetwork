@@ -17,8 +17,11 @@ extern "C" {
 #endif
 
 void softmax_gpu(float *data, int num, float *space, float *ALPHA);
-void softmax_grident_gpu(float *data, int num, float *space, float *ALPHA);
+void softmax_gradient_gpu(float *data, int num, float *space, float *ALPHA);
 void softmax_exp_sum_gpu(float *data, int num, float *workspace, float *space);
+
+void log_softmax_gpu(float *data, int num, float *space, float *ALPHA);
+void log_softmax_gradient_gpu(float *data, int num, float *space, float *ALPHA);
 
 #ifdef __cplusplus
 }

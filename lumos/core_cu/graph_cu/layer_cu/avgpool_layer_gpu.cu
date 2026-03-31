@@ -33,7 +33,7 @@ void forward_avgpool_layer_gpu(Layer l, int num)
     }
 }
 
-void backward_avgpool_layer_gpu(Layer l, float rate, int num, float *n_delta)
+void backward_avgpool_layer_gpu(Layer l, int num, float *n_delta)
 {
     for (int i = 0; i < num; ++i)
     {
@@ -43,4 +43,9 @@ void backward_avgpool_layer_gpu(Layer l, float rate, int num, float *n_delta)
         float *delta_n = n_delta + offset_o;
         avgpool_gradient_gpu(delta_l, l.input_h, l.input_w, l.input_c, l.ksize, l.stride, l.pad, delta_n);
     }
+}
+
+void zerograd_avgpool_layer_gpu(Layer l, int subdivision)
+{
+    fill_gpu(l.delta, subdivision*l.inputs, 0, 1);
 }

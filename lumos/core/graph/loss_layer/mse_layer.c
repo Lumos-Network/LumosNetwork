@@ -20,6 +20,18 @@ Layer *make_mse_layer(int group)
     l->update = NULL;
     l->updategpu = NULL;
 
+    l->sgdoptimizer = NULL;
+    l->sgdoptimizergpu = NULL;
+
+    l->refresh = NULL;
+    l->refreshgpu = NULL;
+
+    l->saveweights = NULL;
+    l->saveweightsgpu = NULL;
+
+    l->zerogradlayer = zerograd_mse_layer;
+    l->zerogradlayergpu = zerograd_mse_layer_gpu;
+
     fprintf(stderr, "Mse             Layer    :    [output=%4d]\n", 1);
     return l;
 }
@@ -63,7 +75,7 @@ void forward_mse_layer(Layer l, int num)
     multy_cpu(l.loss, 1, (float)1/num, 1);
 }
 
-void backward_mse_layer(Layer l, float rate, int num, float *n_delta)
+void backward_mse_layer(Layer l, int num, float *n_delta)
 {
     for (int i = 0; i < num; ++i){
         int offset_i = i*l.inputs;
@@ -74,4 +86,9 @@ void backward_mse_layer(Layer l, float rate, int num, float *n_delta)
         matrix_subtract_cpu(input, truth, l.inputs, delta_l);
         multy_cpu(delta_l, l.inputs, (float)2/l.group, 1);
     }
+}
+
+void zerograd_mse_layer(Layer l, int subdivision)
+{
+    fill_cpu(l.delta, subdivision*l.inputs, 0, 1);
 }
