@@ -12,7 +12,9 @@ extern "C" {
 #endif
 
 void softmax(float *data, int num, float *space);
-void softmax_grident(float *data, int num, float *space);
+void softmax_gradient(float *data, int num, float *space);
+void log_softmax(float *data, int num, float *space);
+void log_softmax_gradient(float *data, int num, float *space);
 
 #ifdef __cplusplus
 }

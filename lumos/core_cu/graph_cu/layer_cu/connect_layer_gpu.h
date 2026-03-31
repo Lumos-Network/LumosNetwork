@@ -25,12 +25,29 @@ extern "C" {
 void init_connect_layer_gpu(Layer *l, int w, int h, int c, int subdivision);
 void weightinit_connect_layer_gpu(Layer l, FILE *fp);
 void forward_connect_layer_gpu(Layer l, int num);
-void backward_connect_layer_gpu(Layer l, float rate, int num, float *n_delta);
-
+void backward_connect_layer_gpu(Layer l, int num, float *n_delta);
 void update_connect_layer_gpu(Layer l, float rate, int num, float *n_delta);
-void update_connect_layer_weights_gpu(Layer l);
-
+void refresh_connect_layer_weights_gpu(Layer l);
 void save_connect_layer_weights_gpu(Layer l, FILE *fp);
+void zerograd_connect_layer_gpu(Layer l, int subdivision);
+
+void connect_constant_kernel_init_gpu(Layer l, float x);
+void connect_normal_kernel_init_gpu(Layer l, float mean, float std);
+void connect_uniform_kernel_init_gpu(Layer l, float min, float max);
+void connect_xavier_normal_kernel_init_gpu(Layer l, float gain);
+void connect_xavier_uniform_kernel_init_gpu(Layer l, float gain);
+void connect_kaiming_normal_kernel_init_gpu(Layer l, float a, char *mode, char *nonlinearity);
+void connect_kaiming_uniform_kernel_init_gpu(Layer l, float a, char *mode, char *nonlinearity);
+
+void connect_constant_bias_init_gpu(Layer l, float x);
+void connect_normal_bias_init_gpu(Layer l, float mean, float std);
+void connect_uniform_bias_init_gpu(Layer l, float min, float max);
+void connect_xavier_normal_bias_init_gpu(Layer l, float gain);
+void connect_xavier_uniform_bias_init_gpu(Layer l, float gain);
+void connect_kaiming_normal_bias_init_gpu(Layer l, char *mode);
+void connect_kaiming_uniform_bias_init_gpu(Layer l, char *mode);
+
+void connect_layer_SGDOptimizer_gpu(Layer l, float rate, float momentum, float dampening, float decay, int nesterov, int maximize);
 
 #ifdef __cplusplus
 }

@@ -14,6 +14,8 @@ Session *create_session(Graph *graph, int h, int w, int c, int truth_num, char *
     sess->channel = c;
     sess->truth_num = truth_num;
     sess->weights_path = path;
+    sess->resize = 0;
+    sess->normalize = 0;
     return sess;
 }
 
@@ -21,7 +23,7 @@ void init_session(Session *sess, char *data_path, char *label_path)
 {
     bind_train_data(sess, data_path);
     bind_train_label(sess, label_path);
-    init_graph(sess->graph, sess->width, sess->height, sess->channel, sess->coretype, sess->subdivision, sess->weights_path);
+    init_graph(sess->graph, sess->width, sess->height, sess->channel, sess->coretype, sess->subdivision, sess->truth_num, sess->optimizer, sess->weights_path);
     create_workspace(sess);
     if (sess->coretype == GPU){
         cudaMalloc((void**)&sess->input, sess->subdivision*sess->width*sess->height*sess->channel*sizeof(float));
@@ -32,20 +34,9 @@ void init_session(Session *sess, char *data_path, char *label_path)
         sess->truth = calloc(sess->subdivision*sess->truth_num, sizeof(float));
         sess->loss = calloc(1, sizeof(float));
     }
-    Graph *g = sess->graph;
-    Node *layer = g->head;
-    Layer *l;
-    for (;;){
-        if (layer){
-            l = layer->l;
-            l->truth = sess->truth;
-            l->loss = sess->loss;
-            l->workspace = sess->workspace;
-        } else {
-            break;
-        }
-        layer = layer->next;
-    }
+    set_graph(sess->graph, sess->workspace, sess->truth, sess->loss);
+    transforms_sess(sess);
+    bind_train_data(sess, "./backup/train.txt");
 }
 
 void bind_train_data(Session *sess, char *path)
@@ -140,6 +131,25 @@ void load_train_data(Session *sess, int index)
     free(input);
 }
 
+void load_train_data_binary(Session *sess, int index)
+{
+    int offset_i = 0;
+    float *input = (float*)calloc(sess->subdivision*sess->width*sess->height*sess->channel, sizeof(float));
+    for (int i = index; i < index + sess->subdivision; ++i){
+        char *data_path = sess->train_data_paths[i];
+        FILE *fp = fopen(data_path, "rb");
+        fread(input+offset_i, sizeof(float), sess->height*sess->width*sess->channel, fp);
+        fclose(fp);
+        offset_i += sess->height * sess->width * sess->channel;
+    }
+    if (sess->coretype == GPU){
+        cudaMemcpy(sess->input, input, sess->subdivision*sess->width*sess->height*sess->channel*sizeof(float), cudaMemcpyHostToDevice);
+    } else {
+        memcpy(sess->input, input, sess->subdivision*sess->width*sess->height*sess->channel*sizeof(float));
+    }
+    free(input);
+}
+
 void load_train_label(Session *sess, int index)
 {
     float *truth = calloc(sess->subdivision*sess->truth_num, sizeof(float));
@@ -168,36 +178,43 @@ void load_train_label(Session *sess, int index)
 void train(Session *sess)
 {
     fprintf(stderr, "\nSession Start To Running\n");
-    float rate = -sess->learning_rate / (float)sess->batch;
-    float *loss = calloc(1, sizeof(float));
-    clock_t start, final;
-    double run_time = 0;
+    float rate = -sess->learning_rate;
+    Graph *g = sess->graph;
+    g->status = 1;
     for (int i = 0; i < sess->epoch; ++i){
         fprintf(stderr, "\n\nEpoch %d/%d\n", i + 1, sess->epoch);
-        start = clock();
         int sub_epochs = (int)(sess->train_data_num / sess->batch);
         int sub_batchs = (int)(sess->batch / sess->subdivision);
+        float loss[2] = {0, 0};
         for (int j = 0; j < sub_epochs; ++j){
             for (int k = 0; k < sub_batchs; ++k){
                 if (j * sess->batch + k * sess->subdivision + sess->subdivision > sess->train_data_num) break;
-                load_train_data(sess, j * sess->batch + k * sess->subdivision);
+                load_train_data_binary(sess, j * sess->batch + k * sess->subdivision);
                 load_train_label(sess, j * sess->batch + k * sess->subdivision);
+                zerograd_graph(sess->graph, sess->subdivision, sess->coretype);
                 forward_graph(sess->graph, sess->input, sess->coretype, sess->subdivision);
-                backward_graph(sess->graph, rate, sess->coretype, sess->subdivision);
-                final = clock();
-                run_time = (double)(final - start) / CLOCKS_PER_SEC;
-                if (sess->coretype == CPU) {
-                    run_time /= 10;
-                    loss[0] = sess->loss[0];
-                } else{
-                    cudaMemcpy(loss, sess->loss, sizeof(float), cudaMemcpyDeviceToHost);
+                backward_graph(sess->graph, sess->coretype, sess->subdivision);
+                if (sess->optimizer == SGD){
+                    SGDOptimizer_graph(sess->graph, sess->coretype, rate, sess->momentum, sess->dampening, sess->decay, sess->nesterov, sess->maximize);
+                } else if (sess->optimizer == ADAM){
+                    AdamOptimizer_graph(sess->graph, sess->coretype, rate, sess->beta1, sess->beta2, sess->decay, sess->amsgrad, sess->maximize);
+                } else {
+                    update_graph(sess->graph, sess->coretype, rate, sess->subdivision);
                 }
-                progress_bar(j * sub_batchs + k + 1, sub_epochs * sub_batchs, run_time, loss[0]);
+                if (sess->coretype == CPU) {
+                    loss[0] += sess->loss[0];
+                    loss[1] = sess->loss[0];
+                } else{
+                    cudaMemcpy(loss+1, sess->loss, sizeof(float), cudaMemcpyDeviceToHost);
+                    loss[0] += loss[1];
+                }
             }
-            update_graph(sess->graph, sess->coretype);
+            refresh_graph(sess->graph, sess->coretype);
+            fprintf(stderr, "%d/%d    Loss:%f\n", j, sub_epochs, loss[1]);
         }
+        fprintf(stderr, " AvgLoss:%f", loss[0]/(sub_epochs * sub_batchs));
     }
-    FILE *fp = fopen("./LuWeights", "wb");
+    FILE *fp = fopen("./backup/LW_f", "wb");
     if (fp) {
         save_weights(sess->graph, sess->coretype, fp);
         fclose(fp);
@@ -211,35 +228,252 @@ void detect_classification(Session *sess)
     int num = 0;
     float *truth = NULL;
     float *detect = NULL;
-    float *loss = NULL;
+    float *loss = calloc(1, sizeof(float));
     Graph *g = sess->graph;
+    g->status = 0;
     Node *layer = g->tail;
     Layer *l = layer->l;
     if (sess->coretype == GPU){
         truth = calloc(sess->truth_num, sizeof(float));
         detect = calloc(sess->truth_num, sizeof(float));
-        loss = calloc(1, sizeof(float));
     }
     for (int i = 0; i < sess->train_data_num; ++i){
-        load_train_data(sess, i);
+        load_train_data_binary(sess, i);
         load_train_label(sess, i);
         forward_graph(sess->graph, sess->input, sess->coretype, sess->subdivision);
         if (sess->coretype == GPU){
             cudaMemcpy(truth, l->truth, sess->truth_num*sizeof(float), cudaMemcpyDeviceToHost);
-            cudaMemcpy(detect, l->input, sess->truth_num*sizeof(float), cudaMemcpyDeviceToHost);
-            cudaMemcpy(loss, l->loss, sizeof(float), cudaMemcpyDeviceToHost);
+            cudaMemcpy(detect, l->detect, sess->truth_num*sizeof(float), cudaMemcpyDeviceToHost);
+            cudaMemcpy(loss, sess->loss, sizeof(float), cudaMemcpyDeviceToHost);
         } else {
             truth = l->truth;
-            detect = l->input;
-            loss = l->loss;
+            detect = l->detect;
+            loss[0] = sess->loss[0];
         }
         fprintf(stderr, "%s\n", sess->train_data_paths[i]);
         fprintf(stderr, "Truth     Detect\n");
+        float max = -FLT_MAX;
+        int index = -1;
         for (int j = 0; j < sess->truth_num; ++j){
             fprintf(stderr, "%.3f %.3f\n", truth[j], detect[j]);
-            if (truth[j] == 1 && detect[j] > 0.5) num += 1;
+            if (detect[j] > max){
+                index = j;
+                max = detect[j];
+            }
         }
+        if (truth[index] == 1) num += 1;
         fprintf(stderr, "Loss:%.4f\n\n", loss[0]);
     }
     fprintf(stderr, "Detct Classification: %d/%d  %.2f\n", num, sess->train_data_num, (float)(num)/(float)(sess->train_data_num));
+}
+
+void lr_scheduler_step(Session *sess, int step_size, float gamma)
+{
+    LrScheduler *lrscheduler = make_lrscheduler(SLR, 0, step_size, NULL, 0, 0, gamma);
+    sess->lrscheduler = lrscheduler;
+}
+
+void lr_scheduler_multistep(Session *sess, int *milestones, int num, float gamma)
+{
+    LrScheduler *lrscheduler = make_lrscheduler(MLR, num, 0, milestones, 0, 0, gamma);
+    sess->lrscheduler = lrscheduler;
+}
+
+void lr_scheduler_exponential(Session *sess, float gamma)
+{
+    LrScheduler *lrscheduler = make_lrscheduler(ELR, 0, 0, NULL, 0, 0, gamma);
+    sess->lrscheduler = lrscheduler;
+}
+
+void lr_scheduler_cosineannealing(Session *sess, int T_max, float lr_min)
+{
+    LrScheduler *lrscheduler = make_lrscheduler(CALR, 0, 0, NULL, T_max, lr_min, 0);
+    sess->lrscheduler = lrscheduler;
+}
+
+void init_constant_kernel(Layer *l, float x)
+{
+    InitCptKernel *initcptkernel = malloc(sizeof(InitCptKernel));
+    initcptkernel->initype = CONSTANT_I;
+    initcptkernel->x = x;
+    l->initcptkernel = initcptkernel;
+}
+
+void init_normal_kernel(Layer *l, float mean, float std)
+{
+    InitCptKernel *initcptkernel = malloc(sizeof(InitCptKernel));
+    initcptkernel->initype = NORMAL_I;
+    initcptkernel->mean = mean;
+    initcptkernel->std = std;
+    l->initcptkernel = initcptkernel;
+}
+
+void init_uniform_kernel(Layer *l, float min, float max)
+{
+    InitCptKernel *initcptkernel = malloc(sizeof(InitCptKernel));
+    initcptkernel->initype = UNIFORM_I;
+    initcptkernel->min = min;
+    initcptkernel->max = max;
+    l->initcptkernel = initcptkernel;
+}
+
+void init_xavier_normal_kernel(Layer *l, float gain)
+{
+    InitCptKernel *initcptkernel = malloc(sizeof(InitCptKernel));
+    initcptkernel->initype = XAVIER_NORMAL_I;
+    initcptkernel->a = gain;
+    l->initcptkernel = initcptkernel;
+}
+
+void init_xavier_uniform_kernel(Layer *l, float gain)
+{
+    InitCptKernel *initcptkernel = malloc(sizeof(InitCptKernel));
+    initcptkernel->initype = XAVIER_UNIFORM_I;
+    initcptkernel->a = gain;
+    l->initcptkernel = initcptkernel;
+}
+
+void init_kaiming_normal_kernel(Layer *l, float a, char *mode, char *nonlinearity)
+{
+    InitCptKernel *initcptkernel = malloc(sizeof(InitCptKernel));
+    initcptkernel->initype = KAIMING_NORMAL_I;
+    initcptkernel->a = a;
+    initcptkernel->mode = mode;
+    initcptkernel->nonlinearity = nonlinearity;
+    l->initcptkernel = initcptkernel;
+}
+
+void init_kaiming_uniform_kernel(Layer *l, float a, char *mode, char *nonlinearity)
+{
+    InitCptKernel *initcptkernel = malloc(sizeof(InitCptKernel));
+    initcptkernel->initype = KAIMING_UNIFORM_I;
+    initcptkernel->a = a;
+    initcptkernel->mode = mode;
+    initcptkernel->nonlinearity = nonlinearity;
+    l->initcptkernel = initcptkernel;
+}
+
+void init_constant_bias(Layer *l, float x)
+{
+    InitCptBias *initcptbias = malloc(sizeof(InitCptBias));
+    initcptbias->initype = CONSTANT_I;
+    initcptbias->x = x;
+    l->initcptbias = initcptbias;
+}
+
+void init_normal_bias(Layer *l, float mean, float std)
+{
+    InitCptBias *initcptbias = malloc(sizeof(InitCptBias));
+    initcptbias->initype = NORMAL_I;
+    initcptbias->mean = mean;
+    initcptbias->std = std;
+    l->initcptbias = initcptbias;
+}
+
+void init_uniform_bias(Layer *l, float min, float max)
+{
+    InitCptBias *initcptbias = malloc(sizeof(InitCptBias));
+    initcptbias->initype = UNIFORM_I;
+    initcptbias->min = min;
+    initcptbias->max = max;
+    l->initcptbias = initcptbias;
+}
+
+void init_xavier_normal_bias(Layer *l, float gain)
+{
+    InitCptBias *initcptbias = malloc(sizeof(InitCptBias));
+    initcptbias->initype = XAVIER_NORMAL_I;
+    initcptbias->a = gain;
+    l->initcptbias = initcptbias;
+}
+
+void init_xavier_uniform_bias(Layer *l, float gain)
+{
+    InitCptBias *initcptbias = malloc(sizeof(InitCptBias));
+    initcptbias->initype = XAVIER_UNIFORM_I;
+    initcptbias->a = gain;
+    l->initcptbias = initcptbias;
+}
+
+void init_kaiming_normal_bias(Layer *l, char *mode)
+{
+    InitCptBias *initcptbias = malloc(sizeof(InitCptBias));
+    initcptbias->initype = KAIMING_NORMAL_I;
+    initcptbias->mode = mode;
+    l->initcptbias = initcptbias;
+}
+
+void init_kaiming_uniform_bias(Layer *l, char *mode)
+{
+    InitCptBias *initcptbias = malloc(sizeof(InitCptBias));
+    initcptbias->initype = KAIMING_UNIFORM_I;
+    initcptbias->mode = mode;
+    l->initcptbias = initcptbias;
+}
+
+void SGDOptimizer_sess(Session *sess, float momentum, float dampening, float decay, int nesterov, int maximize)
+{
+    sess->momentum = momentum;
+    sess->dampening = dampening;
+    sess->decay = decay;
+    sess->nesterov = nesterov;
+    sess->maximize = maximize;
+    sess->optimizer = SGD;
+}
+
+void AdamOptimizer_sess(Session *sess, float beta1, float beta2, float decay, int amsgrad, int maximize)
+{
+    sess->beta1 = beta1;
+    sess->beta2 = beta2;
+    sess->decay = decay;
+    sess->amsgrad = amsgrad;
+    sess->maximize = maximize;
+    sess->optimizer = ADAM;
+}
+
+void transform_resize_sess(Session *sess, int height, int width)
+{
+    sess->resize = 1;
+    sess->row = height;
+    sess->col = width;
+}
+
+void transform_normalize_sess(Session *sess, float *mean, float *std)
+{
+    sess->normalize = 1;
+    sess->mean = calloc(sess->channel, sizeof(float));
+    sess->std = calloc(sess->channel, sizeof(float));
+    memcpy(sess->mean, mean, sess->channel*sizeof(float));
+    memcpy(sess->std, std, sess->channel*sizeof(float));
+}
+
+void transforms_sess(Session *sess)
+{
+    int h[1], w[1], c[1];
+    float *im;
+    char path[200];
+    FILE *fp = fopen("./backup/train.txt", "w");
+    for (int i = 0; i < sess->train_data_num; ++i){
+        char *data_path = sess->train_data_paths[i];
+        im = load_image_data(data_path, w, h, c);
+        if (sess->resize){
+            float *new_im = calloc(sess->row*sess->col*sess->channel, sizeof(float));
+            resize_im(im, h[0], w[0], c[0], sess->row, sess->col, new_im);
+            free(im);
+            im = new_im;
+            h[0] = sess->row;
+            w[0] = sess->col;
+            c[0] = sess->channel;
+        }
+        if (sess->normalize){
+            normalize_im(im, h[0], w[0], c[0], sess->mean, sess->std, im);
+        }
+        sprintf(path, "./backup/data/%d", i);
+        FILE *imfp = fopen(path, "wb");
+        fwrite(im, sizeof(float), h[0]*w[0]*c[0], imfp);
+        fclose(imfp);
+        fprintf(fp, "%s\n", path);
+        free(im);
+    }
+    fclose(fp);
 }

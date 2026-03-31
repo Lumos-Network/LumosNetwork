@@ -1,0 +1,96 @@
+#include "crossentropy_layer_gpu.h"
+
+__global__ void crossentropy_kernel(float *data, float *truth, int num, float *max, float *space)
+{
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
+    if (index >= num) return;
+    if (truth[index] == 1){
+            space[0] = -data[index]+max[0]+log(space[0]);
+    }
+}
+
+void crossentropy_gpu(float *data, float *truth, int num, float *workspace, float *space)
+{
+    float *max;
+    cudaMalloc((void**)&max, sizeof(float));
+    max_gpu(data, num, max);
+    exp_list_gpu(data, num, workspace, max);
+    sum_gpu(workspace, num, space);
+    crossentropy_kernel<<<(num+BLOCK-1)/BLOCK, BLOCK>>>(data, truth, num, max, space);
+    cudaFree(max);
+}
+
+__global__ void crossentropy_gradient_kernel(float *truth, int num, float *res, float *space)
+{
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
+    if (index >= num) return;
+    space[index] = space[index]/res[0]-truth[index]; 
+}
+
+void crossentropy_gradient_gpu(float *data, float *truth, int num, float *workspace, float *space)
+{
+    float *max;
+    cudaMalloc((void**)&max, sizeof(float));
+    max_gpu(data, num, max);
+    exp_list_gpu(data, num, space, max);
+    sum_gpu(space, num, workspace);
+    crossentropy_gradient_kernel<<<(num+BLOCK-1)/BLOCK, BLOCK>>>(truth, num, workspace, space);
+    cudaFree(max);
+}
+
+void init_crossentropy_layer_gpu(Layer *l, int w, int h, int c, int subdivision)
+{
+    l->input_h = h;
+    l->input_w = w;
+    l->input_c = c;
+    l->inputs = l->input_h*l->input_w*l->input_c;
+
+    l->output_h = 1;
+    l->output_w = 1;
+    l->output_c = 1;
+    l->outputs = l->output_h*l->output_w*l->output_c;
+
+    l->workspace_size = l->inputs;
+
+    cudaMalloc((void**)&l->output, subdivision*l->outputs*sizeof(float));
+    cudaMalloc((void**)&l->delta, subdivision*l->inputs*sizeof(float));
+
+    fprintf(stderr, "CrossEntropy    Layer    %3d*%3d*%3d ==> %3d*%3d*%3d\n", \
+            l->input_w, l->input_h, l->input_c, l->output_w, l->output_h, l->output_c);
+}
+
+void forward_crossentropy_layer_gpu(Layer l, int num)
+{
+    if (!l.status){
+        crossentropy_gpu(l.input, l.truth, l.inputs, l.workspace, l.output);
+        softmax_exp_sum_gpu(l.input, l.inputs, l.workspace, l.workspace+l.inputs);
+        softmax_gpu(l.workspace, l.inputs, l.detect, l.workspace+l.inputs);
+        return;
+    }
+    for (int i = 0; i < num; ++i){
+        int offset_i = i*l.inputs;
+        int offset_o = i*l.outputs;
+        int offset_t = i*l.group;
+        float *input = l.input+offset_i;
+        float *output = l.output+offset_o;
+        float *truth = l.truth+offset_t;
+        crossentropy_gpu(input, truth, l.inputs, l.workspace, output);
+    }
+    sum_gpu(l.output, l.outputs*num, l.loss);
+    multy_gpu(l.loss, 1, (float)1/num, 1);
+}
+
+void backward_crossentropy_layer_gpu(Layer l, int num, float *n_delta)
+{
+    for (int i = 0; i < num; ++i){
+        float *input = l.input+i*l.inputs;
+        float *delta_l = l.delta+i*l.inputs;
+        float *truth = l.truth+i*l.group;
+        crossentropy_gradient_gpu(input, truth, l.inputs, l.workspace, delta_l);
+    }
+}
+
+void zerograd_crossentropy_layer_gpu(Layer l, int subdivision)
+{
+    fill_gpu(l.delta, subdivision*l.inputs, 0, 1);
+}

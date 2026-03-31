@@ -39,7 +39,7 @@ void forward_mse_layer_gpu(Layer l, int num)
     multy_gpu(l.loss, 1, (float)1/num, 1);
 }
 
-void backward_mse_layer_gpu(Layer l, float rate, int num, float *n_delta)
+void backward_mse_layer_gpu(Layer l, int num, float *n_delta)
 {
     for (int i = 0; i < num; ++i){
         int offset_i = i*l.inputs;
@@ -50,4 +50,9 @@ void backward_mse_layer_gpu(Layer l, float rate, int num, float *n_delta)
         matrix_subtract_gpu(input, truth, l.inputs, delta_l);
         multy_gpu(delta_l, l.inputs, (float)2/l.group, 1);
     }
+}
+
+void zerograd_mse_layer_gpu(Layer l, int subdivision)
+{
+    fill_gpu(l.delta, subdivision*l.inputs, 0, 1);
 }

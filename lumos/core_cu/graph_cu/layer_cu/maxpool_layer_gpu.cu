@@ -16,6 +16,8 @@ void init_maxpool_layer_gpu(Layer *l, int w, int h, int c, int subdivision)
     cudaMalloc((void**)&l->output, subdivision*l->outputs*sizeof(float));
     cudaMalloc((void**)&l->delta, subdivision*l->inputs*sizeof(float));
 
+    cudaMalloc((void**)&l->maxpool_index, subdivision*l->outputs*sizeof(float));
+
     fprintf(stderr, "Max Pooling     Layer    %3d*%3d*%3d ==> %3d*%3d*%3d\n",
             l->input_w, l->input_h, l->input_c, l->output_w, l->output_h, l->output_c);
 }
@@ -32,7 +34,7 @@ void forward_maxpool_layer_gpu(Layer l, int num)
     }
 }
 
-void backward_maxpool_layer_gpu(Layer l, float rate, int num, float *n_delta)
+void backward_maxpool_layer_gpu(Layer l, int num, float *n_delta)
 {
     for (int i = 0; i < num; ++i){
         int offset_i = i * l.inputs;
@@ -40,6 +42,11 @@ void backward_maxpool_layer_gpu(Layer l, float rate, int num, float *n_delta)
         float *delta_l = l.delta + offset_i;
         float *delta_n = n_delta + offset_o;
         int *index = l.maxpool_index + offset_o;
-        maxpool_gradient_gpu(delta_l, l.input_h, l.input_w, l.input_c, l.ksize, l.stride, l.pad, delta_n, index);
+        maxpool_gradient_gpu(delta_l, l.output_h, l.output_w, l.output_c, delta_n, index);
     }
+}
+
+void zerograd_maxpool_layer_gpu(Layer l, int subdivision)
+{
+    fill_gpu(l.delta, subdivision*l.inputs, 0, 1);
 }

@@ -21,6 +21,7 @@ void save_image_data(float *img, int w, int h, int c, char *savepath);
 
 // 双线性内插值
 void resize_im(float *img, int height, int width, int channel, int row, int col, float *space);
+void normalize_im(float *img, int height, int width, int channel, float *mean, float *std, float *space);
 
 #ifdef  __cplusplus
 }
