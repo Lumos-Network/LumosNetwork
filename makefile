@@ -150,7 +150,7 @@ EXECOBJ = $(addprefix $(OBJDIR), $(EXECOBJA))
 OBJS = $(addprefix $(OBJDIR), $(OBJ))
 DEPS = makefile
 
-all: obj $(EXEC)
+all: obj backup $(EXEC)
 
 $(EXEC): $(OBJS) $(EXECOBJ)
 	$(CC) $(COMMON) $(CFLAGS) $^ -o $@ $(LDFLAGS)
@@ -163,6 +163,10 @@ $(OBJDIR)%.o: %.cu $(DEPS)
 
 obj:
 	mkdir obj
+
+backup:
+	mkdir backup
+	mkdir ./backup/data
 
 .PHONY: clean
 
