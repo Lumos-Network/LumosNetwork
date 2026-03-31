@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://github.com/Lumos-Network/LumosNet-docs/tree/main/docs/img/Lumos.png">
+  <img src="https://github.com/Lumos-Network/LumosNetwork/blob/master/img/Lumos.png">
 </div>
 
 # 欢迎来到Lumos
