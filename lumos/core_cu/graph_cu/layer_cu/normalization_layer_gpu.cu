@@ -15,7 +15,7 @@ void init_normalization_layer_gpu(Layer *l, int w, int h, int c, int subdivision
     l->filters = c;
     l->ksize = h*w;
 
-    l->workspace_size = 0;
+    l->workspace_size = subdivision*l->outputs;;
 
     cudaMalloc((void**)&l->mean, l->filters*sizeof(float));
     cudaMalloc((void**)&l->variance, l->filters*sizeof(float));
@@ -47,24 +47,27 @@ void init_normalization_layer_gpu(Layer *l, int w, int h, int c, int subdivision
 void weightinit_normalization_layer_gpu(Layer l, FILE *fp)
 {
     if (fp){
-        float *kernel_weights = (float*)calloc(l.filters, sizeof(float));
-        float *bias_weights = (float*)calloc(l.filters, sizeof(float));
         float *rolling_mean = (float*)calloc(l.filters, sizeof(float));
         float *rolling_variance = (float*)calloc(l.filters, sizeof(float));
-        fread(kernel_weights, sizeof(float), l.filters, fp);
-        fread(bias_weights, sizeof(float), l.filters, fp);
         fread(rolling_mean, sizeof(float), l.filters, fp);
         fread(rolling_variance, sizeof(float), l.filters, fp);
-        cudaMemcpy(l.kernel_weights, kernel_weights, l.filters*sizeof(float), cudaMemcpyHostToDevice);
-        cudaMemcpy(l.bias_weights, bias_weights, l.filters*sizeof(float), cudaMemcpyHostToDevice);
         cudaMemcpy(l.rolling_mean, rolling_mean, l.filters*sizeof(float), cudaMemcpyHostToDevice);
         cudaMemcpy(l.rolling_variance, rolling_variance, l.filters*sizeof(float), cudaMemcpyHostToDevice);
         if (l.affine){
+            float *kernel_weights = (float*)calloc(l.filters, sizeof(float));
+            float *bias_weights = (float*)calloc(l.filters, sizeof(float));
+            fread(kernel_weights, sizeof(float), l.filters, fp);
+            fread(bias_weights, sizeof(float), l.filters, fp);
+            cudaMemcpy(l.kernel_weights, kernel_weights, l.filters*sizeof(float), cudaMemcpyHostToDevice);
+            cudaMemcpy(l.bias_weights, bias_weights, l.filters*sizeof(float), cudaMemcpyHostToDevice);
             cudaMemcpy(l.update_kernel_weights, kernel_weights, l.filters*sizeof(float), cudaMemcpyHostToDevice);
             cudaMemcpy(l.update_bias_weights, bias_weights, l.filters*sizeof(float), cudaMemcpyHostToDevice);
+            free(kernel_weights);
+            free(bias_weights);
+        } else {
+            fill_gpu(l.kernel_weights, l.filters, 1, 1);
+            fill_gpu(l.bias_weights, l.filters, 0, 1);
         }
-        free(kernel_weights);
-        free(bias_weights);
         free(rolling_mean);
         free(rolling_variance);
         return;
@@ -109,20 +112,23 @@ void backward_normalization_layer_gpu(Layer l, int num, float *n_delta)
         float *input = l.input + i*l.inputs;
         float *delta_l = l.delta + i*l.inputs;
         float *delta_n = n_delta + i*l.outputs;
-        float *norm_x = l.norm_x + i*l.inputs;
         scale_bias_gpu(delta_l, l.kernel_weights, l.filters, l.ksize);
         gradient_normalize_mean_gpu(delta_l, l.variance, l.ksize, l.filters, l.mean_delta);
         gradient_normalize_variance_gpu(delta_l, input, l.mean, l.variance, l.ksize, l.filters, l.variance_delta);
         gradient_normalize_gpu(input, l.mean, l.variance, l.mean_delta, l.variance_delta, l.ksize, l.filters, delta_l, delta_l);
-        gradient_scale_gpu(norm_x, l.mean, l.variance, delta_n, l.ksize, l.filters, l.workspace);
-        saxpy_gpu(l.kernel_weights_delta, l.workspace, l.filters, 1./num, l.kernel_weights_delta);
-        gradient_bias_gpu(delta_n, l.ksize, l.filters, l.workspace);
-        saxpy_gpu(l.bias_delta, l.workspace, l.filters, 1./num, l.bias_delta);
+        if (l.affine){
+            float *norm_x = l.norm_x + i*l.inputs;
+            gradient_scale_gpu(norm_x, l.mean, l.variance, delta_n, l.ksize, l.filters, l.workspace);
+            saxpy_gpu(l.kernel_weights_delta, l.workspace, l.filters, 1./num, l.kernel_weights_delta);
+            gradient_bias_gpu(delta_n, l.ksize, l.filters, l.workspace);
+            saxpy_gpu(l.bias_delta, l.workspace, l.filters, 1./num, l.bias_delta);
+        }
     }
 }
 
 void normalization_layer_SGDOptimizer_gpu(Layer l, float rate, float momentum, float dampening, float decay, int nesterov, int maximize)
 {
+    if (!l.affine) return;
     float *momentum_kernel_v;
     float *momentum_bias_v;
     if (decay != 0){
@@ -191,6 +197,8 @@ void save_normalization_layer_weights_gpu(Layer l, FILE *fp)
 void zerograd_normalization_layer_gpu(Layer l, int subdivision)
 {
     fill_gpu(l.delta, subdivision*l.inputs, 0, 1);
-    fill_gpu(l.kernel_weights_delta, l.filters, 0, 1);
-    fill_gpu(l.bias_delta, l.filters, 0, 1);
+    if (l.affine){
+        fill_gpu(l.kernel_weights_delta, l.filters, 0, 1);
+        fill_gpu(l.bias_delta, l.filters, 0, 1);
+    }
 }

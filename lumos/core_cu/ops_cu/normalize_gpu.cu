@@ -2,7 +2,7 @@
 
 __global__ void normalize_mean_kernel(float *data, int num, int features, int subdivision, float *mean)
 {
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
     if (index >= features) return;
     mean[index] = 0;
     for (int j = 0; j < subdivision; ++j){
@@ -20,7 +20,7 @@ void normalize_mean_gpu(float *data, int num, int features, int subdivision, flo
 
 __global__ void normalize_variance_kernel(float *data, int num, int features, int subdivision, float *mean, float *variance)
 {
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
     if (index >= features) return;
     variance[index] = 0;
     for (int j = 0; j < subdivision; ++j){
@@ -38,14 +38,14 @@ void normalize_variance_gpu(float *data, int num, int features, int subdivision,
 
 __global__ void normalize_kernel(float *data, float *mean, float *variance, int num, int features, float *space)
 {
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
     if (index >= num*features) return;
     int offset = num;
     int i = index / num;
     int j = index % num;
     float *data_c = data + i*offset;
     float *space_c = space + i*offset;
-    space_c[j] = (data_c[j] - mean[i]) / (sqrt(variance[i] + .00001f));
+    space_c[j] = (data_c[j] - mean[i]) / (sqrt(variance[i] + .0000001f));
 }
 
 void normalize_gpu(float *data, float *mean, float *variance, int num, int features, float *space)
@@ -55,13 +55,13 @@ void normalize_gpu(float *data, float *mean, float *variance, int num, int featu
 
 __global__ void gradient_normalize_mean_kernel(float *n_delta, float *variance, int num, int features, float *mean_delta)
 {
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
     if (index >= features) return;
     mean_delta[index] = 0;
     for (int j = 0; j < num; ++j){
         mean_delta[index] += n_delta[index*num+j];
     }
-    mean_delta[index] *= (-1./sqrt(variance[index] + .00001f));
+    mean_delta[index] *= (-1./sqrt(variance[index] + .0000001f));
 }
 
 void gradient_normalize_mean_gpu(float *n_delta, float *variance, int num, int features, float *mean_delta)
@@ -71,13 +71,13 @@ void gradient_normalize_mean_gpu(float *n_delta, float *variance, int num, int f
 
 __global__ void gradient_normalize_variance_kernel(float *n_delta, float *input, float *mean, float *variance, int num, int features, float *variance_delta)
 {
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
     if (index >= features) return;
     variance_delta[index] = 0;
     for (int j = 0; j < num; ++j){
         variance_delta[index] += n_delta[index*num+j]*(input[index*num+j]-mean[index]);
     }
-    variance_delta[index] *= -.5 * pow(variance[index] + .00001f, (float)(-3./2.));
+    variance_delta[index] *= -.5 * pow(variance[index] + .0000001f, (float)(-3./2.));
 }
 
 void gradient_normalize_variance_gpu(float *n_delta, float *input, float *mean, float *variance, int num, int features, float *variance_delta)
@@ -87,10 +87,10 @@ void gradient_normalize_variance_gpu(float *n_delta, float *input, float *mean, 
 
 __global__ void gradient_normalize_kernel(float *input, float *mean, float *variance, float *mean_delta, float *variance_delta, int num, int features, float *n_delta, float *l_delta)
 {
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
     if (index >= features) return;
     for (int j = 0; j < num; ++j){
-        l_delta[index*num+j] = n_delta[index*num+j] * 1./(sqrt(variance[index] + .00001f)) + variance_delta[index] * 2. * (input[index*num+j] - mean[index]) / (num) + mean_delta[index]/(num);
+        l_delta[index*num+j] = n_delta[index*num+j] * 1./(sqrt(variance[index] + .0000001f)) + variance_delta[index] * 2. * (input[index*num+j] - mean[index]) / (num) + mean_delta[index]/(num);
     }
 }
 
@@ -101,7 +101,7 @@ void gradient_normalize_gpu(float *input, float *mean, float *variance, float *m
 
 __global__ void gradient_scale_kernel(float *norm_x, float *mean, float *variance, float *delta, int num, int features, float *space)
 {
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
     if (index >= features) return;
     float sum = 0;
     for (int j = 0; j < num; ++j){
@@ -112,7 +112,7 @@ __global__ void gradient_scale_kernel(float *norm_x, float *mean, float *varianc
 
 __global__ void gradient_bias_kernel(float *delta, int num, int features, float *space)
 {
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
     if (index >= features) return;
     float sum = 0;
     for (int j = 0; j < num; ++j){

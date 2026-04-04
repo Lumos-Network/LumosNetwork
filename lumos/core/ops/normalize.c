@@ -32,7 +32,7 @@ void normalize_cpu(float *data, float *mean, float *variance, int num, int featu
         float *data_c = data + i*num;
         float *space_c = space + i*num;
         for (int j = 0; j < num; ++j){
-            space_c[j] = (data_c[j] - mean[i]) / (sqrt(variance[i] + .00001f));
+            space_c[j] = (data_c[j] - mean[i]) / (sqrt(variance[i] + .0000001f));
         }
     }
 }
@@ -44,7 +44,7 @@ void gradient_normalize_mean(float *n_delta, float *variance, int num, int featu
         for (int j = 0; j < num; ++j){
             mean_delta[i] += n_delta[i*num+j];
         }
-        mean_delta[i] *= (-1./sqrt(variance[i] + .00001f));
+        mean_delta[i] *= (-1./sqrt(variance[i] + .0000001f));
     }
 }
 
@@ -55,7 +55,7 @@ void gradient_normalize_variance(float *n_delta, float *input, float *mean, floa
         for (int j = 0; j < num; ++j){
             variance_delta[i] += n_delta[i*num+j]*(input[i*num+j]-mean[i]);
         }
-        variance_delta[i] *= -.5 * pow(variance[i] + .00001f, (float)(-3./2.));
+        variance_delta[i] *= -.5 * pow(variance[i] + .0000001f, (float)(-3./2.));
     }
 }
 
@@ -63,7 +63,7 @@ void gradient_normalize_cpu(float *input, float *mean, float *variance, float *m
 {
     for (int i = 0; i < features; ++i){
         for (int j = 0; j < num; ++j){
-            l_delta[i*num+j] = n_delta[i*num+j] * 1./(sqrt(variance[i] + .00001f)) + variance_delta[i] * 2. * (input[i*num+j] - mean[i]) / (num) + mean_delta[i]/(num);
+            l_delta[i*num+j] = n_delta[i*num+j] * 1./(sqrt(variance[i] + .0000001f)) + variance_delta[i] * 2. * (input[i*num+j] - mean[i]) / (num) + mean_delta[i]/(num);
         }
     }
 }
