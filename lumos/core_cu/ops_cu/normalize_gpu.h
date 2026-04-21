@@ -18,14 +18,13 @@ extern "C" {
 
 void normalize_mean_gpu(float *data, int num, int features, int subdivision, float *mean);
 void normalize_variance_gpu(float *data, int num, int features, int subdivision, float *mean, float *variance);
-void normalize_gpu(float *data, float *mean, float *variance, int num, int features, float *space);
+void normalize_gpu(float *data, float *mean, float *variance, int num, int features, int subdivision, float *space);
 
-void gradient_normalize_mean_gpu(float *n_delta, float *variance, int num, int features, float *mean_delta);
-void gradient_normalize_variance_gpu(float *n_delta, float *input, float *mean, float *variance, int num, int features, float *variance_delta);
-void gradient_normalize_gpu(float *input, float *mean, float *variance, float *mean_delta, float *variance_delta, int num, int features, float *n_delta, float *l_delta);
+void gradient_normalize_mean_gpu(float *n_delta, float *variance, int num, int features, int subdivision, float *mean_delta);
+void gradient_normalize_variance_gpu(float *n_delta, float *input, float *mean, float *variance, int num, int features, int subdivision, float *variance_delta);
+void gradient_normalize_gpu(float *input, float *mean, float *variance, float *mean_delta, float *variance_delta, int num, int features, int subdivision, float *n_delta, float *l_delta);
 
-void gradient_scale_gpu(float *norm_x, float *mean, float *variance, float *delta, int num, int features, float *space);
-void gradient_bias_gpu(float *delta, int num, int features, float *space);
+void gradient_scale_gpu(float *norm_x, float *n_delta, int num, int features, int subdivision, float *space);
 
 #ifdef __cplusplus
 }

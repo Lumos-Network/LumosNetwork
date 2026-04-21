@@ -1,132 +1,193 @@
 #include "normalize_gpu.h"
 
-__global__ void normalize_mean_kernel(float *data, int num, int features, int subdivision, float *mean)
+__global__ void  fast_mean_kernel(float *x, int batch, int filters, int spatial, float *mean)
 {
-    int index = threadIdx.x + blockIdx.x * blockDim.x;
-    if (index >= features) return;
-    mean[index] = 0;
-    for (int j = 0; j < subdivision; ++j){
-        for (int k = 0; k < num; ++k){
-            mean[index] += data[j*num*features+index*num+k];
+    const int threads = BLOCK;
+    __shared__ float local[threads];
+
+    int id = threadIdx.x;
+    local[id] = 0;
+
+    int filter = blockIdx.x;
+
+    int i, j;
+    for(j = 0; j < batch; ++j){
+        for(i = 0; i < spatial; i += threads){
+            int index = j*spatial*filters + filter*spatial + i + id;
+            local[id] += (i+id < spatial) ? x[index] : 0;
         }
     }
-    mean[index] /= subdivision*num;
+
+    __syncthreads();
+
+    if(id == 0){
+        mean[filter] = 0;
+        for(i = 0; i < threads; ++i){
+            mean[filter] += local[i];
+        }
+        mean[filter] /= spatial * batch;
+    }
+}
+
+__global__ void  fast_variance_kernel(float *x, float *mean, int batch, int filters, int spatial, float *variance)
+{
+    const int threads = BLOCK;
+    __shared__ float local[threads];
+
+    int id = threadIdx.x;
+    local[id] = 0;
+
+    int filter = blockIdx.x;
+
+    int i, j;
+    for(j = 0; j < batch; ++j){
+        for(i = 0; i < spatial; i += threads){
+            int index = j*spatial*filters + filter*spatial + i + id;
+
+            local[id] += (i+id < spatial) ? powf((x[index] - mean[filter]), 2) : 0;
+        }
+    }
+
+    __syncthreads();
+
+    if(id == 0){
+        variance[filter] = 0;
+        for(i = 0; i < threads; ++i){
+            variance[filter] += local[i];
+        }
+        variance[filter] /= (spatial * batch - 1);
+    }
 }
 
 void normalize_mean_gpu(float *data, int num, int features, int subdivision, float *mean)
 {
-    normalize_mean_kernel<<<(features+BLOCK-1)/BLOCK, BLOCK>>>(data, num, features, subdivision, mean);
-}
-
-__global__ void normalize_variance_kernel(float *data, int num, int features, int subdivision, float *mean, float *variance)
-{
-    int index = threadIdx.x + blockIdx.x * blockDim.x;
-    if (index >= features) return;
-    variance[index] = 0;
-    for (int j = 0; j < subdivision; ++j){
-        for (int k = 0; k < num; ++k){
-            variance[index] += pow(data[j*num*features+index*num+k]-mean[index], 2);
-        }
-    }
-    variance[index] /= subdivision*num;
+    fast_mean_kernel<<<features, BLOCK>>>(data, subdivision, features, num, mean);
 }
 
 void normalize_variance_gpu(float *data, int num, int features, int subdivision, float *mean, float *variance)
 {
-    normalize_variance_kernel<<<(features+BLOCK-1)/BLOCK, BLOCK>>>(data, num, features, subdivision, mean, variance);
+    fast_variance_kernel<<<features, BLOCK>>>(data, mean, subdivision, features, num, variance);
 }
 
-__global__ void normalize_kernel(float *data, float *mean, float *variance, int num, int features, float *space)
+__global__ void normalize_kernel(float *data, float *mean, float *variance, int num, int features, int subdivision, float *space)
 {
-    int index = threadIdx.x + blockIdx.x * blockDim.x;
-    if (index >= num*features) return;
-    int offset = num;
-    int i = index / num;
-    int j = index % num;
-    float *data_c = data + i*offset;
-    float *space_c = space + i*offset;
-    space_c[j] = (data_c[j] - mean[i]) / (sqrt(variance[i] + .0000001f));
+    int index = (blockIdx.x + blockIdx.y*gridDim.x) * blockDim.x + threadIdx.x;
+    if (index >= subdivision*num*features) return;
+    int f = (index/num)%features;
+    space[index] = (space[index] - mean[f])/(sqrtf(variance[f] + .0000001f));
 }
 
-void normalize_gpu(float *data, float *mean, float *variance, int num, int features, float *space)
+void normalize_gpu(float *data, float *mean, float *variance, int num, int features, int subdivision, float *space)
 {
-    normalize_kernel<<<(num*features+BLOCK-1)/BLOCK, BLOCK>>>(data, mean, variance, num, features, space);
+    size_t N = subdivision*num*features;
+    normalize_kernel<<<cuda_gridsize(N), BLOCK>>>(data, mean, variance, num, features, subdivision, space);
 }
 
-__global__ void gradient_normalize_mean_kernel(float *n_delta, float *variance, int num, int features, float *mean_delta)
+__global__ void fast_mean_delta_kernel(float *delta, float *variance, int batch, int filters, int spatial, float *mean_delta)
 {
-    int index = threadIdx.x + blockIdx.x * blockDim.x;
-    if (index >= features) return;
-    mean_delta[index] = 0;
-    for (int j = 0; j < num; ++j){
-        mean_delta[index] += n_delta[index*num+j];
+    const int threads = BLOCK;
+    __shared__ float local[threads];
+
+    int id = threadIdx.x;
+    local[id] = 0;
+
+    int filter = blockIdx.x;
+
+    int i, j;
+    for(j = 0; j < batch; ++j){
+        for(i = 0; i < spatial; i += threads){
+            int index = j*spatial*filters + filter*spatial + i + id;
+            local[id] += (i+id < spatial) ? delta[index] : 0;
+        }
     }
-    mean_delta[index] *= (-1./sqrt(variance[index] + .0000001f));
-}
 
-void gradient_normalize_mean_gpu(float *n_delta, float *variance, int num, int features, float *mean_delta)
-{
-    gradient_normalize_mean_kernel<<<(features+BLOCK-1)/BLOCK, BLOCK>>>(n_delta, variance, num, features, mean_delta);
-}
+    __syncthreads();
 
-__global__ void gradient_normalize_variance_kernel(float *n_delta, float *input, float *mean, float *variance, int num, int features, float *variance_delta)
-{
-    int index = threadIdx.x + blockIdx.x * blockDim.x;
-    if (index >= features) return;
-    variance_delta[index] = 0;
-    for (int j = 0; j < num; ++j){
-        variance_delta[index] += n_delta[index*num+j]*(input[index*num+j]-mean[index]);
-    }
-    variance_delta[index] *= -.5 * pow(variance[index] + .0000001f, (float)(-3./2.));
-}
-
-void gradient_normalize_variance_gpu(float *n_delta, float *input, float *mean, float *variance, int num, int features, float *variance_delta)
-{
-    gradient_normalize_variance_kernel<<<(features+BLOCK-1)/BLOCK, BLOCK>>>(n_delta, input, mean, variance, num, features, variance_delta);
-}
-
-__global__ void gradient_normalize_kernel(float *input, float *mean, float *variance, float *mean_delta, float *variance_delta, int num, int features, float *n_delta, float *l_delta)
-{
-    int index = threadIdx.x + blockIdx.x * blockDim.x;
-    if (index >= features) return;
-    for (int j = 0; j < num; ++j){
-        l_delta[index*num+j] = n_delta[index*num+j] * 1./(sqrt(variance[index] + .0000001f)) + variance_delta[index] * 2. * (input[index*num+j] - mean[index]) / (num) + mean_delta[index]/(num);
+    if(id == 0){
+        mean_delta[filter] = 0;
+        for(i = 0; i < threads; ++i){
+            mean_delta[filter] += local[i];
+        }
+        mean_delta[filter] *= (-1.f/sqrtf(variance[filter] + .0000001f));
     }
 }
 
-void gradient_normalize_gpu(float *input, float *mean, float *variance, float *mean_delta, float *variance_delta, int num, int features, float *n_delta, float *l_delta)
+__global__ void  fast_variance_delta_kernel(float *x, float *delta, float *mean, float *variance, int batch, int filters, int spatial, float *variance_delta)
 {
-    gradient_normalize_kernel<<<(features+BLOCK-1)/BLOCK, BLOCK>>>(input, mean, variance, mean_delta, variance_delta, num, features, n_delta, l_delta);
+    const int threads = BLOCK;
+    __shared__ float local[threads];
+
+    int id = threadIdx.x;
+    local[id] = 0;
+
+    int filter = blockIdx.x;
+
+    int i, j;
+    for(j = 0; j < batch; ++j){
+        for(i = 0; i < spatial; i += threads){
+            int index = j*spatial*filters + filter*spatial + i + id;
+
+            local[id] += (i+id < spatial) ? delta[index]*(x[index] - mean[filter]) : 0;
+        }
+    }
+
+    __syncthreads();
+
+    if(id == 0){
+        variance_delta[filter] = 0;
+        for(i = 0; i < threads; ++i){
+            variance_delta[filter] += local[i];
+        }
+        variance_delta[filter] *= -.5f * powf(variance[filter] + .0000001f, (float)(-3.f/2.f));
+    }
 }
 
-__global__ void gradient_scale_kernel(float *norm_x, float *mean, float *variance, float *delta, int num, int features, float *space)
+void gradient_normalize_mean_gpu(float *n_delta, float *variance, int num, int features, int subdivision, float *mean_delta)
 {
-    int index = threadIdx.x + blockIdx.x * blockDim.x;
-    if (index >= features) return;
+    fast_mean_delta_kernel<<<features, BLOCK>>>(n_delta, variance, subdivision, features, num, mean_delta);
+}
+
+void gradient_normalize_variance_gpu(float *n_delta, float *input, float *mean, float *variance, int num, int features, int subdivision, float *variance_delta)
+{
+    fast_variance_delta_kernel<<<features, BLOCK>>>(input, n_delta, mean, variance, subdivision, features, num, variance_delta);
+}
+
+__global__ void normalize_delta_kernel(int N, float *x, float *mean, float *variance, float *mean_delta, float *variance_delta, int batch, int filters, int spatial, float *delta)
+{
+    int index = (blockIdx.x + blockIdx.y*gridDim.x) * blockDim.x + threadIdx.x;
+    if (index >= N) return;
+    int f = (index/spatial)%filters;
+    
+    delta[index] = delta[index] * 1.f/(sqrtf(variance[f] + .0000001f)) + variance_delta[f] * 2.f * (x[index] - mean[f]) / (spatial * batch) + mean_delta[f]/(spatial*batch);
+}
+
+void gradient_normalize_gpu(float *input, float *mean, float *variance, float *mean_delta, float *variance_delta, int num, int features, int subdivision, float *n_delta, float *l_delta)
+{
+    size_t N = subdivision*features*num;
+    normalize_delta_kernel<<<cuda_gridsize(N), BLOCK>>>(N, input, mean, variance, mean_delta, variance_delta, num, features, subdivision, n_delta);
+}
+
+__global__ void gradient_scale_kernel(float *norm_x, float *n_delta, int num, int features, int subdivision, float *space)
+{
+    __shared__ float part[BLOCK];
+    int i,b;
+    int filter = blockIdx.x;
+    int p = threadIdx.x;
     float sum = 0;
-    for (int j = 0; j < num; ++j){
-        sum += norm_x[j] * delta[index*num+j];
+    for(b = 0; b < subdivision; ++b){
+        for(i = 0; i < num; i += BLOCK){
+            int index = p + i + num*(filter + features*b);
+            sum += (p+i < num) ? n_delta[index]*norm_x[index] : 0;
+        }
     }
-    space[index] = sum;
-}
-
-__global__ void gradient_bias_kernel(float *delta, int num, int features, float *space)
-{
-    int index = threadIdx.x + blockIdx.x * blockDim.x;
-    if (index >= features) return;
-    float sum = 0;
-    for (int j = 0; j < num; ++j){
-        sum += delta[index*num+j];
+    part[p] = sum;
+    __syncthreads();
+    if (p == 0) {
+        for(i = 0; i < BLOCK; ++i) space[filter] += part[i];
     }
-    space[index] = sum;
 }
 
-void gradient_scale_gpu(float *norm_x, float *mean, float *variance, float *delta, int num, int features, float *space)
+void gradient_scale_gpu(float *norm_x, float *n_delta, int num, int features, int subdivision, float *space)
 {
-    gradient_scale_kernel<<<(features+BLOCK-1)/BLOCK, BLOCK>>>(norm_x, mean, variance, delta, num, features, space);
-}
-
-void gradient_bias_gpu(float *delta, int num, int features, float *space)
-{
-    gradient_bias_kernel<<<(features+BLOCK-1)/BLOCK, BLOCK>>>(delta, num, features, space);
+    gradient_scale_kernel<<<features, BLOCK>>>(norm_x, n_delta, num, features, subdivision, space);
 }

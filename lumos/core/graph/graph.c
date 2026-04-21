@@ -120,24 +120,6 @@ void backward_graph(Graph *g, int coretype, int subdivision)
     }
 }
 
-void update_graph(Graph *g, int coretype, float rate, int subdivision)
-{
-    Node *layer = g->tail;
-    Layer *l;
-    float *n_delta;
-    for (;;){
-        if (layer){
-            l = layer->l;
-            if (coretype == GPU && l->updategpu) l->updategpu(*l, rate, subdivision, n_delta);
-            if (coretype == CPU && l->update) l->update(*l, rate, subdivision, n_delta);
-        } else {
-            break;
-        }
-        layer = layer->head;
-        n_delta = l->delta;
-    }
-}
-
 void refresh_graph(Graph *g, int coretype)
 {
     Node *layer = g->head;

@@ -178,7 +178,7 @@ void load_train_label(Session *sess, int index)
 void train(Session *sess)
 {
     fprintf(stderr, "\nSession Start To Running\n");
-    float rate = -sess->learning_rate;
+    float rate = -sess->learning_rate/sess->subdivision;
     Graph *g = sess->graph;
     g->status = 1;
     for (int i = 0; i < sess->epoch; ++i){
@@ -199,7 +199,7 @@ void train(Session *sess)
                 } else if (sess->optimizer == ADAM){
                     AdamOptimizer_graph(sess->graph, sess->coretype, rate, sess->beta1, sess->beta2, sess->decay, sess->amsgrad, sess->maximize);
                 } else {
-                    update_graph(sess->graph, sess->coretype, rate, sess->subdivision);
+                    fprintf(stderr, "Optimizer Not Found!\n");
                 }
                 if (sess->coretype == CPU) {
                     loss[0] += sess->loss[0];

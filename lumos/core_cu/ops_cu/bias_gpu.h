@@ -16,8 +16,9 @@
 extern "C" {
 #endif
 
-void add_bias_gpu(float *origin, float *bias, int n, int size);
-void scale_bias_gpu(float *origin, float *bias, int n, int size);
+void add_bias_gpu(float *origin, float *bias, int batch, int n, int size);
+void scale_bias_gpu(float *origin, float *bias, int batch, int n, int size);
+void backward_bias_gpu(float *bias_delta, float *delta, int batch, int n, int size);
 
 #ifdef __cplusplus
 }

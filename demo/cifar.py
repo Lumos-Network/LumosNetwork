@@ -117,6 +117,7 @@ class CIFAR(nn.Module):
         self.l21 = nn.Conv2d(512, 10, kernel_size=1, stride=1, padding=1)
         self.l22 = nn.AvgPool2d(9, 9, 0)
         self.l23 = nn.CrossEntropyLoss()
+        self.l24 = nn.ConvTranspose2d(10, 512, kernel_size=9, stride=1, padding=0)
 
     def forward(self, x, labels):
         x = self.l1(x)

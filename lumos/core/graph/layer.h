@@ -22,7 +22,7 @@ extern "C" {
 
 typedef enum {
     CONVOLUTIONAL, CONNECT, IM2COL, MAXPOOL, AVGPOOL, GLOBALMAX, GLOBALAVG, \
-    DROPOUT, SOFTMAX, LOGSOFTMAX, SHORTCUT, NORMALIZE, \
+    DROPOUT, SOFTMAX, LOGSOFTMAX, SHORTCUT, NORMALIZE, CONVTRANSPOSE, \
     MSE, MAE, CE, NLL, CROSSENTROPY
 } LayerType;
 
@@ -59,11 +59,9 @@ typedef struct layer Layer;
 
 typedef void (*forward)  (struct layer, int);
 typedef void (*backward) (struct layer, int, float*);
-typedef void (*update) (struct layer, float, int, float*);
 typedef void (*refresh) (struct layer);
 typedef forward Forward;
 typedef backward Backward;
-typedef update Update;
 typedef refresh Refresh;
 
 typedef void (*forward_gpu)  (struct layer, int);
@@ -176,7 +174,6 @@ struct layer{
 
     Forward forward;
     Backward backward;
-    Update update;
     Refresh refresh;
 
     ForwardGpu forwardgpu;

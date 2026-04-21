@@ -35,7 +35,6 @@ void init_graph(Graph *g, int w, int h, int c, int coretype, int subdivision, in
 void set_graph(Graph *g, float *space, float *truth, float *loss);
 void forward_graph(Graph *g, float *input, int coretype, int subdivision);
 void backward_graph(Graph *g, int coretype, int subdivision);
-void update_graph(Graph *g, int coretype, float rate, int subdivision);
 void refresh_graph(Graph *g, int coretype);
 void save_weights(Graph *g, int coretype, FILE *fp);
 void zerograd_graph(Graph *g, int subdivision, int coretype);

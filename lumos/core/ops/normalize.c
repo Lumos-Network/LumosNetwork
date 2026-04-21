@@ -26,66 +26,68 @@ void normalize_variance(float *data, int num, int features, int subdivision, flo
     }
 }
 
-void normalize_cpu(float *data, float *mean, float *variance, int num, int features, float *space)
+void normalize_cpu(float *data, float *mean, float *variance, int num, int features, int subdivision, float *space)
 {
-    for (int i = 0; i < features; ++i){
-        float *data_c = data + i*num;
-        float *space_c = space + i*num;
-        for (int j = 0; j < num; ++j){
-            space_c[j] = (data_c[j] - mean[i]) / (sqrt(variance[i] + .0000001f));
+    for (int i = 0; i < subdivision; ++i){
+        for (int j = 0; j < features; ++j){
+            for (int k = 0; k < num; ++k){
+                int index = i*num*features+j*num+k;
+                space[index] = (data[index] - mean[j]) / sqrt(variance[j] + .0000001f);
+            }
         }
     }
 }
 
-void gradient_normalize_mean(float *n_delta, float *variance, int num, int features, float *mean_delta)
+void gradient_normalize_mean(float *n_delta, float *variance, int num, int features, int subdivision, float *mean_delta)
 {
     for (int i = 0; i < features; ++i){
         mean_delta[i] = 0;
-        for (int j = 0; j < num; ++j){
-            mean_delta[i] += n_delta[i*num+j];
+        for (int j = 0; j < subdivision; ++j){
+            for (int k = 0; k < num; ++k){
+                int index = j*features*num + i*num + k;
+                mean_delta[i] += n_delta[index];
+            }
+            mean_delta[i] *= (-1./sqrt(variance[i] + .0000001f));
         }
-        mean_delta[i] *= (-1./sqrt(variance[i] + .0000001f));
     }
 }
 
-void gradient_normalize_variance(float *n_delta, float *input, float *mean, float *variance, int num, int features, float *variance_delta)
+void gradient_normalize_variance(float *n_delta, float *input, float *mean, float *variance, int num, int features, int subdivision, float *variance_delta)
 {
     for (int i = 0; i < features; ++i){
         variance_delta[i] = 0;
-        for (int j = 0; j < num; ++j){
-            variance_delta[i] += n_delta[i*num+j]*(input[i*num+j]-mean[i]);
+        for (int j = 0; j < subdivision; ++j){
+            for (int k = 0; k < num; ++k){
+                int index = j*features*num + i*num + k;
+                variance_delta[i] += n_delta[index]*(input[index]-mean[i]);
+            }
         }
         variance_delta[i] *= -.5 * pow(variance[i] + .0000001f, (float)(-3./2.));
     }
 }
 
-void gradient_normalize_cpu(float *input, float *mean, float *variance, float *mean_delta, float *variance_delta, int num, int features, float *n_delta, float *l_delta)
+void gradient_normalize_cpu(float *input, float *mean, float *variance, float *mean_delta, float *variance_delta, int num, int features, int subdivision, float *n_delta, float *l_delta)
 {
-    for (int i = 0; i < features; ++i){
-        for (int j = 0; j < num; ++j){
-            l_delta[i*num+j] = n_delta[i*num+j] * 1./(sqrt(variance[i] + .0000001f)) + variance_delta[i] * 2. * (input[i*num+j] - mean[i]) / (num) + mean_delta[i]/(num);
+    for (int i = 0; i < subdivision; ++i){
+        for (int j = 0; j < features; ++j){
+            for (int k = 0; k < num; ++k){
+                int index = i*features*num + j*num + k;
+                l_delta[index] = n_delta[index] * 1./(sqrt(variance[j] + .0000001f)) + variance_delta[j] * 2. * (input[index] - mean[j]) / (num*subdivision) + mean_delta[j]/(num*subdivision);
+            }
         }
     }
 }
 
-void gradient_scale(float *norm_x, float *mean, float *variance, float *delta, int num, int features, float *space)
+void gradient_scale(float *norm_x, float *n_delta, int num, int features, int subdivision, float *space)
 {
     for (int i = 0; i < features; ++i){
         float sum = 0;
-        for (int j = 0; j < num; ++j){
-            sum += norm_x[j] * delta[i*num+j];
+        for (int j = 0; j < subdivision; ++j){
+            for (int k = 0; k < num; ++k){
+                int index = k + num*(i + features*j);
+                sum += n_delta[index] * norm_x[index];
+            }
         }
-        space[i] = sum;
-    }
-}
-
-void gradient_bias(float *delta, int num, int features, float *space)
-{
-    for (int i = 0; i < features; ++i){
-        float sum = 0;
-        for (int j = 0; j < num; ++j){
-            sum += delta[i*num+j];
-        }
-        space[i] = sum;
+        space[i] += sum;
     }
 }

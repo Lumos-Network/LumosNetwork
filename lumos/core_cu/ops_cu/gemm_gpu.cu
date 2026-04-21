@@ -9,7 +9,7 @@ __global__ void gemm_nn_kernel(int AM, int AN, int BM, int BN, float ALPHA, floa
     for (int k = 0; k < AN; ++k){
         res += ALPHA * A[i * AN + k] * B[k * BN + j];
     }
-    C[i * BN + j] = res;
+    C[i * BN + j] += res;
 }
 
 __global__ void gemm_tn_kernel(int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C)
@@ -21,7 +21,7 @@ __global__ void gemm_tn_kernel(int AM, int AN, int BM, int BN, float ALPHA, floa
     for (int k = 0; k < AM; ++k){
         res += ALPHA * A[k * AN + i] * B[k * BN + j];
     }
-    C[i * BN + j] = res;
+    C[i * BN + j] += res;
 }
 
 __global__ void gemm_nt_kernel(int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C)
@@ -33,7 +33,7 @@ __global__ void gemm_nt_kernel(int AM, int AN, int BM, int BN, float ALPHA, floa
     for (int k = 0; k < AN; ++k){
         res += ALPHA * A[i * AN + k] * B[j * BN + k];
     }
-    C[i * BM + j] = res;
+    C[i * BM + j] += res;
 }
 
 __global__ void gemm_tt_kernel(int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C)
@@ -45,7 +45,7 @@ __global__ void gemm_tt_kernel(int AM, int AN, int BM, int BN, float ALPHA, floa
     for (int k = 0; k < AM; ++k){
         res += ALPHA * A[k * AN + i] * B[j * BN + k];
     }
-    C[i * BM + j] = res;
+    C[i * BM + j] += res;
 }
 
 void gemm_gpu(int TA, int TB, int AM, int AN, int BM, int BN, float ALPHA, 

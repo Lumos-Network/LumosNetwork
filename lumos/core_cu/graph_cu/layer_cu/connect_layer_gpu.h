@@ -26,7 +26,6 @@ void init_connect_layer_gpu(Layer *l, int w, int h, int c, int subdivision);
 void weightinit_connect_layer_gpu(Layer l, FILE *fp);
 void forward_connect_layer_gpu(Layer l, int num);
 void backward_connect_layer_gpu(Layer l, int num, float *n_delta);
-void update_connect_layer_gpu(Layer l, float rate, int num, float *n_delta);
 void refresh_connect_layer_weights_gpu(Layer l);
 void save_connect_layer_weights_gpu(Layer l, FILE *fp);
 void zerograd_connect_layer_gpu(Layer l, int subdivision);

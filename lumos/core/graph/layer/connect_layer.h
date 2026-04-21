@@ -24,7 +24,6 @@ void weightinit_connect_layer(Layer l, FILE *fp);
 
 void forward_connect_layer(Layer l, int num);
 void backward_connect_layer(Layer l, int num, float *n_delta);
-void update_connect_layer(Layer l, float rate, int num, float *n_delta);
 void refresh_connect_layer_weights(Layer l);
 
 void connect_layer_SGDOptimizer(Layer l, float rate, float momentum, float dampening, float decay, int nesterov, int maximize);
