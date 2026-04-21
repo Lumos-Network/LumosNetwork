@@ -5,8 +5,10 @@
 
 int main()
 {
+    xor("cpu", NULL);
+    xor_detect("cpu", "./backup/LW_f");
     // xor_detect("cpu", "./demo/xor.lw");
     // resnet18("gpu", "./backup/LW_py");
     // cifar("gpu", NULL);
-    darknet("gpu", NULL);
+    // darknet("gpu", NULL);
 }

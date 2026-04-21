@@ -104,7 +104,7 @@ OBJ=	avgpool_layer.o connect_layer.o convolutional_layer.o graph.o maxpool_layer
 		binary_f.o text_f.o debug_data.o\
 		str_ops.o logging.o
 
-OBJ+= 	active_gpu.o bias_gpu.o cpu_gpu.o gemm_gpu.o im2col_gpu.o pooling_gpu.o softmax_gpu.o normalize_gpu.o \
+OBJ+= 	gpu.o active_gpu.o bias_gpu.o cpu_gpu.o gemm_gpu.o im2col_gpu.o pooling_gpu.o softmax_gpu.o normalize_gpu.o \
 	  	avgpool_layer_gpu.o maxpool_layer_gpu.o connect_layer_gpu.o convolutional_layer_gpu.o nll_layer.o \
 	  	softmax_layer_gpu.o dropout_layer_gpu.o normalization_layer_gpu.o \
 		mse_layer_gpu.o mae_layer_gpu.o ce_layer_gpu.o logsoftmax_layer_gpu.o nll_layer_gpu.o crossentropy_layer_gpu.o \

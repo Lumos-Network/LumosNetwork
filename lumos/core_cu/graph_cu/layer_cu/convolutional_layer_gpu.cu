@@ -87,6 +87,7 @@ void weightinit_convolutional_layer_gpu(Layer l, FILE *fp)
 
 void forward_convolutional_layer_gpu(Layer l, int num)
 {
+    fill_gpu(l.output, num*l.outputs, 0, 1);
     for (int i = 0; i < num; ++i){
         int offset_i = i * l.inputs;
         int offset_o = i * l.outputs;
@@ -112,7 +113,6 @@ void backward_convolutional_layer_gpu(Layer l, int num, float *n_delta)
         int offset_i = i * l.inputs;
         int offset_o = i * l.outputs;
         float *input = l.input + offset_i;
-        float *output = l.output + offset_o;
         float *delta_l = l.delta + offset_i;
         float *delta_n = n_delta + offset_o;
         gemm_gpu(1, 0, l.filters, l.ksize * l.ksize * l.input_c,

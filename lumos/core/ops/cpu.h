@@ -16,7 +16,7 @@ void add_cpu(float *data, int len, float x, int offset);
 
 void min_cpu(float *data, int num, float *space);
 void max_cpu(float *data, int num, float *space);
-float sum_cpu(float *data, int num);
+void sum_cpu(float *data, int num, float *space);
 void mean_cpu(float *data, int num, float *space);
 void variance_cpu(float *data, float mean, int num, float *space);
 

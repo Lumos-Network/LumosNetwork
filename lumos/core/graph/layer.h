@@ -66,11 +66,9 @@ typedef refresh Refresh;
 
 typedef void (*forward_gpu)  (struct layer, int);
 typedef void (*backward_gpu) (struct layer, int, float*);
-typedef void (*update_gpu) (struct layer, float, int, float*);
 typedef void (*refresh_gpu) (struct layer);
 typedef forward_gpu ForwardGpu;
 typedef backward_gpu BackwardGpu;
-typedef update_gpu UpdateGpu;
 typedef refresh_gpu RefreshGpu;
 
 typedef void (*sgdoptimizer) (struct layer, float, float, float, float, int, int);
@@ -178,7 +176,6 @@ struct layer{
 
     ForwardGpu forwardgpu;
     BackwardGpu backwardgpu;
-    UpdateGpu updategpu;
     RefreshGpu refreshgpu;
 
     SGDOptimizer sgdoptimizer;

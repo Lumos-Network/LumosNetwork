@@ -144,6 +144,7 @@ void weightinit_connect_layer(Layer l, FILE *fp)
 
 void forward_connect_layer(Layer l, int num)
 {
+    fill_cpu(l.output, num*l.outputs, 0, 1);
     gemm(0, 0, l.outputs, l.inputs, l.inputs, num, 1, l.kernel_weights, l.input, l.output);
     if (l.bias){
         add_bias(l.output, l.bias_weights, num, l.ksize, 1);

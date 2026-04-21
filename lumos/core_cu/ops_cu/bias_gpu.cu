@@ -28,13 +28,13 @@ __global__ void scale_bias_kernel(float *origin, float *bias, int batch, int n, 
 
 void add_bias_gpu(float *origin, float *bias, int batch, int n, int size)
 {
-    int num = n*size*batch;
+    size_t num = n*size*batch;
     add_bias_kernel<<<cuda_gridsize(num), BLOCK>>>(origin, bias, batch, n, size);
 }
 
 void scale_bias_gpu(float *origin, float *bias, int batch, int n, int size)
 {
-    int num = n*size*batch;
+    size_t num = n*size*batch;
     scale_bias_kernel<<<cuda_gridsize(num), BLOCK>>>(origin, bias, batch, n, size);
 }
 
@@ -74,7 +74,7 @@ __global__ void backward_bias_kernel(float *bias_delta, float *delta, int batch,
 void backward_bias_gpu(float *bias_delta, float *delta, int batch, int n, int size)
 {
     if(size == 1){
-        backward_bias_conn_kernel<<<cuda_gridsize(n), BLOCK>>>(bias_delta, delta, batch, n);
+        backward_bias_conn_kernel<<<cuda_gridsize(size_t(n)), BLOCK>>>(bias_delta, delta, batch, n);
     }else{
         backward_bias_kernel<<<n, BLOCK>>>(bias_delta, delta, batch, n, size);
     }

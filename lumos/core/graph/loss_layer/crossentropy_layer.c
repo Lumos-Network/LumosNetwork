@@ -47,9 +47,6 @@ Layer *make_crossentropy_layer(int group)
     l->weightinit = NULL;
     l->weightinitgpu = NULL;
 
-    l->update = NULL;
-    l->updategpu = NULL;
-
     l->sgdoptimizer = NULL;
     l->sgdoptimizergpu = NULL;
 

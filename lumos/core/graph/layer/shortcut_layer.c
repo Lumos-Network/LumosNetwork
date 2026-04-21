@@ -20,9 +20,6 @@ Layer *make_shortcut_layer(Layer *shortcut, int shortcuttype, char *active)
     l->weightinit = NULL;
     l->weightinitgpu = NULL;
 
-    l->update = NULL;
-    l->updategpu = NULL;
-
     l->sgdoptimizer = NULL;
     l->sgdoptimizergpu = NULL;
 

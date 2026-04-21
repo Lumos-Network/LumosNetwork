@@ -46,19 +46,20 @@ void max_cpu(float *data, int num, float *space)
     space[0] = max;
 }
 
-float sum_cpu(float *data, int num)
+void sum_cpu(float *data, int num, float *space)
 {
     float res = 0;
     for (int i = 0; i < num; ++i)
     {
         res += data[i];
     }
-    return res;
+    space[0] = res;
 }
 
 void mean_cpu(float *data, int num, float *space)
 {
-    space[0] = sum_cpu(data, num) / (float)num;
+    sum_cpu(data, num, space);
+    space[0] /= (float)num;
 }
 
 void variance_cpu(float *data, float mean, int num, float *space)
