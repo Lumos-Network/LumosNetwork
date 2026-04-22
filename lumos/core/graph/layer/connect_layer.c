@@ -145,9 +145,9 @@ void weightinit_connect_layer(Layer l, FILE *fp)
 void forward_connect_layer(Layer l, int num)
 {
     fill_cpu(l.output, num*l.outputs, 0, 1);
-    gemm(0, 0, l.outputs, l.inputs, l.inputs, num, 1, l.kernel_weights, l.input, l.output);
+    gemm(0, 1, num, l.inputs, l.outputs, l.inputs, 1, l.input, l.kernel_weights, l.output);
     if (l.bias){
-        add_bias(l.output, l.bias_weights, num, l.ksize, 1);
+        add_bias(l.output, l.bias_weights, num, l.outputs, 1);
     }
     activate_list(l.output, num*l.outputs, l.output, l.active);
 }
@@ -156,8 +156,8 @@ void backward_connect_layer(Layer l, int num, float *n_delta)
 {
     gradient_list(l.output, num*l.outputs, n_delta, l.active);
     if (l.bias) backward_bias(l.bias_delta, n_delta, num, l.outputs, 1);
-    gemm(1, 0, l.output_c, l.input_c, l.output_c, num, 1, l.kernel_weights, n_delta, l.delta);
-    gemm(0, 1, l.output_c, num, l.input_c, num, 1, n_delta, l.delta, l.kernel_weights_delta);
+    gemm(0, 0, num, l.outputs, l.outputs, l.inputs, 1, n_delta, l.kernel_weights, l.delta);
+    gemm(1, 0, num, l.outputs, num, l.inputs, 1, n_delta, l.delta, l.kernel_weights_delta);
 }
 
 void connect_layer_SGDOptimizer(Layer l, float rate, float momentum, float dampening, float decay, int nesterov, int maximize)
