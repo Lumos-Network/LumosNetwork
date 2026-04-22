@@ -53,7 +53,7 @@ void init_convolutional_layer(Layer *l, int w, int h, int c, int subdivision)
     l->output_c = l->filters;
     l->outputs = l->output_h * l->output_w * l->output_c;
 
-    l->workspace_size = l->ksize*l->ksize*l->input_c*l->output_h*l->output_w + l->filters*l->ksize*l->ksize*l->input_c;
+    l->workspace_size = l->ksize*l->ksize*l->input_c*l->output_h*l->output_w;
 
     l->output = calloc(subdivision*l->outputs, sizeof(float));
     l->delta = calloc(subdivision*l->inputs, sizeof(float));
@@ -149,14 +149,15 @@ void backward_convolutional_layer(Layer l, int num, float *n_delta)
         float *input = l.input + offset_i;
         float *delta_l = l.delta + offset_i;
         float *delta_n = n_delta + offset_o;
+        im2col(input, l.input_h, l.input_w, l.input_c, l.ksize, l.stride, l.pad, l.workspace);
+        gemm(0, 1, l.filters, l.output_h * l.output_w,
+             l.ksize * l.ksize * l.input_c, l.output_h * l.output_w, 1,
+             delta_n, l.workspace, l.kernel_weights_delta);
+        fill_cpu(l.workspace, l.input_c*l.ksize*l.ksize*l.output_h*l.output_w, 0, 1);
         gemm(1, 0, l.filters, l.ksize * l.ksize * l.input_c,
              l.filters, l.output_h * l.output_w, 1,
              l.kernel_weights, delta_n, l.workspace);
         col2im(l.workspace, l.ksize, l.stride, l.pad, l.input_h, l.input_w, l.input_c, delta_l);
-        im2col(input, l.input_h, l.input_w, l.input_c, l.ksize, l.stride, l.pad, l.workspace);
-        gemm(0, 1, l.filters, l.output_h * l.output_w,
-             l.ksize * l.ksize * l.input_c, l.output_h * l.output_w, 1,
-             delta_n, l.workspace, l.workspace + l.ksize * l.ksize * l.input_c * l.output_h * l.output_w);
     }
 }
 

@@ -113,9 +113,9 @@ void backward_graph(Graph *g, int coretype, int subdivision)
             } else {
                 l->backward(*l, subdivision, n_delta);
             }
-            if (i == 1){
+            if (i == 2){
                 FILE *fp = fopen("./backup/grad_c", "wb");
-                fwrite(l->delta, sizeof(float), subdivision*l->inputs, fp);
+                fwrite(l->kernel_weights_delta, sizeof(float), l->inputs*l->outputs, fp);
                 fclose(fp);
             }
         } else {

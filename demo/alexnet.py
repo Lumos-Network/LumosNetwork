@@ -49,7 +49,7 @@ def forward_hook(module, input, output):
 # grad_input 仅包含：[input_grad]
 def backward_hook(module, grad_input, grad_output):
     # print("gradshape:{}".format(grad_input[0].shape))
-    input_grad = grad_input[1]
+    input_grad = grad_input[2]
     shape = input_grad.shape
     print(shape)
     grad = input_grad.tolist()
@@ -57,8 +57,8 @@ def backward_hook(module, grad_input, grad_output):
     data = []
     with open("./backup/grad_py", "wb") as fp:
         for i in range(shape[0]):
-            # for j in range(shape[1]):
-            #     for k in range(shape[2]):
+        #     for j in range(shape[1]):
+        #         for k in range(shape[2]):
             data += grad[i]
         print(len(data))
         for i in range(len(data)):
@@ -136,7 +136,7 @@ data_transform = transforms.Compose([
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
 
-num_epochs = 1
+num_epochs = 4
 batch_size = 4
 train_data = MyDataset('./data/flower/train_test.txt', transform=data_transform)
 trainloader = torch.utils.data.DataLoader(dataset=train_data, batch_size=batch_size, shuffle=False)
@@ -169,7 +169,7 @@ for i in range(len(data_f)):
 fp.close()
 
 # model.l12.register_forward_hook(forward_hook)
-model.l13.register_backward_hook(backward_hook)
+model.l12.register_backward_hook(backward_hook)
 
 # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")
@@ -195,4 +195,28 @@ for epoch in range(num_epochs):
         #     print(f'[{epoch + 1}, {i + 1}] loss: {running_loss / 100:.3f}')
         #     running_loss = 0.0
         # print("loss: {}".format(outputs.item()))
+
+fp = open("./backup/LW_TP", "wb")
+data_f = []
+for name, param in model.named_parameters():
+    # print(f"Layer: {name}, Parameter Shape: {param.shape}") #param.shape [filters, channels, ksize, ksize]  [outputs, inputs]
+    if ("weight" in name and len(param.shape) == 4):
+        data = param.tolist()
+        for i in range(param.shape[0]):
+            for j in range(param.shape[1]):
+                for k in range(param.shape[2]):
+                    data_f += data[i][j][k]
+    if ("weight" in name and len(param.shape) == 2):
+        data = param.tolist()
+        for i in range(param.shape[0]):
+            data_f += data[i]
+    if ("weight" in name and len(param.shape) == 1):
+        data_f += param.tolist()
+    if ("bias" in name):
+        data = param.tolist()
+        data_f += data
+# print(len(data_f))
+for i in range(len(data_f)):
+    fp.write(struct.pack('f', data_f[i]))
+fp.close()
 

@@ -156,8 +156,8 @@ void backward_connect_layer(Layer l, int num, float *n_delta)
 {
     gradient_list(l.output, num*l.outputs, n_delta, l.active);
     if (l.bias) backward_bias(l.bias_delta, n_delta, num, l.outputs, 1);
+    gemm(1, 0, num, l.inputs, num, l.outputs, 1, l.input, n_delta, l.kernel_weights_delta);
     gemm(0, 0, num, l.outputs, l.outputs, l.inputs, 1, n_delta, l.kernel_weights, l.delta);
-    gemm(1, 0, num, l.outputs, num, l.inputs, 1, n_delta, l.delta, l.kernel_weights_delta);
 }
 
 void connect_layer_SGDOptimizer(Layer l, float rate, float momentum, float dampening, float decay, int nesterov, int maximize)

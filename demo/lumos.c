@@ -12,5 +12,5 @@ int main()
     // resnet18("gpu", "./backup/LW_py");
     // cifar("gpu", NULL);
     // darknet("gpu", NULL);
-    alexnet_flower("cpu", "./backup/LW_py");
+    alexnet_flower("gpu", NULL);
 }
