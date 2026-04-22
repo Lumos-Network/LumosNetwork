@@ -1,10 +1,6 @@
 LINUX=1
 TEST=0
-<<<<<<< HEAD
-DEBUG=1
-=======
 DEBUG=0
->>>>>>> develop
 MEMDEBUG=0
 
 ARCH=	-gencode arch=compute_52,code=[sm_52,compute_52] \
@@ -100,20 +96,6 @@ VPATH+= ./demo
 endif
 
 OBJ=	avgpool_layer.o connect_layer.o convolutional_layer.o graph.o maxpool_layer.o \
-<<<<<<< HEAD
-		softmax_layer.o im2col_layer.o \
-		mse_layer.o \
-		active.o bias.o cpu.o gemm.o im2col.o image.o pooling.o random.o softmax.o shortcut.o normalize.o \
-		session.o \
-		progress_bar.o \
-		binary_f.o text_f.o \
-		str_ops.o logging.o
-
-OBJ+= 	active_gpu.o bias_gpu.o cpu_gpu.o gemm_gpu.o im2col_gpu.o pooling_gpu.o softmax_gpu.o shortcut_gpu.o normalize_gpu.o \
-	  	avgpool_layer_gpu.o maxpool_layer_gpu.o connect_layer_gpu.o convolutional_layer_gpu.o \
-	  	softmax_layer_gpu.o im2col_layer_gpu.o \
-		mse_layer_gpu.o
-=======
 		softmax_layer.o dropout_layer.o normalization_layer.o \
 		mse_layer.o mae_layer.o ce_layer.o logsoftmax_layer.o crossentropy_layer.o \
 		active.o bias.o cpu.o gemm.o im2col.o image.o pooling.o random.o softmax.o normalize.o \
@@ -127,7 +109,6 @@ OBJ+= 	active_gpu.o bias_gpu.o cpu_gpu.o gemm_gpu.o im2col_gpu.o pooling_gpu.o s
 	  	softmax_layer_gpu.o dropout_layer_gpu.o normalization_layer_gpu.o \
 		mse_layer_gpu.o mae_layer_gpu.o ce_layer_gpu.o logsoftmax_layer_gpu.o nll_layer_gpu.o crossentropy_layer_gpu.o \
 		normalization_layer_gpu.o normalization_layer.o shortcut_layer.o shortcut_layer_gpu.o
->>>>>>> develop
 
 EXECOBJA=lumos.o
 
@@ -144,11 +125,7 @@ OBJ+=	layer_delta_call.o
 endif
 
 ifeq ($(TEST), 0)
-<<<<<<< HEAD
-OBJ+=	xor.o lenet5_mnist.o
-=======
 OBJ+=	xor.o lenet5_mnist.o lenet5_fmnist.o alexnet_flower.o vgg16_cifar10.o resnet18.o
->>>>>>> develop
 endif
 
 ifeq ($(TEST),1)
@@ -173,11 +150,7 @@ EXECOBJ = $(addprefix $(OBJDIR), $(EXECOBJA))
 OBJS = $(addprefix $(OBJDIR), $(OBJ))
 DEPS = makefile
 
-<<<<<<< HEAD
-all: obj $(EXEC)
-=======
 all: obj backup $(EXEC)
->>>>>>> develop
 
 $(EXEC): $(OBJS) $(EXECOBJ)
 	$(CC) $(COMMON) $(CFLAGS) $^ -o $@ $(LDFLAGS)
@@ -191,13 +164,10 @@ $(OBJDIR)%.o: %.cu $(DEPS)
 obj:
 	mkdir obj
 
-<<<<<<< HEAD
-=======
 backup:
 	mkdir backup
 	mkdir ./backup/data
 
->>>>>>> develop
 .PHONY: clean
 
 clean:
