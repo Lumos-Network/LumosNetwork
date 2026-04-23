@@ -127,15 +127,14 @@ void forward_normalization_layer(Layer l, int num)
 void backward_normalization_layer(Layer l, int num, float *n_delta)
 {
     gradient_list(l.output, num*l.outputs, n_delta, l.active);
-    memcpy(l.delta, n_delta, num*l.inputs*sizeof(float));
     if (l.affine){
         backward_bias(l.bias_delta, n_delta, num, l.filters, l.ksize);
         gradient_scale(l.norm_x, n_delta, l.ksize, l.filters, num, l.kernel_weights_delta);
-        scale_bias(l.delta, l.kernel_weights, num, l.filters, l.ksize);
+        scale_bias(n_delta, l.kernel_weights, num, l.filters, l.ksize);
     }
-    gradient_normalize_mean(l.delta, l.variance, l.ksize, l.filters, num, l.mean_delta);
-    gradient_normalize_variance(l.delta, l.input, l.mean, l.variance, l.ksize, l.filters, num, l.variance_delta);
-    gradient_normalize_cpu(l.input, l.mean, l.variance, l.mean_delta, l.variance_delta, l.ksize, l.filters, num, l.delta, l.delta);
+    gradient_normalize_mean(n_delta, l.variance, l.ksize, l.filters, num, l.mean_delta);
+    gradient_normalize_variance(n_delta, l.input, l.mean, l.variance, l.ksize, l.filters, num, l.variance_delta);
+    gradient_normalize_cpu(l.input, l.mean, l.variance, l.mean_delta, l.variance_delta, l.ksize, l.filters, num, n_delta, l.delta);
 }
 
 void normalization_layer_SGDOptimizer(Layer l, float rate, float momentum, float dampening, float decay, int nesterov, int maximize)
@@ -188,15 +187,17 @@ void refresh_normalization_layer_weights(Layer l)
 
 void save_normalization_layer_weights(Layer l, FILE *fp)
 {
-    fwrite(l.kernel_weights, sizeof(float), l.filters, fp);
-    fwrite(l.bias_weights, sizeof(float), l.filters, fp);
     fwrite(l.rolling_mean, sizeof(float), l.filters, fp);
     fwrite(l.rolling_variance, sizeof(float), l.filters, fp);
+    fwrite(l.kernel_weights, sizeof(float), l.filters, fp);
+    fwrite(l.bias_weights, sizeof(float), l.filters, fp);
 }
 
 void zerograd_normalization_layer(Layer l, int subdivision)
 {
     fill_cpu(l.delta, subdivision*l.inputs, 0, 1);
+    fill_cpu(l.mean_delta, l.filters, 0, 1);
+    fill_cpu(l.variance_delta, l.filters, 0, 1);
     if (l.affine){
         fill_cpu(l.kernel_weights_delta, l.filters, 0, 1);
         fill_cpu(l.bias_delta, l.filters, 0, 1);

@@ -220,7 +220,7 @@ data_transform = transforms.Compose([
 num_epochs = 4
 batch_size = 4
 train_data = MyDataset('./data/flower/train_test.txt', transform=data_transform)
-trainloader = torch.utils.data.DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
+trainloader = torch.utils.data.DataLoader(dataset=train_data, batch_size=batch_size, shuffle=False)
 
 model = ResNet(num_classes=5)
 optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)

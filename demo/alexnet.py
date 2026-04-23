@@ -33,9 +33,9 @@ def forward_hook(module, input, output):
     data_f = []
     with open("./backup/in_py", "wb") as fp:
         for i in range(shape[0]):
-            # for j in range(shape[1]):
-            #     for k in range(shape[2]):
-            data_f += data[i]
+            for j in range(shape[1]):
+                for k in range(shape[2]):
+                    data_f += data[i][j][k]
         for i in range(len(data_f)):
             fp.write(struct.pack('f', data_f[i]))
         fp.close()
@@ -49,17 +49,17 @@ def forward_hook(module, input, output):
 # grad_input 仅包含：[input_grad]
 def backward_hook(module, grad_input, grad_output):
     # print("gradshape:{}".format(grad_input[0].shape))
-    input_grad = grad_input[2]
+    input_grad = grad_input[1]
     shape = input_grad.shape
     print(shape)
     grad = input_grad.tolist()
     # print(grad)
     data = []
     with open("./backup/grad_py", "wb") as fp:
-        for i in range(shape[0]):
+        # for i in range(shape[0]):
         #     for j in range(shape[1]):
         #         for k in range(shape[2]):
-            data += grad[i]
+        data += grad
         print(len(data))
         for i in range(len(data)):
             fp.write(struct.pack('f', data[i]))
@@ -92,40 +92,50 @@ class AlexNet(nn.Module):
         super(AlexNet, self).__init__()
         # 卷积部分：5层卷积+3层池化
         self.l1 = nn.Conv2d(3, 96, kernel_size=11, stride=4, padding=2)  # 输入3通道，输出96通道
-        self.l2 = nn.MaxPool2d(kernel_size=3, stride=2)  # 池化
-        self.l3 = nn.Conv2d(96, 256, kernel_size=5, padding=2)
-        self.l4 = nn.MaxPool2d(kernel_size=3, stride=2)
-        self.l5 = nn.Conv2d(256, 384, kernel_size=3, padding=1)
-        self.l6 = nn.Conv2d(384, 384, kernel_size=3, padding=1)
-        self.l7 = nn.Conv2d(384, 256, kernel_size=3, padding=1)
-        self.l8 = nn.MaxPool2d(kernel_size=3, stride=2)
+        self.l2 = nn.BatchNorm2d(96)
+        self.l3 = nn.MaxPool2d(kernel_size=3, stride=2)  # 池化
+        self.l4 = nn.Conv2d(96, 256, kernel_size=5, padding=2)
+        self.l5 = nn.BatchNorm2d(256)
+        self.l6 = nn.MaxPool2d(kernel_size=3, stride=2)
+        self.l7 = nn.Conv2d(256, 384, kernel_size=3, padding=1)
+        self.l8 = nn.BatchNorm2d(384)
+        self.l9 = nn.Conv2d(384, 384, kernel_size=3, padding=1)
+        self.l10 = nn.BatchNorm2d(384)
+        self.l11 = nn.Conv2d(384, 256, kernel_size=3, padding=1)
+        self.l12 = nn.BatchNorm2d(256)
+        self.l13 = nn.MaxPool2d(kernel_size=3, stride=2)
 
         # self.l9 = nn.Dropout(p=0.5)
-        self.l10 = nn.Linear(256 * 6 * 6, 4096)
+        self.l14 = nn.Linear(256 * 6 * 6, 4096)
         # self.l11 = nn.Dropout(p=0.5)
-        self.l12 = nn.Linear(4096, 4096)
-        self.l13 = nn.Linear(4096, num_classes)
+        self.l15 = nn.Linear(4096, 4096)
+        self.l16 = nn.Linear(4096, num_classes)
 
-        self.l14 = nn.CrossEntropyLoss()
+        self.l17 = nn.CrossEntropyLoss()
     
     # 前向传播：定义数据在网络里的流动路径
     def forward(self, x, labels):
-        x = torch.relu(self.l1(x))
-        x = self.l2(x)
-        x = torch.relu(self.l3(x))
+        x = self.l1(x)
+        x = torch.relu(self.l2(x))
+        x = self.l3(x)
         x = self.l4(x)
         x = torch.relu(self.l5(x))
-        x = torch.relu(self.l6(x))
-        x = torch.relu(self.l7(x))
-        x = self.l8(x)
+        x = self.l6(x)
+        x = self.l7(x)
+        x = torch.relu(self.l8(x))
+        x = self.l9(x)
+        x = torch.relu(self.l10(x))
+        x = self.l11(x)
+        x = torch.relu(self.l12(x))
+        x = self.l13(x)
         
         x = torch.flatten(x, start_dim=1)
         # x = self.l9(x)
-        x = torch.relu(self.l10(x))
+        x = torch.relu(self.l14(x))
         # x = self.l11(x)
-        x = torch.relu(self.l12(x))
-        x = self.l13(x)
-        x = self.l14(x, labels)
+        x = torch.relu(self.l15(x))
+        x = self.l16(x)
+        x = self.l17(x, labels)
         # x = self.l15(x, labels)
         return x
 
@@ -136,7 +146,7 @@ data_transform = transforms.Compose([
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
 
-num_epochs = 4
+num_epochs = 1
 batch_size = 4
 train_data = MyDataset('./data/flower/train_test.txt', transform=data_transform)
 trainloader = torch.utils.data.DataLoader(dataset=train_data, batch_size=batch_size, shuffle=False)
@@ -168,7 +178,7 @@ for i in range(len(data_f)):
     fp.write(struct.pack('f', data_f[i]))
 fp.close()
 
-# model.l12.register_forward_hook(forward_hook)
+# model.l1.register_forward_hook(forward_hook)
 model.l12.register_backward_hook(backward_hook)
 
 # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

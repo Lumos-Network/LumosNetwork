@@ -102,15 +102,14 @@ void forward_normalization_layer_gpu(Layer l, int num)
 void backward_normalization_layer_gpu(Layer l, int num, float *n_delta)
 {
     gradient_list_gpu(l.output, num*l.outputs, n_delta, l.active);
-    cudaMemcpy(l.delta, n_delta, num*l.inputs*sizeof(float), cudaMemcpyDeviceToDevice);
     if (l.affine){
         backward_bias_gpu(l.bias_delta, n_delta, num, l.filters, l.ksize);
         gradient_scale_gpu(l.norm_x, n_delta, l.ksize, l.filters, num, l.kernel_weights_delta);
-        scale_bias_gpu(l.delta, l.kernel_weights, num, l.filters, l.ksize);
+        scale_bias_gpu(n_delta, l.kernel_weights, num, l.filters, l.ksize);
     }
-    gradient_normalize_mean_gpu(l.delta, l.variance, l.ksize, l.filters, num, l.mean_delta);
-    gradient_normalize_variance_gpu(l.delta, l.input, l.mean, l.variance, l.ksize, l.filters, num, l.variance_delta);
-    gradient_normalize_gpu(l.input, l.mean, l.variance, l.mean_delta, l.variance_delta, l.ksize, l.filters, num, l.delta, l.delta);
+    gradient_normalize_mean_gpu(n_delta, l.variance, l.ksize, l.filters, num, l.mean_delta);
+    gradient_normalize_variance_gpu(n_delta, l.input, l.mean, l.variance, l.ksize, l.filters, num, l.variance_delta);
+    gradient_normalize_gpu(l.input, l.mean, l.variance, l.mean_delta, l.variance_delta, l.ksize, l.filters, num, n_delta, l.delta);
 }
 
 void normalization_layer_SGDOptimizer_gpu(Layer l, float rate, float momentum, float dampening, float decay, int nesterov, int maximize)
@@ -171,10 +170,10 @@ void save_normalization_layer_weights_gpu(Layer l, FILE *fp)
     cudaMemcpy(bias_weights, l.bias_weights, l.filters*sizeof(float), cudaMemcpyDeviceToHost);
     cudaMemcpy(rolling_mean, l.rolling_mean, l.filters*sizeof(float), cudaMemcpyDeviceToHost);
     cudaMemcpy(rolling_variance, l.rolling_variance, l.filters*sizeof(float), cudaMemcpyDeviceToHost);
-    fwrite(kernel_weights, sizeof(float), l.filters, fp);
-    fwrite(bias_weights, sizeof(float), l.filters, fp);
     fwrite(rolling_mean, sizeof(float), l.filters, fp);
     fwrite(rolling_variance, sizeof(float), l.filters, fp);
+    fwrite(kernel_weights, sizeof(float), l.filters, fp);
+    fwrite(bias_weights, sizeof(float), l.filters, fp);
     free(kernel_weights);
     free(bias_weights);
     free(rolling_mean);

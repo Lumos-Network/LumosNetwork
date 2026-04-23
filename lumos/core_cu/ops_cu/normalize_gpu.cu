@@ -4,12 +4,9 @@ __global__ void  fast_mean_kernel(float *x, int batch, int filters, int spatial,
 {
     const int threads = BLOCK;
     __shared__ float local[threads];
-
     int id = threadIdx.x;
     local[id] = 0;
-
     int filter = blockIdx.x;
-
     int i, j;
     for(j = 0; j < batch; ++j){
         for(i = 0; i < spatial; i += threads){
@@ -17,9 +14,7 @@ __global__ void  fast_mean_kernel(float *x, int batch, int filters, int spatial,
             local[id] += (i+id < spatial) ? x[index] : 0;
         }
     }
-
     __syncthreads();
-
     if(id == 0){
         mean[filter] = 0;
         for(i = 0; i < threads; ++i){
@@ -33,23 +28,17 @@ __global__ void  fast_variance_kernel(float *x, float *mean, int batch, int filt
 {
     const int threads = BLOCK;
     __shared__ float local[threads];
-
     int id = threadIdx.x;
     local[id] = 0;
-
     int filter = blockIdx.x;
-
     int i, j;
     for(j = 0; j < batch; ++j){
         for(i = 0; i < spatial; i += threads){
             int index = j*spatial*filters + filter*spatial + i + id;
-
             local[id] += (i+id < spatial) ? powf((x[index] - mean[filter]), 2) : 0;
         }
     }
-
     __syncthreads();
-
     if(id == 0){
         variance[filter] = 0;
         for(i = 0; i < threads; ++i){
@@ -74,7 +63,7 @@ __global__ void normalize_kernel(float *data, float *mean, float *variance, int 
     int index = (blockIdx.x + blockIdx.y*gridDim.x) * blockDim.x + threadIdx.x;
     if (index >= subdivision*num*features) return;
     int f = (index/num)%features;
-    space[index] = (space[index] - mean[f])/(sqrtf(variance[f] + .0000001f));
+    space[index] = (data[index] - mean[f])/(sqrtf(variance[f] + .00001f));
 }
 
 void normalize_gpu(float *data, float *mean, float *variance, int num, int features, int subdivision, float *space)
@@ -108,7 +97,7 @@ __global__ void fast_mean_delta_kernel(float *delta, float *variance, int batch,
         for(i = 0; i < threads; ++i){
             mean_delta[filter] += local[i];
         }
-        mean_delta[filter] *= (-1.f/sqrtf(variance[filter] + .0000001f));
+        mean_delta[filter] *= (-1.f/sqrtf(variance[filter] + .00001f));
     }
 }
 
@@ -138,7 +127,7 @@ __global__ void  fast_variance_delta_kernel(float *x, float *delta, float *mean,
         for(i = 0; i < threads; ++i){
             variance_delta[filter] += local[i];
         }
-        variance_delta[filter] *= -.5f * powf(variance[filter] + .0000001f, (float)(-3.f/2.f));
+        variance_delta[filter] *= -.5f * powf(variance[filter] + .00001f, (float)(-3.f/2.f));
     }
 }
 
@@ -152,19 +141,19 @@ void gradient_normalize_variance_gpu(float *n_delta, float *input, float *mean, 
     fast_variance_delta_kernel<<<features, BLOCK>>>(input, n_delta, mean, variance, subdivision, features, num, variance_delta);
 }
 
-__global__ void normalize_delta_kernel(int N, float *x, float *mean, float *variance, float *mean_delta, float *variance_delta, int batch, int filters, int spatial, float *delta)
+__global__ void normalize_delta_kernel(int N, float *x, float *mean, float *variance, float *mean_delta, float *variance_delta, int batch, int filters, int spatial, float *n_delta, float *l_delta)
 {
     int index = (blockIdx.x + blockIdx.y*gridDim.x) * blockDim.x + threadIdx.x;
     if (index >= N) return;
     int f = (index/spatial)%filters;
     
-    delta[index] = delta[index] * 1.f/(sqrtf(variance[f] + .0000001f)) + variance_delta[f] * 2.f * (x[index] - mean[f]) / (spatial * batch) + mean_delta[f]/(spatial*batch);
+    l_delta[index] = n_delta[index] * 1.f/(sqrtf(variance[f] + .00001f)) + variance_delta[f] * 2.f * (x[index] - mean[f]) / (spatial * batch) + mean_delta[f]/(spatial*batch);
 }
 
 void gradient_normalize_gpu(float *input, float *mean, float *variance, float *mean_delta, float *variance_delta, int num, int features, int subdivision, float *n_delta, float *l_delta)
 {
     size_t N = subdivision*features*num;
-    normalize_delta_kernel<<<cuda_gridsize(N), BLOCK>>>(N, input, mean, variance, mean_delta, variance_delta, num, features, subdivision, n_delta);
+    normalize_delta_kernel<<<cuda_gridsize(N), BLOCK>>>(N, input, mean, variance, mean_delta, variance_delta, num, features, subdivision, n_delta, l_delta);
 }
 
 __global__ void gradient_scale_kernel(float *norm_x, float *n_delta, int num, int features, int subdivision, float *space)

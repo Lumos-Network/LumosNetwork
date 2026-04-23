@@ -104,7 +104,6 @@ void backward_graph(Graph *g, int coretype, int subdivision)
     Node *layer = g->tail;
     Layer *l;
     float *n_delta;
-    int i = 0;
     for (;;){
         if (layer){
             l = layer->l;
@@ -113,15 +112,9 @@ void backward_graph(Graph *g, int coretype, int subdivision)
             } else {
                 l->backward(*l, subdivision, n_delta);
             }
-            if (i == 2){
-                FILE *fp = fopen("./backup/grad_c", "wb");
-                fwrite(l->kernel_weights_delta, sizeof(float), l->inputs*l->outputs, fp);
-                fclose(fp);
-            }
         } else {
             break;
         }
-        i += 1;
         layer = layer->head;
         n_delta = l->delta;
     }

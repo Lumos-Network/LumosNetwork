@@ -117,7 +117,6 @@ class CIFAR(nn.Module):
         self.l21 = nn.Conv2d(512, 10, kernel_size=1, stride=1, padding=1)
         self.l22 = nn.AvgPool2d(9, 9, 0)
         self.l23 = nn.CrossEntropyLoss()
-        self.l24 = nn.ConvTranspose2d(10, 512, kernel_size=9, stride=1, padding=0)
 
     def forward(self, x, labels):
         x = self.l1(x)
@@ -154,9 +153,9 @@ data_transform = transforms.Compose([
 ])
 
 num_epochs = 1
-batch_size = 1
+batch_size = 4
 train_data = MyDataset('./data/cifar10/train_py_t.txt', transform=data_transform)
-trainloader = torch.utils.data.DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
+trainloader = torch.utils.data.DataLoader(dataset=train_data, batch_size=batch_size, shuffle=False)
 
 model = CIFAR(num_classes=10)
 optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
