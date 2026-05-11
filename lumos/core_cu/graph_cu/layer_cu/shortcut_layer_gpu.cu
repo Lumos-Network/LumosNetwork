@@ -42,7 +42,7 @@ void backward_shortcut_layer_gpu(Layer l, int num, float *n_delta)
 {
     Layer *shortcut = l.shortcut;
     if (l.shortcut_type == SHORT){
-        cudaMemcpy(shortcut->delta, n_delta, num*l.outputs*sizeof(float), cudaMemcpyDeviceToDevice);
+        matrix_add_gpu(shortcut->delta, n_delta, num*l.outputs, shortcut->delta);
     } else {
         gradient_list_gpu(l.output, num*l.outputs, l.workspace, l.active);
         matrix_multiply_gpu(l.workspace, n_delta, num*l.inputs, l.delta);

@@ -59,7 +59,7 @@ Layer *make_crossentropy_layer(int group)
     l->zerogradlayer = zerograd_crossentropy_layer;
     l->zerogradlayergpu = zerograd_crossentropy_layer_gpu;
 
-    fprintf(stderr, "CrossEntropy             Layer    :    [output=%4d]\n", 1);
+    fprintf(stderr, "CrossEntropy    Layer    :    [output=%4d]\n", 1);
     return l;
 }
 

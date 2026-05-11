@@ -31,9 +31,9 @@ struct node{
 Graph *create_graph();
 
 void append_layer2grpah(Graph *graph, Layer *l);
-void init_graph(Graph *g, int w, int h, int c, int coretype, int subdivision, int group, int optimizer, char *weights_path);
+void init_graph(Graph *g, int w, int h, int c, int coretype, int subdivision, int group, int optimizer, char *weights_path, float *input);
 void set_graph(Graph *g, float *space, float *truth, float *loss);
-void forward_graph(Graph *g, float *input, int coretype, int subdivision);
+void forward_graph(Graph *g, int coretype, int subdivision);
 void backward_graph(Graph *g, int coretype, int subdivision);
 void refresh_graph(Graph *g, int coretype);
 void save_weights(Graph *g, int coretype, FILE *fp);

@@ -23,7 +23,7 @@ void append_layer2grpah(Graph *graph, Layer *l)
     if (graph->head == NULL) graph->head = layer;
 }
 
-void init_graph(Graph *g, int w, int h, int c, int coretype, int subdivision, int group, int optimizer, char *weights_path)
+void init_graph(Graph *g, int w, int h, int c, int coretype, int subdivision, int group, int optimizer, char *weights_path, float *input)
 {
     fprintf(stderr, "\nStart To Init Graph\n");
     fprintf(stderr, "[Lumos]                     Inputs         Outputs\n");
@@ -40,6 +40,7 @@ void init_graph(Graph *g, int w, int h, int c, int coretype, int subdivision, in
             l = layer->l;
             l->optimizer = optimizer;
             l->detect = g->detect;
+            l->input = input;
             if (coretype == GPU){
                 l->initializegpu(l, w, h, c, subdivision);
                 if (l->weightinitgpu) l->weightinitgpu(*l, fp);
@@ -54,6 +55,7 @@ void init_graph(Graph *g, int w, int h, int c, int coretype, int subdivision, in
         w = l->output_w;
         h = l->output_h;
         c = l->output_c;
+        input = l->output;
     }
     if (fp){
         fclose(fp);
@@ -77,7 +79,7 @@ void set_graph(Graph *g, float *space, float *truth, float *loss)
     }
 }
 
-void forward_graph(Graph *g, float *input, int coretype, int subdivision)
+void forward_graph(Graph *g, int coretype, int subdivision)
 {
     Node *layer = g->head;
     Layer *l;
@@ -85,7 +87,6 @@ void forward_graph(Graph *g, float *input, int coretype, int subdivision)
         if (layer){
             l = layer->l;
             l->status = g->status;
-            l->input = input;
             if (coretype == GPU){
                 l->forwardgpu(*l, subdivision);
             } else {
@@ -95,7 +96,6 @@ void forward_graph(Graph *g, float *input, int coretype, int subdivision)
             break;
         }
         layer = layer->next;
-        input = l->output;
     }
 }
 

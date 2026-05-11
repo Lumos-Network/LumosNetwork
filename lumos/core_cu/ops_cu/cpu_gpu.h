@@ -10,6 +10,7 @@
 #include <stdlib.h>
 
 #include "gpu.h"
+#include "cpu.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,6 +40,9 @@ void maximum_gpu(float *data_a, float *data_b, int num, float *space);
 void addcdiv_gpu(float *input, float *data_a, float *data_b, float x, int num, float *space);
 
 void exp_list_gpu(float *data, int num, float *space, float *ALPHA);
+
+void array_cat_gpu(float **datas, int **shapes, int num, int dims, int cdim, float *space);
+void array_split_gpu(float *data, int **shapes, int num, int dims, int cdim, float **space);
 
 #ifdef __cplusplus
 }

@@ -22,7 +22,7 @@ extern "C" {
 
 typedef enum {
     CONVOLUTIONAL, CONNECT, IM2COL, MAXPOOL, AVGPOOL, GLOBALMAX, GLOBALAVG, \
-    DROPOUT, SOFTMAX, LOGSOFTMAX, SHORTCUT, NORMALIZE, DECONVOLUTIONAL, \
+    DROPOUT, SOFTMAX, LOGSOFTMAX, SHORTCUT, NORMALIZE, DECONVOLUTIONAL, INCEPTION, \
     MSE, MAE, CE, NLL, CROSSENTROPY
 } LayerType;
 
@@ -142,6 +142,12 @@ struct layer{
     float *detect; //预测值
     Layer *shortcut;
     int shortcut_type;
+
+    Layer **inception;
+    int dim;
+    float **inception_input;
+    float **inception_delta;
+    int **shapes;
 
     float *kernel_weights;
     float *bias_weights;

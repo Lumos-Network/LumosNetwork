@@ -178,3 +178,60 @@ int find_max(float *data, int num)
     }
     return max_index;
 }
+
+void acc_multy_int(int *data, int num, int index, int flag, int *res)
+{
+    res[0] = 1;
+    if (flag == 0){
+        for (int i = 0; i < index+1; ++i){
+            res[0] *= data[i];
+        }
+    } else {
+        for (int i = index+1; i < num; ++i){
+            res[0] *= data[i];
+        }
+    }
+}
+
+void copy_nums(int **shapes, int num, int dims, int cdim, int *cnums)
+{
+    int res = 0;
+    for (int i = 0; i < num; ++i){
+        acc_multy_int(shapes[i], dims, cdim, 0, &res);
+        cnums[i] = res;
+    }
+}
+
+void array_cat(float **datas, int **shapes, int num, int dims, int cdim, float *space)
+{
+    int times = 0;
+    int *cnums = malloc(num*sizeof(int));
+    int offset = 0;
+    acc_multy_int(shapes[0], dims, cdim, 1, &times);
+    copy_nums(shapes, num, dims, cdim, cnums);
+    for (int i = 0; i < times; ++i){
+        for (int j = 0; j < num; ++j){
+            float *data = datas[j] + i*cnums[j];
+            memcpy(space+offset, data, cnums[j]*sizeof(float));
+            offset += cnums[j];
+        }
+    }
+    free(cnums);
+}
+
+void array_split(float *data, int **shapes, int num, int dims, int cdim, float **space)
+{
+    int times = 0;
+    int *cnums = malloc(num*sizeof(int));
+    int offset = 0;
+    acc_multy_int(shapes[0], dims, cdim, 1, &times);
+    copy_nums(shapes, num, dims, cdim, cnums);
+    for (int i = 0; i < times; ++i){
+        for (int j = 0; j < num; ++j){
+            float *x = space[j] + i*cnums[j];
+            memcpy(x, data+offset, cnums[j]*sizeof(float));
+            offset += cnums[j];
+        }
+    }
+    free(cnums);
+}
