@@ -36,6 +36,9 @@ Layer *make_convolutional_layer(int filters, int ksize, int stride, int pad, int
     l->zerogradlayer = zerograd_convolutional_layer;
     l->zerogradlayergpu = zerograd_convolutional_layer_gpu;
 
+    l->initcptkernel = NULL;
+    l->initcptbias = NULL;
+
     fprintf(stderr, "Convolutional   Layer    :    [filters=%2d, ksize=%2d, stride=%2d, pad=%2d, bias=%d, active=%s]\n",
             l->filters, l->ksize, l->stride, l->pad, l->bias, active);
     return l;
@@ -90,7 +93,7 @@ void weightinit_convolutional_layer(Layer l, FILE *fp)
         return;
     }
     if (l.initcptkernel == NULL){
-        convolutional_kaiming_uniform_kernel_init(l, sqrt(5.0), "fan_in", "leaky_relu");
+        convolutional_kaiming_uniform_kernel_init(l, sqrt(5.0), "fan_in", "leaky");
     } else {
         InitCptKernel initcptkernel = *l.initcptkernel;
         if (initcptkernel.initype == CONSTANT_I) convolutional_constant_kernel_init(l, initcptkernel.x);
@@ -100,7 +103,7 @@ void weightinit_convolutional_layer(Layer l, FILE *fp)
         else if (initcptkernel.initype == XAVIER_UNIFORM_I) convolutional_xavier_uniform_kernel_init(l, initcptkernel.a);
         else if (initcptkernel.initype == KAIMING_NORMAL_I) convolutional_kaiming_normal_kernel_init(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
         else if (initcptkernel.initype == KAIMING_UNIFORM_I) convolutional_kaiming_uniform_kernel_init(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
-        else convolutional_kaiming_uniform_kernel_init(l, sqrt(5.0), "fan_in", "leaky_relu");
+        else convolutional_kaiming_uniform_kernel_init(l, sqrt(5.0), "fan_in", "leaky");
     }
     if (l.bias){
         if (l.initcptbias == NULL){
@@ -279,7 +282,7 @@ void convolutional_kaiming_normal_kernel_init(Layer l, float a, char *mode, char
     if (0 == strcmp(nonlinearity, "sigmoid")) a= 1;
     else if (0 == strcmp(nonlinearity, "tanh")) a = 5.0/3;
     else if (0 == strcmp(nonlinearity, "relu")) a = sqrt(2.0);
-    else if (0 == strcmp(nonlinearity, "leaky_relu")){
+    else if (0 == strcmp(nonlinearity, "leaky")){
         if (a == 0) a = 0.01;
         a = sqrt(2.0 / (1 + a*a));
     }
@@ -301,7 +304,7 @@ void convolutional_kaiming_uniform_kernel_init(Layer l, float a, char *mode, cha
     if (0 == strcmp(nonlinearity, "sigmoid")) a= 1;
     else if (0 == strcmp(nonlinearity, "tanh")) a = 5.0/3;
     else if (0 == strcmp(nonlinearity, "relu")) a = sqrt(2.0);
-    else if (0 == strcmp(nonlinearity, "leaky_relu")){
+    else if (0 == strcmp(nonlinearity, "leaky")){
         if (a == 0) a = 0.01;
         a = sqrt(2.0 / (1 + a*a));
     }

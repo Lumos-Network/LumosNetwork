@@ -55,7 +55,7 @@ void weightinit_convolutional_layer_gpu(Layer l, FILE *fp)
         return;
     }
     char *def_mode = (char *)"fan_in";
-    char *def_nonlinearity = (char *)"leaky_relu";
+    char *def_nonlinearity = (char *)"leaky";
     if (l.initcptkernel == NULL){
         convolutional_kaiming_uniform_kernel_init_gpu(l, sqrt(5.0), def_mode, def_nonlinearity);
     } else {
@@ -264,7 +264,7 @@ void convolutional_kaiming_normal_kernel_init_gpu(Layer l, float a, char *mode, 
     if (0 == strcmp(nonlinearity, "sigmoid")) a= 1;
     else if (0 == strcmp(nonlinearity, "tanh")) a = 5.0/3;
     else if (0 == strcmp(nonlinearity, "relu")) a = sqrt(2.0);
-    else if (0 == strcmp(nonlinearity, "leaky_relu")){
+    else if (0 == strcmp(nonlinearity, "leaky")){
         if (a == 0) a = 0.01;
         a = sqrt(2.0 / (1 + a*a));
     }
@@ -289,7 +289,7 @@ void convolutional_kaiming_uniform_kernel_init_gpu(Layer l, float a, char *mode,
     if (0 == strcmp(nonlinearity, "sigmoid")) a= 1;
     else if (0 == strcmp(nonlinearity, "tanh")) a = 5.0/3;
     else if (0 == strcmp(nonlinearity, "relu")) a = sqrt(2.0);
-    else if (0 == strcmp(nonlinearity, "leaky_relu")){
+    else if (0 == strcmp(nonlinearity, "leaky")){
         if (a == 0) a = 0.01;
         a = sqrt(2.0 / (1 + a*a));
     }

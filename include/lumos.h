@@ -43,14 +43,8 @@ Layer *make_inception_layer(Layer **inception, int num, int dim);
 Layer *make_normalization_layer(float momentum, int affine, char *active);
 Layer *make_shortcut_layer(Layer *shortcut, int shortcuttype, char *active);
 Layer *make_maxpool_layer(int ksize, int stride, int pad);
-Layer *make_softmax_layer(int group);
-Layer *make_logsoftmax_layer(int group);
 
-Layer *make_mse_layer(int group);
-Layer *make_mae_layer(int group);
-Layer *make_ce_layer(int group);
-Layer *make_nll_layer(int group);
-Layer *make_crossentropy_layer(int group);
+Layer *make_crossentropy_layer(float *scale, int ignore);
 
 void init_constant_kernel(Layer *l, float x);
 void init_normal_kernel(Layer *l, float mean, float std);

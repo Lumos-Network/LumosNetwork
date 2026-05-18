@@ -23,15 +23,13 @@ void append_layer2grpah(Graph *graph, Layer *l)
     if (graph->head == NULL) graph->head = layer;
 }
 
-void init_graph(Graph *g, int w, int h, int c, int coretype, int subdivision, int group, int optimizer, char *weights_path, float *input)
+void init_graph(Graph *g, int w, int h, int c, int coretype, int subdivision, int optimizer, char *weights_path, float *input)
 {
     fprintf(stderr, "\nStart To Init Graph\n");
     fprintf(stderr, "[Lumos]                     Inputs         Outputs\n");
     Node *layer = g->head;
     Layer *l;
     FILE *fp = NULL;
-    if (coretype == GPU) cudaMalloc((void**)&g->detect, subdivision*group*sizeof(float));
-    else g->detect = calloc(subdivision*group, sizeof(float));
     if (weights_path){
         fp = fopen(weights_path, "rb");
     }
@@ -39,7 +37,6 @@ void init_graph(Graph *g, int w, int h, int c, int coretype, int subdivision, in
         if (layer){
             l = layer->l;
             l->optimizer = optimizer;
-            l->detect = g->detect;
             l->input = input;
             if (coretype == GPU){
                 l->initializegpu(l, w, h, c, subdivision);
@@ -49,6 +46,8 @@ void init_graph(Graph *g, int w, int h, int c, int coretype, int subdivision, in
                 if (l->weightinit) l->weightinit(*l, fp);
             }
         } else {
+            if (coretype == GPU) cudaMalloc((void**)&g->detect, subdivision*l->inputs*sizeof(float));
+            else g->detect = calloc(subdivision*l->inputs, sizeof(float));
             break;
         }
         layer = layer->next;
@@ -72,6 +71,7 @@ void set_graph(Graph *g, float *space, float *truth, float *loss)
             l->truth = truth;
             l->loss = loss;
             l->workspace = space;
+            l->detect = g->detect;
         } else {
             break;
         }

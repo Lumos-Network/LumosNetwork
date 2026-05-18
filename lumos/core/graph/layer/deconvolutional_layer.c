@@ -36,7 +36,10 @@ Layer *make_deconvolutional_layer(int filters, int ksize, int stride, int pad, i
     l->zerogradlayer = zerograd_deconvolutional_layer;
     l->zerogradlayergpu = zerograd_deconvolutional_layer_gpu;
 
-    fprintf(stderr, "DeConvolutional Layer   :   [filters=%2d, ksize=%2d, stride=%2d, pad=%2d, bias=%d, active=%s]\n",
+    l->initcptkernel = NULL;
+    l->initcptbias = NULL;
+
+    fprintf(stderr, "DeConvolutional Layer    :   [filters=%2d, ksize=%2d, stride=%2d, pad=%2d, bias=%d, active=%s]\n",
             l->filters, l->ksize, l->stride, l->pad, l->bias, active);
     return l;
 }
@@ -90,7 +93,7 @@ void weightinit_deconvolutional_layer(Layer l, FILE *fp)
         return;
     }
     if (l.initcptkernel == NULL){
-        deconvolutional_kaiming_uniform_kernel_init(l, sqrt(5.0), "fan_in", "leaky_relu");
+        deconvolutional_kaiming_uniform_kernel_init(l, sqrt(5.0), "fan_in", "leaky");
     } else {
         InitCptKernel initcptkernel = *l.initcptkernel;
         if (initcptkernel.initype == CONSTANT_I) deconvolutional_constant_kernel_init(l, initcptkernel.x);
@@ -100,7 +103,7 @@ void weightinit_deconvolutional_layer(Layer l, FILE *fp)
         else if (initcptkernel.initype == XAVIER_UNIFORM_I) deconvolutional_xavier_uniform_kernel_init(l, initcptkernel.a);
         else if (initcptkernel.initype == KAIMING_NORMAL_I) deconvolutional_kaiming_normal_kernel_init(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
         else if (initcptkernel.initype == KAIMING_UNIFORM_I) deconvolutional_kaiming_uniform_kernel_init(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
-        else deconvolutional_kaiming_uniform_kernel_init(l, sqrt(5.0), "fan_in", "leaky_relu");
+        else deconvolutional_kaiming_uniform_kernel_init(l, sqrt(5.0), "fan_in", "leaky");
     }
     if (l.bias){
         if (l.initcptbias == NULL){
@@ -272,7 +275,7 @@ void deconvolutional_kaiming_normal_kernel_init(Layer l, float a, char *mode, ch
     if (0 == strcmp(nonlinearity, "sigmoid")) a= 1;
     else if (0 == strcmp(nonlinearity, "tanh")) a = 5.0/3;
     else if (0 == strcmp(nonlinearity, "relu")) a = sqrt(2.0);
-    else if (0 == strcmp(nonlinearity, "leaky_relu")){
+    else if (0 == strcmp(nonlinearity, "leaky")){
         if (a == 0) a = 0.01;
         a = sqrt(2.0 / (1 + a*a));
     }
@@ -294,7 +297,7 @@ void deconvolutional_kaiming_uniform_kernel_init(Layer l, float a, char *mode, c
     if (0 == strcmp(nonlinearity, "sigmoid")) a= 1;
     else if (0 == strcmp(nonlinearity, "tanh")) a = 5.0/3;
     else if (0 == strcmp(nonlinearity, "relu")) a = sqrt(2.0);
-    else if (0 == strcmp(nonlinearity, "leaky_relu")){
+    else if (0 == strcmp(nonlinearity, "leaky")){
         if (a == 0) a = 0.01;
         a = sqrt(2.0 / (1 + a*a));
     }

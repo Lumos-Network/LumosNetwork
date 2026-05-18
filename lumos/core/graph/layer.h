@@ -126,6 +126,10 @@ struct layer{
     float *kernel_weights_delta;
     float *bias_delta;
 
+    // lossscale
+    float *scale;
+    int ignore;
+
     int *maxpool_index;
     //为社么是指针
     int *dropout_rand;
@@ -134,7 +138,6 @@ struct layer{
     int ksize;
     int stride;
     int pad;
-    int group;
 
     int bias;
     // dropout 占比

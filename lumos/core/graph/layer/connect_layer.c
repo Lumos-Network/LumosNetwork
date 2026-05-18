@@ -43,6 +43,9 @@ Layer *make_connect_layer(int output, int bias, char *active)
     l->zerogradlayer = zerograd_connect_layer;
     l->zerogradlayergpu = zerograd_connect_layer_gpu;
 
+    l->initcptkernel = NULL;
+    l->initcptbias = NULL;
+
     fprintf(stderr, "Connect         Layer    :    [output=%4d, bias=%d, active=%s]\n", l->ksize, l->bias, active);
     return l;
 }
@@ -113,7 +116,7 @@ void weightinit_connect_layer(Layer l, FILE *fp)
         return;
     }
     if (l.initcptkernel == NULL){
-        connect_kaiming_uniform_kernel_init(l, sqrt(5.0), "fan_in", "leaky_relu");
+        connect_kaiming_uniform_kernel_init(l, sqrt(5.0), "fan_in", "leaky");
     } else {
         InitCptKernel initcptkernel = *l.initcptkernel;
         if (initcptkernel.initype == CONSTANT_I) connect_constant_kernel_init(l, initcptkernel.x);
@@ -123,7 +126,7 @@ void weightinit_connect_layer(Layer l, FILE *fp)
         else if (initcptkernel.initype == XAVIER_UNIFORM_I) connect_xavier_uniform_kernel_init(l, initcptkernel.a);
         else if (initcptkernel.initype == KAIMING_NORMAL_I) connect_kaiming_normal_kernel_init(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
         else if (initcptkernel.initype == KAIMING_UNIFORM_I) connect_kaiming_uniform_kernel_init(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
-        else connect_kaiming_uniform_kernel_init(l, sqrt(5.0), "fan_in", "leaky_relu");
+        else connect_kaiming_uniform_kernel_init(l, sqrt(5.0), "fan_in", "leaky");
     }
     if (l.bias){
         if (l.initcptbias == NULL){
@@ -313,7 +316,7 @@ void connect_kaiming_normal_kernel_init(Layer l, float a, char *mode, char *nonl
     if (0 == strcmp(nonlinearity, "sigmoid")) a= 1;
     else if (0 == strcmp(nonlinearity, "tanh")) a = 5.0/3;
     else if (0 == strcmp(nonlinearity, "relu")) a = sqrt(2.0);
-    else if (0 == strcmp(nonlinearity, "leaky_relu")){
+    else if (0 == strcmp(nonlinearity, "leaky")){
         if (a == 0) a = 0.01;
         a = sqrt(2.0 / (1 + a*a));
     }
@@ -335,7 +338,7 @@ void connect_kaiming_uniform_kernel_init(Layer l, float a, char *mode, char *non
     if (0 == strcmp(nonlinearity, "sigmoid")) a= 1;
     else if (0 == strcmp(nonlinearity, "tanh")) a = 5.0/3;
     else if (0 == strcmp(nonlinearity, "relu")) a = sqrt(2.0);
-    else if (0 == strcmp(nonlinearity, "leaky_relu")){
+    else if (0 == strcmp(nonlinearity, "leaky")){
         if (a == 0) a = 0.01;
         a = sqrt(2.0 / (1 + a*a));
     }

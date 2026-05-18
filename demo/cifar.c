@@ -28,7 +28,7 @@ void cifar(char *type, char *path)
     Layer *l14 = make_dropout_layer(0.5);
     Layer *l15 = make_convolutional_layer(10, 1, 1, 1, 1, "leaky");
     Layer *l16 = make_avgpool_layer(9, 9, 0);
-    Layer *l17 = make_crossentropy_layer(10);
+    Layer *l17 = make_crossentropy_layer(NULL, -1);
     append_layer2grpah(graph, l1);
     append_layer2grpah(graph, b1);
     append_layer2grpah(graph, l2);
@@ -56,16 +56,16 @@ void cifar(char *type, char *path)
     append_layer2grpah(graph, l16);
     append_layer2grpah(graph, l17);
 
-    init_kaiming_uniform_kernel(l1, sqrt(5), "fan_in", "leaky_relu");
-    init_kaiming_uniform_kernel(l2, sqrt(5), "fan_in", "leaky_relu");
-    init_kaiming_uniform_kernel(l3, sqrt(5), "fan_in", "leaky_relu");
-    init_kaiming_uniform_kernel(l6, sqrt(5), "fan_in", "leaky_relu");
-    init_kaiming_uniform_kernel(l7, sqrt(5), "fan_in", "leaky_relu");
-    init_kaiming_uniform_kernel(l8, sqrt(5), "fan_in", "leaky_relu");
-    init_kaiming_uniform_kernel(l11, sqrt(5), "fan_in", "leaky_relu");
-    init_kaiming_uniform_kernel(l12, sqrt(5), "fan_in", "leaky_relu");
-    init_kaiming_uniform_kernel(l13, sqrt(5), "fan_in", "leaky_relu");
-    init_kaiming_uniform_kernel(l15, sqrt(5), "fan_in", "leaky_relu");
+    init_kaiming_uniform_kernel(l1, sqrt(5), "fan_in", "leaky");
+    init_kaiming_uniform_kernel(l2, sqrt(5), "fan_in", "leaky");
+    init_kaiming_uniform_kernel(l3, sqrt(5), "fan_in", "leaky");
+    init_kaiming_uniform_kernel(l6, sqrt(5), "fan_in", "leaky");
+    init_kaiming_uniform_kernel(l7, sqrt(5), "fan_in", "leaky");
+    init_kaiming_uniform_kernel(l8, sqrt(5), "fan_in", "leaky");
+    init_kaiming_uniform_kernel(l11, sqrt(5), "fan_in", "leaky");
+    init_kaiming_uniform_kernel(l12, sqrt(5), "fan_in", "leaky");
+    init_kaiming_uniform_kernel(l13, sqrt(5), "fan_in", "leaky");
+    init_kaiming_uniform_kernel(l15, sqrt(5), "fan_in", "leaky");
 
     Session *sess = create_session(graph, 28, 28, 3, 10, type, path);
     float *mean = calloc(3, sizeof(float));
@@ -112,7 +112,7 @@ void cifar_detect(char*type, char *path)
     Layer *l14 = make_dropout_layer(0.5);
     Layer *l15 = make_convolutional_layer(10, 1, 1, 1, 1, "leaky");
     Layer *l16 = make_avgpool_layer(9, 9, 0);
-    Layer *l17 = make_crossentropy_layer(10);
+    Layer *l17 = make_crossentropy_layer(NULL, -1);
     append_layer2grpah(graph, l1);
     append_layer2grpah(graph, b1);
     append_layer2grpah(graph, l2);

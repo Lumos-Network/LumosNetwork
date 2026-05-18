@@ -32,7 +32,7 @@ void init_session(Session *sess, char *data_path, char *label_path)
     }
     bind_train_data(sess, data_path);
     bind_train_label(sess, label_path);
-    init_graph(sess->graph, sess->width, sess->height, sess->channel, sess->coretype, sess->subdivision, sess->truth_num, sess->optimizer, sess->weights_path, sess->input);
+    init_graph(sess->graph, sess->width, sess->height, sess->channel, sess->coretype, sess->subdivision, sess->optimizer, sess->weights_path, sess->input);
     create_workspace(sess);
     set_graph(sess->graph, sess->workspace, sess->truth, sess->loss);
     transforms_sess(sess);

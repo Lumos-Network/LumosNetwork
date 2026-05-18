@@ -12,7 +12,7 @@
 extern "C" {
 #endif
 
-Layer *make_crossentropy_layer(int group);
+Layer *make_crossentropy_layer(float *scale, int ignore);
 
 void init_crossentropy_layer(Layer *l, int w, int h, int c, int subdivision);
 void forward_crossentropy_layer(Layer l, int num);

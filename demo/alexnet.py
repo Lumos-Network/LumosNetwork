@@ -20,7 +20,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 def forward_hook(module, input, output):
-    flag = "input"
+    flag = "output"
     shape = None
     data = None
     if (flag == "input"):
@@ -33,9 +33,9 @@ def forward_hook(module, input, output):
     data_f = []
     with open("./backup/in_py", "wb") as fp:
         for i in range(shape[0]):
-            for j in range(shape[1]):
-                for k in range(shape[2]):
-                    data_f += data[i][j][k]
+            # for j in range(shape[1]):
+            #     for k in range(shape[2]):
+            data_f += data[i]
         for i in range(len(data_f)):
             fp.write(struct.pack('f', data_f[i]))
         fp.close()
@@ -56,10 +56,10 @@ def backward_hook(module, grad_input, grad_output):
     # print(grad)
     data = []
     with open("./backup/grad_py", "wb") as fp:
-        # for i in range(shape[0]):
-        #     for j in range(shape[1]):
-        #         for k in range(shape[2]):
-        data += grad
+        for i in range(shape[0]):
+            # for j in range(shape[1]):
+            #     for k in range(shape[2]):
+            data += grad[i]
         print(len(data))
         for i in range(len(data)):
             fp.write(struct.pack('f', data[i]))
@@ -92,17 +92,17 @@ class AlexNet(nn.Module):
         super(AlexNet, self).__init__()
         # 卷积部分：5层卷积+3层池化
         self.l1 = nn.Conv2d(3, 96, kernel_size=11, stride=4, padding=2)  # 输入3通道，输出96通道
-        self.l2 = nn.BatchNorm2d(96)
+        # self.l2 = nn.BatchNorm2d(96)
         self.l3 = nn.MaxPool2d(kernel_size=3, stride=2)  # 池化
         self.l4 = nn.Conv2d(96, 256, kernel_size=5, padding=2)
-        self.l5 = nn.BatchNorm2d(256)
+        # self.l5 = nn.BatchNorm2d(256)
         self.l6 = nn.MaxPool2d(kernel_size=3, stride=2)
         self.l7 = nn.Conv2d(256, 384, kernel_size=3, padding=1)
-        self.l8 = nn.BatchNorm2d(384)
+        # self.l8 = nn.BatchNorm2d(384)
         self.l9 = nn.Conv2d(384, 384, kernel_size=3, padding=1)
-        self.l10 = nn.BatchNorm2d(384)
+        # self.l10 = nn.BatchNorm2d(384)
         self.l11 = nn.Conv2d(384, 256, kernel_size=3, padding=1)
-        self.l12 = nn.BatchNorm2d(256)
+        # self.l12 = nn.BatchNorm2d(256)
         self.l13 = nn.MaxPool2d(kernel_size=3, stride=2)
 
         # self.l9 = nn.Dropout(p=0.5)
@@ -116,17 +116,17 @@ class AlexNet(nn.Module):
     # 前向传播：定义数据在网络里的流动路径
     def forward(self, x, labels):
         x = self.l1(x)
-        x = torch.relu(self.l2(x))
+        x = torch.relu(x)
         x = self.l3(x)
         x = self.l4(x)
-        x = torch.relu(self.l5(x))
+        x = torch.relu(x)
         x = self.l6(x)
         x = self.l7(x)
-        x = torch.relu(self.l8(x))
+        x = torch.relu(x)
         x = self.l9(x)
-        x = torch.relu(self.l10(x))
+        x = torch.relu(x)
         x = self.l11(x)
-        x = torch.relu(self.l12(x))
+        x = torch.relu(x)
         x = self.l13(x)
         
         x = torch.flatten(x, start_dim=1)
@@ -146,7 +146,7 @@ data_transform = transforms.Compose([
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
 
-num_epochs = 1
+num_epochs = 4
 batch_size = 4
 train_data = MyDataset('./data/flower/train_test.txt', transform=data_transform)
 trainloader = torch.utils.data.DataLoader(dataset=train_data, batch_size=batch_size, shuffle=False)
@@ -178,8 +178,8 @@ for i in range(len(data_f)):
     fp.write(struct.pack('f', data_f[i]))
 fp.close()
 
-# model.l1.register_forward_hook(forward_hook)
-model.l12.register_backward_hook(backward_hook)
+# model.l16.register_forward_hook(forward_hook)
+model.l16.register_backward_hook(backward_hook)
 
 # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")

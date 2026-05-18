@@ -11,7 +11,6 @@
 
 int main()
 {
-    // googlenet("gpu", NULL);
-    // googlenet_detect("gpu", "./backup/LW_f");
-    // fcn8("gpu", NULL);
+    lenet5_mnist("gpu", NULL);
+    lenet5_mnist_detect("gpu", "./backup/LW_f");
 }
