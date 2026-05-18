@@ -16,7 +16,7 @@ void alexnet_flower(char *type, char *path)
     Layer *l11 = make_dropout_layer(0.5);
     Layer *l12 = make_connect_layer(4096, 1, "relu");
     Layer *l13 = make_connect_layer(5, 1, "linear");
-    Layer *l14 = make_crossentropy_layer(5);
+    Layer *l14 = make_crossentropy_layer(NULL, -1);
     append_layer2grpah(g, l1);
     append_layer2grpah(g, l2);
     append_layer2grpah(g, l3);
@@ -32,11 +32,11 @@ void alexnet_flower(char *type, char *path)
     append_layer2grpah(g, l13);
     append_layer2grpah(g, l14);
 
-    init_kaiming_uniform_kernel(l1, sqrt(5.0), "fan_in", "leaky_relu");
-    init_kaiming_uniform_kernel(l3, sqrt(5.0), "fan_in", "leaky_relu");
-    init_kaiming_uniform_kernel(l5, sqrt(5.0), "fan_in", "leaky_relu");
-    init_kaiming_uniform_kernel(l6, sqrt(5.0), "fan_in", "leaky_relu");
-    init_kaiming_uniform_kernel(l7, sqrt(5.0), "fan_in", "leaky_relu");
+    init_kaiming_uniform_kernel(l1, sqrt(5.0), "fan_in", "leaky");
+    init_kaiming_uniform_kernel(l3, sqrt(5.0), "fan_in", "leaky");
+    init_kaiming_uniform_kernel(l5, sqrt(5.0), "fan_in", "leaky");
+    init_kaiming_uniform_kernel(l6, sqrt(5.0), "fan_in", "leaky");
+    init_kaiming_uniform_kernel(l7, sqrt(5.0), "fan_in", "leaky");
 
     init_kaiming_uniform_bias(l1, "fan_in");
     init_kaiming_uniform_bias(l3, "fan_in");
@@ -44,9 +44,9 @@ void alexnet_flower(char *type, char *path)
     init_kaiming_uniform_bias(l6, "fan_in");
     init_kaiming_uniform_bias(l7, "fan_in");
 
-    init_kaiming_uniform_kernel(l10, sqrt(5.0), "fan_in", "leaky_relu");
-    init_kaiming_uniform_kernel(l12, sqrt(5.0), "fan_in", "leaky_relu");
-    init_kaiming_uniform_kernel(l13, sqrt(5.0), "fan_in", "leaky_relu");
+    init_kaiming_uniform_kernel(l10, sqrt(5.0), "fan_in", "leaky");
+    init_kaiming_uniform_kernel(l12, sqrt(5.0), "fan_in", "leaky");
+    init_kaiming_uniform_kernel(l13, sqrt(5.0), "fan_in", "leaky");
 
     init_kaiming_uniform_bias(l10, "fan_in");
     init_kaiming_uniform_bias(l12, "fan_in");
@@ -85,7 +85,7 @@ void alexnet_flower_detect(char *type, char *path)
     Layer *l11 = make_dropout_layer(0.5);
     Layer *l12 = make_connect_layer(4096, 1, "relu");
     Layer *l13 = make_connect_layer(5, 1, "linear");
-    Layer *l14 = make_crossentropy_layer(5);
+    Layer *l14 = make_crossentropy_layer(NULL, -1);
     append_layer2grpah(g, l1);
     append_layer2grpah(g, l2);
     append_layer2grpah(g, l3);

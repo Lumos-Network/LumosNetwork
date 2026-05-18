@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 
 #ifdef __cplusplus
@@ -35,6 +36,11 @@ void addcdiv_cpu(float *input, float *data_a, float *data_b, float x, int num, f
 
 void one_hot_encoding(int n, int label, float *space);
 int find_max(float *data, int num);
+
+void copy_nums(int **shapes, int num, int dims, int cdim, int *cnums);
+void acc_multy_int(int *data, int num, int index, int flag, int *res);
+void array_cat(float **datas, int **shapes, int num, int dims, int cdim, float *space);
+void array_split(float *data, int **shapes, int num, int dims, int cdim, float **space);
 
 #ifdef __cplusplus
 }

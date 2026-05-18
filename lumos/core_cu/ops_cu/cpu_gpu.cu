@@ -335,3 +335,37 @@ void exp_list_gpu(float *data, int num, float *space, float *ALPHA)
 {
     exp_list_kernel<<<(num+BLOCK-1)/BLOCK, BLOCK>>>(data, num, space, ALPHA);
 }
+
+void array_cat_gpu(float **datas, int **shapes, int num, int dims, int cdim, float *space)
+{
+    int times;
+    int *cnums = (int*)malloc(num*sizeof(int));
+    int offset = 0;
+    acc_multy_int(shapes[0], dims, cdim, 1, &times);
+    copy_nums(shapes, num, dims, cdim, cnums);
+    for (int i = 0; i < times; ++i){
+        for (int j = 0; j < num; ++j){
+            float *data = datas[j] + i*cnums[j];
+            cudaMemcpy(space+offset, data, cnums[j]*sizeof(float), cudaMemcpyDeviceToDevice);
+            offset += cnums[j];
+        }
+    }
+    free(cnums);
+}
+
+void array_split_gpu(float *data, int **shapes, int num, int dims, int cdim, float **space)
+{
+    int times = 0;
+    int *cnums = (int*)malloc(num*sizeof(int));
+    int offset = 0;
+    acc_multy_int(shapes[0], dims, cdim, 1, &times);
+    copy_nums(shapes, num, dims, cdim, cnums);
+    for (int i = 0; i < times; ++i){
+        for (int j = 0; j < num; ++j){
+            float *x = space[j] + i*cnums[j];
+            cudaMemcpy(x, data+offset, cnums[j]*sizeof(float), cudaMemcpyHostToDevice);
+            offset += cnums[j];
+        }
+    }
+    free(cnums);
+}

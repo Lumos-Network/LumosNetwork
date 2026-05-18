@@ -31,7 +31,7 @@ void vgg16_cifar10(char *type, char *path)
     Layer *l34 = make_dropout_layer(0.5);
     Layer *l35 = make_connect_layer(4096, 1, "relu");
     Layer *l36 = make_connect_layer(10, 1, "linear");
-    Layer *l37 = make_crossentropy_layer(10);
+    Layer *l37 = make_crossentropy_layer(NULL, -1);
     append_layer2grpah(g, l1);
     append_layer2grpah(g, l3);
     append_layer2grpah(g, l5);
@@ -141,7 +141,7 @@ void vgg16_cifar10_detect(char *type, char *path)
     Layer *l34 = make_dropout_layer(0.5);
     Layer *l35 = make_connect_layer(4096, 1, "relu");
     Layer *l36 = make_connect_layer(10, 1, "linear");
-    Layer *l37 = make_crossentropy_layer(10);
+    Layer *l37 = make_crossentropy_layer(NULL, -1);
     append_layer2grpah(g, l1);
     append_layer2grpah(g, l3);
     append_layer2grpah(g, l5);

@@ -16,12 +16,10 @@ Layer *make_convolutional_layer(int filters, int ksize, int stride, int pad, int
     l->initialize = init_convolutional_layer;
     l->forward = forward_convolutional_layer;
     l->backward = backward_convolutional_layer;
-    l->update = update_convolutional_layer;
 
     l->initializegpu = init_convolutional_layer_gpu;
     l->forwardgpu = forward_convolutional_layer_gpu;
     l->backwardgpu = backward_convolutional_layer_gpu;
-    l->updategpu = update_convolutional_layer_gpu;
 
     l->sgdoptimizer = convolutional_layer_SGDOptimizer;
     l->sgdoptimizergpu = convolutional_layer_SGDOptimizer_gpu;
@@ -37,6 +35,9 @@ Layer *make_convolutional_layer(int filters, int ksize, int stride, int pad, int
 
     l->zerogradlayer = zerograd_convolutional_layer;
     l->zerogradlayergpu = zerograd_convolutional_layer_gpu;
+
+    l->initcptkernel = NULL;
+    l->initcptbias = NULL;
 
     fprintf(stderr, "Convolutional   Layer    :    [filters=%2d, ksize=%2d, stride=%2d, pad=%2d, bias=%d, active=%s]\n",
             l->filters, l->ksize, l->stride, l->pad, l->bias, active);
@@ -55,7 +56,7 @@ void init_convolutional_layer(Layer *l, int w, int h, int c, int subdivision)
     l->output_c = l->filters;
     l->outputs = l->output_h * l->output_w * l->output_c;
 
-    l->workspace_size = l->ksize*l->ksize*l->input_c*l->output_h*l->output_w + l->filters*l->ksize*l->ksize*l->input_c;
+    l->workspace_size = l->ksize*l->ksize*l->input_c*l->output_h*l->output_w;
 
     l->output = calloc(subdivision*l->outputs, sizeof(float));
     l->delta = calloc(subdivision*l->inputs, sizeof(float));
@@ -92,7 +93,7 @@ void weightinit_convolutional_layer(Layer l, FILE *fp)
         return;
     }
     if (l.initcptkernel == NULL){
-        convolutional_kaiming_uniform_kernel_init(l, sqrt(5.0), "fan_in", "leaky_relu");
+        convolutional_kaiming_uniform_kernel_init(l, sqrt(5.0), "fan_in", "leaky");
     } else {
         InitCptKernel initcptkernel = *l.initcptkernel;
         if (initcptkernel.initype == CONSTANT_I) convolutional_constant_kernel_init(l, initcptkernel.x);
@@ -102,7 +103,7 @@ void weightinit_convolutional_layer(Layer l, FILE *fp)
         else if (initcptkernel.initype == XAVIER_UNIFORM_I) convolutional_xavier_uniform_kernel_init(l, initcptkernel.a);
         else if (initcptkernel.initype == KAIMING_NORMAL_I) convolutional_kaiming_normal_kernel_init(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
         else if (initcptkernel.initype == KAIMING_UNIFORM_I) convolutional_kaiming_uniform_kernel_init(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
-        else convolutional_kaiming_uniform_kernel_init(l, sqrt(5.0), "fan_in", "leaky_relu");
+        else convolutional_kaiming_uniform_kernel_init(l, sqrt(5.0), "fan_in", "leaky");
     }
     if (l.bias){
         if (l.initcptbias == NULL){
@@ -123,6 +124,7 @@ void weightinit_convolutional_layer(Layer l, FILE *fp)
 
 void forward_convolutional_layer(Layer l, int num)
 {
+    fill_cpu(l.output, num*l.outputs, 0, 1);
     for (int i = 0; i < num; ++i){
         int offset_i = i * l.inputs;
         int offset_o = i * l.outputs;
@@ -131,57 +133,34 @@ void forward_convolutional_layer(Layer l, int num)
         im2col(input, l.input_h, l.input_w, l.input_c, l.ksize, l.stride, l.pad, l.workspace);
         gemm(0, 0, l.filters, l.ksize * l.ksize * l.input_c, l.ksize * l.ksize * l.input_c, l.output_h * l.output_w, 1,
              l.kernel_weights, l.workspace, output);
-        if (l.bias){
-            add_bias(output, l.bias_weights, l.filters, l.output_h * l.output_w);
-        }
+    }
+    if (l.bias){
+        add_bias(l.output, l.bias_weights, num, l.filters, l.output_h*l.output_w);
     }
     activate_list(l.output, num*l.outputs, l.output, l.active);
 }
 
 void backward_convolutional_layer(Layer l, int num, float *n_delta)
 {
+    gradient_list(l.output, num*l.outputs, n_delta, l.active);
+    if (l.bias){
+        backward_bias(l.bias_delta, n_delta, num, l.filters, l.output_h*l.output_w);
+    }
     for (int i = 0; i < num; ++i){
         int offset_i = i * l.inputs;
         int offset_o = i * l.outputs;
         float *input = l.input + offset_i;
-        float *output = l.output + offset_o;
         float *delta_l = l.delta + offset_i;
         float *delta_n = n_delta + offset_o;
-        gradient_list(output, l.outputs, l.workspace, l.active);
-        matrix_multiply_cpu(delta_n, l.workspace, l.outputs, delta_n);
+        im2col(input, l.input_h, l.input_w, l.input_c, l.ksize, l.stride, l.pad, l.workspace);
+        gemm(0, 1, l.filters, l.output_h * l.output_w,
+             l.ksize * l.ksize * l.input_c, l.output_h * l.output_w, 1,
+             delta_n, l.workspace, l.kernel_weights_delta);
+        fill_cpu(l.workspace, l.input_c*l.ksize*l.ksize*l.output_h*l.output_w, 0, 1);
         gemm(1, 0, l.filters, l.ksize * l.ksize * l.input_c,
              l.filters, l.output_h * l.output_w, 1,
              l.kernel_weights, delta_n, l.workspace);
         col2im(l.workspace, l.ksize, l.stride, l.pad, l.input_h, l.input_w, l.input_c, delta_l);
-        im2col(input, l.input_h, l.input_w, l.input_c, l.ksize, l.stride, l.pad, l.workspace);
-        gemm(0, 1, l.filters, l.output_h * l.output_w,
-             l.ksize * l.ksize * l.input_c, l.output_h * l.output_w, 1,
-             delta_n, l.workspace, l.workspace + l.ksize * l.ksize * l.input_c * l.output_h * l.output_w);
-        saxpy_cpu(l.kernel_weights_delta, l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w, l.filters*l.ksize*l.ksize*l.input_c, 1./num, l.kernel_weights_delta);
-        if (l.bias) {
-            sum_channel_cpu(delta_n, l.output_h, l.output_w, l.output_c, 1, l.workspace);
-            saxpy_cpu(l.bias_delta, l.workspace, l.filters, 1./num, l.bias_delta);
-        }
-    }
-}
-
-void update_convolutional_layer(Layer l, float rate, int num, float *n_delta)
-{
-    for (int i = 0; i < num; ++i)
-    {
-        int offset_i = i * l.inputs;
-        int offset_o = i * l.outputs;
-        float *input = l.input + offset_i;
-        float *delta_n = n_delta + offset_o;
-        im2col(input, l.input_h, l.input_w, l.input_c, l.ksize, l.stride, l.pad, l.workspace);
-        gemm(0, 1, l.filters, l.output_h * l.output_w,
-             l.ksize * l.ksize * l.input_c, l.output_h * l.output_w, 1,
-             delta_n, l.workspace, l.workspace + l.ksize * l.ksize * l.input_c * l.output_h * l.output_w);
-        saxpy_cpu(l.update_kernel_weights, l.workspace + l.ksize * l.ksize * l.input_c * l.output_h * l.output_w, l.filters * l.ksize * l.ksize * l.input_c, rate, l.update_kernel_weights);
-        if (l.bias){
-            sum_channel_cpu(delta_n, l.output_h, l.output_w, l.output_c, rate, l.workspace);
-            add_bias(l.update_bias_weights, l.workspace, l.output_c, 1);
-        }
     }
 }
 
@@ -303,7 +282,7 @@ void convolutional_kaiming_normal_kernel_init(Layer l, float a, char *mode, char
     if (0 == strcmp(nonlinearity, "sigmoid")) a= 1;
     else if (0 == strcmp(nonlinearity, "tanh")) a = 5.0/3;
     else if (0 == strcmp(nonlinearity, "relu")) a = sqrt(2.0);
-    else if (0 == strcmp(nonlinearity, "leaky_relu")){
+    else if (0 == strcmp(nonlinearity, "leaky")){
         if (a == 0) a = 0.01;
         a = sqrt(2.0 / (1 + a*a));
     }
@@ -325,7 +304,7 @@ void convolutional_kaiming_uniform_kernel_init(Layer l, float a, char *mode, cha
     if (0 == strcmp(nonlinearity, "sigmoid")) a= 1;
     else if (0 == strcmp(nonlinearity, "tanh")) a = 5.0/3;
     else if (0 == strcmp(nonlinearity, "relu")) a = sqrt(2.0);
-    else if (0 == strcmp(nonlinearity, "leaky_relu")){
+    else if (0 == strcmp(nonlinearity, "leaky")){
         if (a == 0) a = 0.01;
         a = sqrt(2.0 / (1 + a*a));
     }

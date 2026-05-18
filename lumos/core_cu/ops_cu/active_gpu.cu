@@ -227,7 +227,7 @@ __global__ void gradient_list_kernel(float *origin, int num, float *space, Activ
 {
     int index = threadIdx.x + blockIdx.x * blockDim.x;
     if (index >= num) return;
-    space[index] = gradient_x_kernel(TYPE, origin[index]);
+    space[index] *= gradient_x_kernel(TYPE, origin[index]);
 }
 
 void gradient_list_gpu(float *origin, int num, float *space, Activation TYPE)

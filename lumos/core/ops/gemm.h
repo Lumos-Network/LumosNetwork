@@ -7,8 +7,7 @@
 extern "C"{
 #endif
 
-void gemm(int TA, int TB, int AM, int AN, int BM, int BN, float ALPHA, 
-        float *A, float *B, float *C);
+void gemm(int TA, int TB, int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C);
 
 void gemm_nn(int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C);
 void gemm_tn(int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C);
