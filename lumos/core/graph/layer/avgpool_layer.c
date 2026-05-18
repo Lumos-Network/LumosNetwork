@@ -20,9 +20,6 @@ Layer *make_avgpool_layer(int ksize, int stride, int pad)
     l->weightinit = NULL;
     l->weightinitgpu = NULL;
 
-    l->update = NULL;
-    l->updategpu = NULL;
-
     l->sgdoptimizer = NULL;
     l->sgdoptimizergpu = NULL;
 

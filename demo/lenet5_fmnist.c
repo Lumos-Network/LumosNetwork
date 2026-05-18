@@ -10,7 +10,7 @@ void lenet5_fmnist(char *type, char *path)
     Layer *l5 = make_convolutional_layer(120, 5, 1, 0, 1, "relu");
     Layer *l6 = make_connect_layer(84, 1, "relu");
     Layer *l7 = make_connect_layer(10, 1, "linear");
-    Layer *l8 = make_crossentropy_layer(10);
+    Layer *l8 = make_crossentropy_layer(NULL, -1);
     append_layer2grpah(g, l1);
     append_layer2grpah(g, l2);
     append_layer2grpah(g, l3);
@@ -20,22 +20,22 @@ void lenet5_fmnist(char *type, char *path)
     append_layer2grpah(g, l7);
     append_layer2grpah(g, l8);
 
-    init_kaiming_uniform_kernel(l1, sqrt(5.0), "fan_in", "leaky_relu");
-    init_kaiming_uniform_kernel(l3, sqrt(5.0), "fan_in", "leaky_relu");
-    init_kaiming_uniform_kernel(l5, sqrt(5.0), "fan_in", "leaky_relu");
+    init_kaiming_uniform_kernel(l1, sqrt(5.0), "fan_in", "leaky");
+    init_kaiming_uniform_kernel(l3, sqrt(5.0), "fan_in", "leaky");
+    init_kaiming_uniform_kernel(l5, sqrt(5.0), "fan_in", "leaky");
 
     init_kaiming_uniform_bias(l1, "fan_in");
     init_kaiming_uniform_bias(l3, "fan_in");
     init_kaiming_uniform_bias(l5, "fan_in");
 
-    init_kaiming_uniform_kernel(l6, sqrt(5.0), "fan_in", "leaky_relu");
-    init_kaiming_uniform_kernel(l7, sqrt(5.0), "fan_in", "leaky_relu");
+    init_kaiming_uniform_kernel(l6, sqrt(5.0), "fan_in", "leaky");
+    init_kaiming_uniform_kernel(l7, sqrt(5.0), "fan_in", "leaky");
 
     init_kaiming_uniform_bias(l6, "fan_in");
     init_kaiming_uniform_bias(l7, "fan_in");
 
     Session *sess = create_session(g, 28, 28, 1, 10, type, path);
-    set_train_params(sess, 40, 32, 32, 0.01);
+    set_train_params(sess, 50, 128, 128, 0.01);
     transform_resize_sess(sess, 28, 28);
     SGDOptimizer_sess(sess, 0.9, 0, 0, 0, 0);
     init_session(sess, "./data/fmnist/train.txt", "./data/fmnist/label.txt");
@@ -52,7 +52,7 @@ void lenet5_fmnist_detect(char*type, char *path)
     Layer *l5 = make_convolutional_layer(120, 5, 1, 0, 1, "relu");
     Layer *l6 = make_connect_layer(84, 1, "relu");
     Layer *l7 = make_connect_layer(10, 1, "linear");
-    Layer *l8 = make_crossentropy_layer(10);
+    Layer *l8 = make_crossentropy_layer(NULL, -1);
     append_layer2grpah(g, l1);
     append_layer2grpah(g, l2);
     append_layer2grpah(g, l3);

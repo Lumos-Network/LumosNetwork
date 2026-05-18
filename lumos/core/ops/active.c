@@ -181,6 +181,6 @@ void gradient_list(float *origin, int num, float *space, Activation TYPE)
 {
     for (int i = 0; i < num; ++i)
     {
-        space[i] = gradient_x(TYPE, origin[i]);
+        space[i] *= gradient_x(TYPE, origin[i]);
     }
 }

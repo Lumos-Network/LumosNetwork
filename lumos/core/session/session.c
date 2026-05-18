@@ -21,10 +21,6 @@ Session *create_session(Graph *graph, int h, int w, int c, int truth_num, char *
 
 void init_session(Session *sess, char *data_path, char *label_path)
 {
-    bind_train_data(sess, data_path);
-    bind_train_label(sess, label_path);
-    init_graph(sess->graph, sess->width, sess->height, sess->channel, sess->coretype, sess->subdivision, sess->truth_num, sess->optimizer, sess->weights_path);
-    create_workspace(sess);
     if (sess->coretype == GPU){
         cudaMalloc((void**)&sess->input, sess->subdivision*sess->width*sess->height*sess->channel*sizeof(float));
         cudaMalloc((void**)&sess->truth, sess->subdivision*sess->truth_num*sizeof(float));
@@ -34,6 +30,10 @@ void init_session(Session *sess, char *data_path, char *label_path)
         sess->truth = calloc(sess->subdivision*sess->truth_num, sizeof(float));
         sess->loss = calloc(1, sizeof(float));
     }
+    bind_train_data(sess, data_path);
+    bind_train_label(sess, label_path);
+    init_graph(sess->graph, sess->width, sess->height, sess->channel, sess->coretype, sess->subdivision, sess->optimizer, sess->weights_path, sess->input);
+    create_workspace(sess);
     set_graph(sess->graph, sess->workspace, sess->truth, sess->loss);
     transforms_sess(sess);
     bind_train_data(sess, "./backup/train.txt");
@@ -178,7 +178,7 @@ void load_train_label(Session *sess, int index)
 void train(Session *sess)
 {
     fprintf(stderr, "\nSession Start To Running\n");
-    float rate = -sess->learning_rate;
+    float rate = -sess->learning_rate/sess->subdivision;
     Graph *g = sess->graph;
     g->status = 1;
     for (int i = 0; i < sess->epoch; ++i){
@@ -192,14 +192,14 @@ void train(Session *sess)
                 load_train_data_binary(sess, j * sess->batch + k * sess->subdivision);
                 load_train_label(sess, j * sess->batch + k * sess->subdivision);
                 zerograd_graph(sess->graph, sess->subdivision, sess->coretype);
-                forward_graph(sess->graph, sess->input, sess->coretype, sess->subdivision);
+                forward_graph(sess->graph, sess->coretype, sess->subdivision);
                 backward_graph(sess->graph, sess->coretype, sess->subdivision);
                 if (sess->optimizer == SGD){
                     SGDOptimizer_graph(sess->graph, sess->coretype, rate, sess->momentum, sess->dampening, sess->decay, sess->nesterov, sess->maximize);
                 } else if (sess->optimizer == ADAM){
                     AdamOptimizer_graph(sess->graph, sess->coretype, rate, sess->beta1, sess->beta2, sess->decay, sess->amsgrad, sess->maximize);
                 } else {
-                    update_graph(sess->graph, sess->coretype, rate, sess->subdivision);
+                    fprintf(stderr, "Optimizer Not Found!\n");
                 }
                 if (sess->coretype == CPU) {
                     loss[0] += sess->loss[0];
@@ -240,7 +240,7 @@ void detect_classification(Session *sess)
     for (int i = 0; i < sess->train_data_num; ++i){
         load_train_data_binary(sess, i);
         load_train_label(sess, i);
-        forward_graph(sess->graph, sess->input, sess->coretype, sess->subdivision);
+        forward_graph(sess->graph, sess->coretype, sess->subdivision);
         if (sess->coretype == GPU){
             cudaMemcpy(truth, l->truth, sess->truth_num*sizeof(float), cudaMemcpyDeviceToHost);
             cudaMemcpy(detect, l->detect, sess->truth_num*sizeof(float), cudaMemcpyDeviceToHost);

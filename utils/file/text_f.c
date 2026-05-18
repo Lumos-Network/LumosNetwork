@@ -57,32 +57,6 @@ void fputls(FILE *fp, char **lines, int n)
     }
 }
 
-// char **load_label_txt(char *path, int num)
-// {
-//     char **label = calloc(num, sizeof(char *));
-//     int label_offset = 0;
-//     FILE *fp = fopen(path, "r");
-//     if (fp == NULL){
-//         fprintf(stderr, "\nerror file %s can not open\n", path);
-//         abort();
-//     }
-//     char *line = fgetl(fp);
-//     fclose(fp);
-//     int n[1];
-//     char **nodes = split(line, ' ', n);
-//     for (int k = 0; k < n[0]; ++k)
-//     {
-//         strip(nodes[k], ' ');
-//         if (label_offset >= num)
-//             return label;
-//         label[label_offset] = nodes[k];
-//         label_offset += 1;
-//     }
-
-    
-//     return label;
-// }
-
 void **load_label_txt(char *path)
 {
     char *tmp = fget(path);

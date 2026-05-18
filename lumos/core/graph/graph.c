@@ -23,15 +23,13 @@ void append_layer2grpah(Graph *graph, Layer *l)
     if (graph->head == NULL) graph->head = layer;
 }
 
-void init_graph(Graph *g, int w, int h, int c, int coretype, int subdivision, int group, int optimizer, char *weights_path)
+void init_graph(Graph *g, int w, int h, int c, int coretype, int subdivision, int optimizer, char *weights_path, float *input)
 {
     fprintf(stderr, "\nStart To Init Graph\n");
     fprintf(stderr, "[Lumos]                     Inputs         Outputs\n");
     Node *layer = g->head;
     Layer *l;
     FILE *fp = NULL;
-    if (coretype == GPU) cudaMalloc((void**)&g->detect, subdivision*group*sizeof(float));
-    else g->detect = calloc(subdivision*group, sizeof(float));
     if (weights_path){
         fp = fopen(weights_path, "rb");
     }
@@ -39,7 +37,7 @@ void init_graph(Graph *g, int w, int h, int c, int coretype, int subdivision, in
         if (layer){
             l = layer->l;
             l->optimizer = optimizer;
-            l->detect = g->detect;
+            l->input = input;
             if (coretype == GPU){
                 l->initializegpu(l, w, h, c, subdivision);
                 if (l->weightinitgpu) l->weightinitgpu(*l, fp);
@@ -48,12 +46,15 @@ void init_graph(Graph *g, int w, int h, int c, int coretype, int subdivision, in
                 if (l->weightinit) l->weightinit(*l, fp);
             }
         } else {
+            if (coretype == GPU) cudaMalloc((void**)&g->detect, subdivision*l->inputs*sizeof(float));
+            else g->detect = calloc(subdivision*l->inputs, sizeof(float));
             break;
         }
         layer = layer->next;
         w = l->output_w;
         h = l->output_h;
         c = l->output_c;
+        input = l->output;
     }
     if (fp){
         fclose(fp);
@@ -70,6 +71,7 @@ void set_graph(Graph *g, float *space, float *truth, float *loss)
             l->truth = truth;
             l->loss = loss;
             l->workspace = space;
+            l->detect = g->detect;
         } else {
             break;
         }
@@ -77,16 +79,14 @@ void set_graph(Graph *g, float *space, float *truth, float *loss)
     }
 }
 
-void forward_graph(Graph *g, float *input, int coretype, int subdivision)
+void forward_graph(Graph *g, int coretype, int subdivision)
 {
     Node *layer = g->head;
     Layer *l;
-    int i = 0;
     for (;;){
         if (layer){
             l = layer->l;
             l->status = g->status;
-            l->input = input;
             if (coretype == GPU){
                 l->forwardgpu(*l, subdivision);
             } else {
@@ -95,9 +95,7 @@ void forward_graph(Graph *g, float *input, int coretype, int subdivision)
         } else {
             break;
         }
-        i += 1;
         layer = layer->next;
-        input = l->output;
     }
 }
 
@@ -114,24 +112,6 @@ void backward_graph(Graph *g, int coretype, int subdivision)
             } else {
                 l->backward(*l, subdivision, n_delta);
             }
-        } else {
-            break;
-        }
-        layer = layer->head;
-        n_delta = l->delta;
-    }
-}
-
-void update_graph(Graph *g, int coretype, float rate, int subdivision)
-{
-    Node *layer = g->tail;
-    Layer *l;
-    float *n_delta;
-    for (;;){
-        if (layer){
-            l = layer->l;
-            if (coretype == GPU && l->updategpu) l->updategpu(*l, rate, subdivision, n_delta);
-            if (coretype == CPU && l->update) l->update(*l, rate, subdivision, n_delta);
         } else {
             break;
         }

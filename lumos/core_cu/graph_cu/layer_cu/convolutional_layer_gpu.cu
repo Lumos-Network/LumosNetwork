@@ -55,7 +55,7 @@ void weightinit_convolutional_layer_gpu(Layer l, FILE *fp)
         return;
     }
     char *def_mode = (char *)"fan_in";
-    char *def_nonlinearity = (char *)"leaky_relu";
+    char *def_nonlinearity = (char *)"leaky";
     if (l.initcptkernel == NULL){
         convolutional_kaiming_uniform_kernel_init_gpu(l, sqrt(5.0), def_mode, def_nonlinearity);
     } else {
@@ -87,6 +87,7 @@ void weightinit_convolutional_layer_gpu(Layer l, FILE *fp)
 
 void forward_convolutional_layer_gpu(Layer l, int num)
 {
+    fill_gpu(l.output, num*l.outputs, 0, 1);
     for (int i = 0; i < num; ++i){
         int offset_i = i * l.inputs;
         int offset_o = i * l.outputs;
@@ -95,56 +96,34 @@ void forward_convolutional_layer_gpu(Layer l, int num)
         im2col_gpu(input, l.input_h, l.input_w, l.input_c, l.ksize, l.stride, l.pad, l.workspace);
         gemm_gpu(0, 0, l.filters, l.ksize * l.ksize * l.input_c, l.ksize * l.ksize * l.input_c, l.output_h * l.output_w, 1,
              l.kernel_weights, l.workspace, output);
-        if (l.bias){
-            add_bias_gpu(output, l.bias_weights, l.filters, l.output_h * l.output_w);
-        }
+    }
+    if (l.bias){
+        add_bias_gpu(l.output, l.bias_weights, num, l.filters, l.output_h*l.output_w);
     }
     activate_list_gpu(l.output, num*l.outputs, l.output, l.active);
 }
 
 void backward_convolutional_layer_gpu(Layer l, int num, float *n_delta)
 {
+    gradient_list_gpu(l.output, num*l.outputs, n_delta, l.active);
+    if (l.bias){
+        backward_bias_gpu(l.bias_delta, n_delta, num, l.filters, l.output_h*l.output_w);
+    }
     for (int i = 0; i < num; ++i){
         int offset_i = i * l.inputs;
         int offset_o = i * l.outputs;
         float *input = l.input + offset_i;
-        float *output = l.output + offset_o;
         float *delta_l = l.delta + offset_i;
         float *delta_n = n_delta + offset_o;
-        gradient_list_gpu(output, l.outputs, l.workspace, l.active);
-        matrix_multiply_gpu(delta_n, l.workspace, l.outputs, delta_n);
+        im2col_gpu(input, l.input_h, l.input_w, l.input_c, l.ksize, l.stride, l.pad, l.workspace);
+        gemm_gpu(0, 1, l.filters, l.output_h * l.output_w,
+             l.ksize * l.ksize * l.input_c, l.output_h * l.output_w, 1,
+             delta_n, l.workspace, l.kernel_weights_delta);
+        fill_gpu(l.workspace, l.input_c*l.ksize*l.ksize*l.output_h*l.output_w, 0, 1);
         gemm_gpu(1, 0, l.filters, l.ksize * l.ksize * l.input_c,
              l.filters, l.output_h * l.output_w, 1,
              l.kernel_weights, delta_n, l.workspace);
         col2im_gpu(l.workspace, l.ksize, l.stride, l.pad, l.input_h, l.input_w, l.input_c, delta_l);
-        im2col_gpu(input, l.input_h, l.input_w, l.input_c, l.ksize, l.stride, l.pad, l.workspace);
-        gemm_gpu(0, 1, l.filters, l.output_h * l.output_w,
-             l.ksize * l.ksize * l.input_c, l.output_h * l.output_w, 1,
-             delta_n, l.workspace, l.workspace + l.ksize * l.ksize * l.input_c * l.output_h * l.output_w);
-        saxpy_gpu(l.kernel_weights_delta, l.workspace+l.ksize*l.ksize*l.input_c*l.output_h*l.output_w, l.filters*l.ksize*l.ksize*l.input_c, 1./num, l.kernel_weights_delta);
-        if (l.bias) {
-            sum_channel_gpu(delta_n, l.output_h, l.output_w, l.output_c, 1, l.workspace);
-            saxpy_gpu(l.bias_delta, l.workspace, l.filters, 1./num, l.bias_delta);
-        }
-    }
-}
-
-void update_convolutional_layer_gpu(Layer l, float rate, int num, float *n_delta)
-{
-    for (int i = 0; i < num; ++i){
-        int offset_i = i * l.inputs;
-        int offset_o = i * l.outputs;
-        float *input = l.input + offset_i;
-        float *delta_n = n_delta + offset_o;
-        im2col_gpu(input, l.input_h, l.input_w, l.input_c, l.ksize, l.stride, l.pad, l.workspace);
-        gemm_gpu(0, 1, l.filters, l.output_h * l.output_w,
-             l.ksize * l.ksize * l.input_c, l.output_h * l.output_w, 1,
-             delta_n, l.workspace, l.workspace + l.ksize * l.ksize * l.input_c * l.output_h * l.output_w);
-        saxpy_gpu(l.update_kernel_weights, l.workspace + l.ksize * l.ksize * l.input_c * l.output_h * l.output_w, l.filters * l.ksize * l.ksize * l.input_c, rate, l.update_kernel_weights);
-        if (l.bias){
-            sum_channel_gpu(delta_n, l.output_h, l.output_w, l.output_c, rate, l.workspace);
-            add_bias_gpu(l.update_bias_weights, l.workspace, l.output_c, 1);
-        }
     }
 }
 
@@ -285,7 +264,7 @@ void convolutional_kaiming_normal_kernel_init_gpu(Layer l, float a, char *mode, 
     if (0 == strcmp(nonlinearity, "sigmoid")) a= 1;
     else if (0 == strcmp(nonlinearity, "tanh")) a = 5.0/3;
     else if (0 == strcmp(nonlinearity, "relu")) a = sqrt(2.0);
-    else if (0 == strcmp(nonlinearity, "leaky_relu")){
+    else if (0 == strcmp(nonlinearity, "leaky")){
         if (a == 0) a = 0.01;
         a = sqrt(2.0 / (1 + a*a));
     }
@@ -310,7 +289,7 @@ void convolutional_kaiming_uniform_kernel_init_gpu(Layer l, float a, char *mode,
     if (0 == strcmp(nonlinearity, "sigmoid")) a= 1;
     else if (0 == strcmp(nonlinearity, "tanh")) a = 5.0/3;
     else if (0 == strcmp(nonlinearity, "relu")) a = sqrt(2.0);
-    else if (0 == strcmp(nonlinearity, "leaky_relu")){
+    else if (0 == strcmp(nonlinearity, "leaky")){
         if (a == 0) a = 0.01;
         a = sqrt(2.0 / (1 + a*a));
     }

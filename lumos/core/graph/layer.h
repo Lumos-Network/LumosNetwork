@@ -22,7 +22,7 @@ extern "C" {
 
 typedef enum {
     CONVOLUTIONAL, CONNECT, IM2COL, MAXPOOL, AVGPOOL, GLOBALMAX, GLOBALAVG, \
-    DROPOUT, SOFTMAX, LOGSOFTMAX, SHORTCUT, NORMALIZE, \
+    DROPOUT, SOFTMAX, LOGSOFTMAX, SHORTCUT, NORMALIZE, DECONVOLUTIONAL, INCEPTION, \
     MSE, MAE, CE, NLL, CROSSENTROPY
 } LayerType;
 
@@ -59,20 +59,16 @@ typedef struct layer Layer;
 
 typedef void (*forward)  (struct layer, int);
 typedef void (*backward) (struct layer, int, float*);
-typedef void (*update) (struct layer, float, int, float*);
 typedef void (*refresh) (struct layer);
 typedef forward Forward;
 typedef backward Backward;
-typedef update Update;
 typedef refresh Refresh;
 
 typedef void (*forward_gpu)  (struct layer, int);
 typedef void (*backward_gpu) (struct layer, int, float*);
-typedef void (*update_gpu) (struct layer, float, int, float*);
 typedef void (*refresh_gpu) (struct layer);
 typedef forward_gpu ForwardGpu;
 typedef backward_gpu BackwardGpu;
-typedef update_gpu UpdateGpu;
 typedef refresh_gpu RefreshGpu;
 
 typedef void (*sgdoptimizer) (struct layer, float, float, float, float, int, int);
@@ -130,6 +126,10 @@ struct layer{
     float *kernel_weights_delta;
     float *bias_delta;
 
+    // lossscale
+    float *scale;
+    int ignore;
+
     int *maxpool_index;
     //为社么是指针
     int *dropout_rand;
@@ -138,7 +138,6 @@ struct layer{
     int ksize;
     int stride;
     int pad;
-    int group;
 
     int bias;
     // dropout 占比
@@ -146,6 +145,12 @@ struct layer{
     float *detect; //预测值
     Layer *shortcut;
     int shortcut_type;
+
+    Layer **inception;
+    int dim;
+    float **inception_input;
+    float **inception_delta;
+    int **shapes;
 
     float *kernel_weights;
     float *bias_weights;
@@ -176,12 +181,10 @@ struct layer{
 
     Forward forward;
     Backward backward;
-    Update update;
     Refresh refresh;
 
     ForwardGpu forwardgpu;
     BackwardGpu backwardgpu;
-    UpdateGpu updategpu;
     RefreshGpu refreshgpu;
 
     SGDOptimizer sgdoptimizer;

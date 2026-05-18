@@ -2,8 +2,8 @@ from PIL import Image
 import os
 import math
 
-h = 224
-w = 224
+h = 32
+w = 32
 c = 3
 
 def mean_std(directory):
@@ -38,6 +38,6 @@ def mean_std(directory):
         std[i] = math.sqrt(std[i])
     return mean, std
 
-mean, std = mean_std("./data/coffee/train.txt")
+mean, std = mean_std("./data/cifar10/train.txt")
 print(mean)
 print(std)

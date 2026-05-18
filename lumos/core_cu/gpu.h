@@ -16,6 +16,8 @@ extern "C" {
 
 #define BLOCK 512
 
+dim3 cuda_gridsize(size_t n);
+
 #ifdef __cplusplus
 }
 #endif

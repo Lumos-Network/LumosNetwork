@@ -37,6 +37,7 @@ void forward_dropout_layer_gpu(Layer l, int num)
     }
     cudaMemcpy(l.dropout_rand, dropout_rand, num*l.inputs*sizeof(float), cudaMemcpyHostToDevice);
     dropout_gpu(l, num);
+    free(dropout_rand);
 }
 
 void backward_dropout_layer_gpu(Layer l, int num, float *n_delta)
