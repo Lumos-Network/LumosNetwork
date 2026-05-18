@@ -1,9 +1,10 @@
 #include "deconvolutional_layer.h"
 
-Layer *make_deconvolutional_layer(int ksize, int stride, int pad, int bias, char *active)
+Layer *make_deconvolutional_layer(int filters, int ksize, int stride, int pad, int bias, char *active)
 {
     Layer *l = malloc(sizeof(Layer));
     l->type = DECONVOLUTIONAL;
+    l->filters = filters;
     l->ksize = ksize;
     l->stride = stride;
     l->pad = pad;
@@ -35,7 +36,7 @@ Layer *make_deconvolutional_layer(int ksize, int stride, int pad, int bias, char
     l->zerogradlayer = zerograd_deconvolutional_layer;
     l->zerogradlayergpu = zerograd_deconvolutional_layer_gpu;
 
-    fprintf(stderr, "DeConvolutional   Layer   :   [filters=%2d, ksize=%2d, stride=%2d, pad=%2d, bias=%d, active=%s]\n",
+    fprintf(stderr, "DeConvolutional Layer   :   [filters=%2d, ksize=%2d, stride=%2d, pad=%2d, bias=%d, active=%s]\n",
             l->filters, l->ksize, l->stride, l->pad, l->bias, active);
     return l;
 }
@@ -73,7 +74,7 @@ void init_deconvolutional_layer(Layer *l, int w, int h, int c, int subdivision)
         fill_cpu(l->momentum_kernel_v, l->filters*l->ksize*l->ksize*l->input_c, 0, 1);
     }
 
-    fprintf(stderr, "DeConvolutional   Layer    %3d*%3d*%3d ==> %3d*%3d*%3d\n",
+    fprintf(stderr, "DeConvolutional Layer    %3d*%3d*%3d ==> %3d*%3d*%3d\n",
             l->input_w, l->input_h, l->input_c, l->output_w, l->output_h, l->output_c);
 }
 

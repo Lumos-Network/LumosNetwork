@@ -37,7 +37,7 @@ void append_layer2grpah(Graph *graph, Layer *l);
 Layer *make_avgpool_layer(int ksize, int stride, int pad);
 Layer *make_connect_layer(int output, int bias, char *active);
 Layer *make_convolutional_layer(int filters, int ksize, int stride, int pad, int bias, char *active);
-Layer *make_deconvolutional_layer(int ksize, int stride, int pad, int bias, char *active);
+Layer *make_deconvolutional_layer(int filters, int ksize, int stride, int pad, int bias, char *active);
 Layer *make_dropout_layer(float probability);
 Layer *make_inception_layer(Layer **inception, int num, int dim);
 Layer *make_normalization_layer(float momentum, int affine, char *active);

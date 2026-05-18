@@ -209,8 +209,8 @@ void googlenet(char *type, char *path)
 
     ls[108] = make_avgpool_layer(7, 7, 0); // 106
     ls[109] = make_dropout_layer(0.5);
-    ls[110] = make_connect_layer(5, 1, "linear");
-    ls[111] = make_crossentropy_layer(5);
+    ls[110] = make_connect_layer(100, 1, "linear");
+    ls[111] = make_crossentropy_layer(100);
 
     for (int i = 0; i < 112; ++i) {
         append_layer2grpah(graph, ls[i]);
@@ -225,7 +225,7 @@ void googlenet(char *type, char *path)
         }
     }
 
-    Session *sess = create_session(graph, 224, 224, 3, 5, type, path);
+    Session *sess = create_session(graph, 96, 96, 3, 100, type, path);
     float *mean = calloc(3, sizeof(float));
     float *std = calloc(3, sizeof(float));
     mean[0] = 0.485;
@@ -235,10 +235,10 @@ void googlenet(char *type, char *path)
     std[1] = 0.224;
     std[2] = 0.225;
     transform_normalize_sess(sess, mean, std);
-    transform_resize_sess(sess, 224, 224);
-    set_train_params(sess, 50, 32, 32, 0.001);
+    transform_resize_sess(sess, 96, 96);
+    set_train_params(sess, 150, 64, 64, 0.0001);
     SGDOptimizer_sess(sess, 0.9, 0, 0, 0, 0);
-    init_session(sess, "./data/flower/train.txt", "./data/flower/train_label.txt");
+    init_session(sess, "./data/cifar100/train.txt", "./data/cifar100/train_label.txt");
     train(sess);
 }
 
@@ -451,23 +451,14 @@ void googlenet_detect(char*type, char *path)
 
     ls[108] = make_avgpool_layer(7, 7, 0); // 106
     ls[109] = make_dropout_layer(0.5);
-    ls[110] = make_connect_layer(5, 1, "linear");
-    ls[111] = make_crossentropy_layer(5);
+    ls[110] = make_connect_layer(100, 1, "linear");
+    ls[111] = make_crossentropy_layer(100);
 
     for (int i = 0; i < 112; ++i) {
         append_layer2grpah(graph, ls[i]);
-        Layer *l = ls[i];
-        if (l->type == CONVOLUTIONAL){
-            init_kaiming_uniform_kernel(l, sqrt(5.0), "fan_in", "relu");
-            init_constant_bias(l, 0);
-        }
-        if (l->type == CONNECT){
-            init_kaiming_normal_kernel(l, sqrt(5.0), "fan_in", "relu");
-            init_constant_bias(l, 0);
-        }
     }
 
-    Session *sess = create_session(graph, 224, 224, 3, 5, type, path);
+    Session *sess = create_session(graph, 96, 96, 3, 100, type, path);
     float *mean = calloc(3, sizeof(float));
     float *std = calloc(3, sizeof(float));
     mean[0] = 0.485;
@@ -477,8 +468,8 @@ void googlenet_detect(char*type, char *path)
     std[1] = 0.224;
     std[2] = 0.225;
     transform_normalize_sess(sess, mean, std);
-    transform_resize_sess(sess, 224, 224);
+    transform_resize_sess(sess, 96, 96);
     set_detect_params(sess);
-    init_session(sess, "./data/flower/train.txt", "./data/flower/train_label.txt");
+    init_session(sess, "./data/cifar100/train.txt", "./data/cifar100/train_label.txt");
     detect_classification(sess);
 }

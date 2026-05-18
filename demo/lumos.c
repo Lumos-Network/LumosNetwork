@@ -7,9 +7,11 @@
 #include "lenet5_mnist.h"
 #include "cpu.h"
 #include "googlenet.h"
+#include "fcn8.h"
 
 int main()
 {
     // googlenet("gpu", NULL);
-    googlenet_detect("gpu", "./backup/LW_f");
+    // googlenet_detect("gpu", "./backup/LW_f");
+    // fcn8("gpu", NULL);
 }

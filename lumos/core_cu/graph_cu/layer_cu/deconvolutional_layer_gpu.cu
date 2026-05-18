@@ -33,7 +33,7 @@ void init_deconvolutional_layer_gpu(Layer *l, int w, int h, int c, int subdivisi
         fill_gpu(l->momentum_kernel_v, l->filters*l->ksize*l->ksize*l->input_c, 0, 1);
     }
 
-    fprintf(stderr, "DeConvolutional   Layer    %3d*%3d*%3d ==> %3d*%3d*%3d\n",
+    fprintf(stderr, "DeConvolutional Layer    %3d*%3d*%3d ==> %3d*%3d*%3d\n",
             l->input_w, l->input_h, l->input_c, l->output_w, l->output_h, l->output_c);
 }
 
