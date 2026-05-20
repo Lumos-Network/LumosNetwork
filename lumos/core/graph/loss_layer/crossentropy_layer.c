@@ -1,54 +1,40 @@
 #include "crossentropy_layer.h"
 
-void crossentropy(float *data, float *truth, int num, float *scale, int ignore, float *space)
+void crossentropy(float *data, int *truth, int num, float *scale, int ignore, float *space)
 {
     float M = 0;
     float res = 0;
     float scale_x = 1;
+    int index = truth[0];
     if (ignore != -1){
-        if (truth[ignore] == 1){
+        if (truth[0] == ignore){
             space[0] = 0;
             return;
         }
     }
     if (scale != NULL){
-        for (int i = 0; i < num; ++i){
-            if (truth[i] == 1){
-                scale_x = scale[i];
-                break;
-            }
-        }
+        scale_x = scale[truth[0]];
     }
     max_cpu(data, num, &M);
     for (int i = 0; i < num; ++i){
         res += exp(data[i]-M);
     }
-    for (int i = 0; i < num; ++i){
-        if (truth[i] == 1){
-            space[0] = (-data[i]+M+log(res))*scale_x;
-            return;
-        }
-    }
+    space[0] = (-data[index]+M+log(res))*scale_x;
 }
 
-void crossentropy_gradient(float *data, float *truth, int num, float *scale, int ignore, float *space)
+void crossentropy_gradient(float *data, int *truth, int num, float *scale, int ignore, float *space)
 {
     float M = 0;
     float res = 0;
     float scale_x = 1;
     if (ignore != -1){
-        if (truth[ignore] == 1){
-            fill_cpu(space, num, 0, 1);
+        if (truth[0] == ignore){
+            space[0] = 0;
             return;
         }
     }
     if (scale != NULL){
-        for (int i = 0; i < num; ++i){
-            if (truth[i] == 1){
-                scale_x = scale[i];
-                break;
-            }
-        }
+        scale_x = scale[truth[0]];
     }
     max_cpu(data, num, &M);
     for (int i = 0; i < num; ++i){
@@ -56,10 +42,14 @@ void crossentropy_gradient(float *data, float *truth, int num, float *scale, int
         res += space[i];
     }
     for (int i = 0; i < num; ++i){
-        space[i] = (space[i]/res-truth[i])*scale_x;
+        if (i == truth[0]){
+            space[i] = (space[i]/res-1)*scale_x;
+        } else {
+            space[i] = space[i]/res*scale_x;
+        }
     }
 }
-// scale_num 21
+
 Layer *make_crossentropy_layer(float *scale, int ignore)
 {
     Layer *l = malloc(sizeof(Layer));
@@ -125,14 +115,14 @@ void forward_crossentropy_layer(Layer l, int num)
             crossentropy(input, l.truth, l.input_c, l.scale, l.ignore, output);
             softmax(input, l.inputs, detect);
         }
-        return;
-    }
-    for (int i = 0; i < num; ++i){
-        for (int j = 0; j < l.input_h*l.input_w; ++j){
-            float *input = l.input+(i*l.input_h*l.input_w+j)*l.input_c;
-            float *truth = l.truth+i*l.input_c;
-            float *output = l.output+i*l.output_h*l.output_w+j;
-            crossentropy(input, truth, l.input_c, l.scale, l.ignore, output);
+    } else {
+        for (int i = 0; i < num; ++i){
+            for (int j = 0; j < l.input_h*l.input_w; ++j){
+                float *input = l.input+(i*l.input_h*l.input_w+j)*l.input_c;
+                int *truth = l.truth+i*l.output_h*l.output_w+j;
+                float *output = l.output+i*l.output_h*l.output_w+j;
+                crossentropy(input, truth, l.input_c, l.scale, l.ignore, output);
+            }
         }
     }
     sum_cpu(l.output, l.outputs*num, l.loss);
@@ -144,7 +134,7 @@ void backward_crossentropy_layer(Layer l, int num, float *n_delta)
     for (int i = 0; i < num; ++i){
         for (int j = 0; j < l.input_h*l.input_w; ++j){
             float *input = l.input+(i*l.input_h*l.input_w+j)*l.input_c;
-            float *truth = l.truth+i*l.input_c;
+            int *truth = l.truth+i*l.output_h*l.output_w+j;
             float *delta_l = l.delta+(i*l.input_h*l.input_w+j)*l.input_c;
             crossentropy_gradient(input, truth, l.input_c, l.scale, l.ignore, delta_l);
         }

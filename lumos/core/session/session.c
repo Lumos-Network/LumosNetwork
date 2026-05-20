@@ -1,6 +1,6 @@
 #include "session.h"
 
-Session *create_session(Graph *graph, int h, int w, int c, int truth_num, char *type, char *path)
+Session *create_session(Graph *graph, int h, int w, int c, int truth_num, int class_num, char *type, char *path)
 {
     Session *sess = malloc(sizeof(Session));
     sess->graph = graph;
@@ -13,6 +13,7 @@ Session *create_session(Graph *graph, int h, int w, int c, int truth_num, char *
     sess->width = w;
     sess->channel = c;
     sess->truth_num = truth_num;
+    sess->class_num = class_num;
     sess->weights_path = path;
     sess->resize = 0;
     sess->normalize = 0;
@@ -23,11 +24,11 @@ void init_session(Session *sess, char *data_path, char *label_path)
 {
     if (sess->coretype == GPU){
         cudaMalloc((void**)&sess->input, sess->subdivision*sess->width*sess->height*sess->channel*sizeof(float));
-        cudaMalloc((void**)&sess->truth, sess->subdivision*sess->truth_num*sizeof(float));
+        cudaMalloc((void**)&sess->truth, sess->subdivision*sess->truth_num*sizeof(int));
         cudaMalloc((void**)&sess->loss, sizeof(float));
     } else {
         sess->input = calloc(sess->subdivision*sess->width*sess->height*sess->channel, sizeof(float));
-        sess->truth = calloc(sess->subdivision*sess->truth_num, sizeof(float));
+        sess->truth = calloc(sess->subdivision*sess->truth_num, sizeof(int));
         sess->loss = calloc(1, sizeof(float));
     }
     bind_train_data(sess, data_path);
@@ -152,25 +153,25 @@ void load_train_data_binary(Session *sess, int index)
 
 void load_train_label(Session *sess, int index)
 {
-    float *truth = calloc(sess->subdivision*sess->truth_num, sizeof(float));
+    int *truth = calloc(sess->subdivision*sess->truth_num, sizeof(int));
     for (int i = index; i < index + sess->subdivision; ++i){
-        float *truth_i = truth + (i - index) * sess->truth_num;
+        int *truth_i = truth + (i - index) * sess->truth_num;
         char *label_path = sess->train_label_paths[i];
         strip(label_path, ' ');
         void **labels = load_label_txt(label_path);
         int *lindex = (int*)labels[0];
         char *tmp = (char*)labels[1];
         for (int j = 0; j < sess->truth_num; ++j){
-            truth_i[j] = (float)atoi(tmp+lindex[j+1]);
+            truth_i[j] = (int)atoi(tmp+lindex[j+1]);
         }
         free(lindex);
         free(tmp);
         free(labels);
     }
     if (sess->coretype == GPU){
-        cudaMemcpy(sess->truth, truth, sess->truth_num*sess->subdivision*sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(sess->truth, truth, sess->truth_num*sess->subdivision*sizeof(int), cudaMemcpyHostToDevice);
     } else {
-        memcpy(sess->truth, truth, sess->truth_num*sess->subdivision*sizeof(float));
+        memcpy(sess->truth, truth, sess->truth_num*sess->subdivision*sizeof(int));
     }
     free(truth);
 }
@@ -226,7 +227,7 @@ void detect_classification(Session *sess)
 {
     fprintf(stderr, "\nSession Start To Running\n");
     int num = 0;
-    float *truth = NULL;
+    int *truth = NULL;
     float *detect = NULL;
     float *loss = calloc(1, sizeof(float));
     Graph *g = sess->graph;
@@ -234,16 +235,16 @@ void detect_classification(Session *sess)
     Node *layer = g->tail;
     Layer *l = layer->l;
     if (sess->coretype == GPU){
-        truth = calloc(sess->truth_num, sizeof(float));
-        detect = calloc(sess->truth_num, sizeof(float));
+        truth = calloc(sess->truth_num, sizeof(int));
+        detect = calloc(sess->class_num, sizeof(float));
     }
     for (int i = 0; i < sess->train_data_num; ++i){
         load_train_data_binary(sess, i);
         load_train_label(sess, i);
         forward_graph(sess->graph, sess->coretype, sess->subdivision);
         if (sess->coretype == GPU){
-            cudaMemcpy(truth, l->truth, sess->truth_num*sizeof(float), cudaMemcpyDeviceToHost);
-            cudaMemcpy(detect, l->detect, sess->truth_num*sizeof(float), cudaMemcpyDeviceToHost);
+            cudaMemcpy(truth, l->truth, sess->truth_num*sizeof(int), cudaMemcpyDeviceToHost);
+            cudaMemcpy(detect, l->detect, sess->class_num*sizeof(float), cudaMemcpyDeviceToHost);
             cudaMemcpy(loss, sess->loss, sizeof(float), cudaMemcpyDeviceToHost);
         } else {
             truth = l->truth;
@@ -254,14 +255,14 @@ void detect_classification(Session *sess)
         fprintf(stderr, "Truth     Detect\n");
         float max = -FLT_MAX;
         int index = -1;
-        for (int j = 0; j < sess->truth_num; ++j){
-            fprintf(stderr, "%.3f %.3f\n", truth[j], detect[j]);
+        for (int j = 0; j < sess->class_num; ++j){
             if (detect[j] > max){
                 index = j;
                 max = detect[j];
             }
         }
-        if (truth[index] == 1) num += 1;
+        fprintf(stderr, "%d %d\n", truth[0], index);
+        if (truth[0] == index) num += 1;
         fprintf(stderr, "Loss:%.4f\n\n", loss[0]);
     }
     fprintf(stderr, "Detct Classification: %d/%d  %.2f\n", num, sess->train_data_num, (float)(num)/(float)(sess->train_data_num));

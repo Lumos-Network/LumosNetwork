@@ -210,109 +210,114 @@ def main():
         
         t0 = time.time()
         for images, targets in tqdm(train_loader, desc=f'Epoch {epoch+1}/{args.epochs}'):
+            print(images.shape)
+            print(targets.shape)
+            print(targets)
             images = images.to(device)
             targets = targets.to(device)
+            break
+        break
             
-            optimizer.zero_grad()
+    #         optimizer.zero_grad()
             
-            outputs = model(images)
-            print("输出形状:", outputs.shape)
-            print("标签形状:", targets.shape)
-            loss = criterion(outputs, targets)
+    #         outputs = model(images)
+    #         print("输出形状:", outputs.shape)
+    #         print("标签形状:", targets.shape)
+    #         loss = criterion(outputs, targets)
             
-            loss.backward()
-            optimizer.step()
+    #         loss.backward()
+    #         optimizer.step()
             
-            train_loss += loss.item() * images.size(0)
-            batch_count += 1
+    #         train_loss += loss.item() * images.size(0)
+    #         batch_count += 1
             
-            del images, targets, outputs, loss
+    #         del images, targets, outputs, loss
             
-            if batch_count % 10 == 0:
-                torch.cuda.empty_cache()
+    #         if batch_count % 10 == 0:
+    #             torch.cuda.empty_cache()
         
-        train_loss = train_loss / train_dataset_size
-        history['train_loss'].append(train_loss)
+    #     train_loss = train_loss / train_dataset_size
+    #     history['train_loss'].append(train_loss)
         
-        # 调整学习率
-        scheduler.step()
+    #     # 调整学习率
+    #     scheduler.step()
         
-        # 执行垃圾回收
-        gc.collect()
-        torch.cuda.empty_cache()
+    #     # 执行垃圾回收
+    #     gc.collect()
+    #     torch.cuda.empty_cache()
         
-        # 评估模型
-        val_loss, pixel_acc, miou, class_iou = evaluate(model, val_loader, criterion, device)
-        history['val_loss'].append(val_loss)
-        history['pixel_acc'].append(pixel_acc)
-        history['miou'].append(miou)
+    #     # 评估模型
+    #     val_loss, pixel_acc, miou, class_iou = evaluate(model, val_loader, criterion, device)
+    #     history['val_loss'].append(val_loss)
+    #     history['pixel_acc'].append(pixel_acc)
+    #     history['miou'].append(miou)
         
-        # 打印进度
-        epoch_time = time.time() - t0
-        print(f'Epoch {epoch+1}/{args.epochs} - '
-              f'Time: {epoch_time:.2f}s - '
-              f'Train Loss: {train_loss:.4f} - '
-              f'Val Loss: {val_loss:.4f} - '
-              f'Pixel Acc: {pixel_acc:.4f} - '
-              f'mIoU: {miou:.4f}')
+    #     # 打印进度
+    #     epoch_time = time.time() - t0
+    #     print(f'Epoch {epoch+1}/{args.epochs} - '
+    #           f'Time: {epoch_time:.2f}s - '
+    #           f'Train Loss: {train_loss:.4f} - '
+    #           f'Val Loss: {val_loss:.4f} - '
+    #           f'Pixel Acc: {pixel_acc:.4f} - '
+    #           f'mIoU: {miou:.4f}')
         
-        # 保存最佳模型
-        if miou > best_miou:
-            best_miou = miou
-            torch.save({
-                'epoch': epoch + 1,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'scheduler_state_dict': scheduler.state_dict(),
-                'best_miou': best_miou,
-            }, os.path.join(args.checkpoint_dir, f'{args.model_type}_best.pth'))
-            print(f'保存最佳模型, mIoU: {best_miou:.4f}')
+    #     # 保存最佳模型
+    #     if miou > best_miou:
+    #         best_miou = miou
+    #         torch.save({
+    #             'epoch': epoch + 1,
+    #             'model_state_dict': model.state_dict(),
+    #             'optimizer_state_dict': optimizer.state_dict(),
+    #             'scheduler_state_dict': scheduler.state_dict(),
+    #             'best_miou': best_miou,
+    #         }, os.path.join(args.checkpoint_dir, f'{args.model_type}_best.pth'))
+    #         print(f'保存最佳模型, mIoU: {best_miou:.4f}')
             
-            # 生成可视化结果
-            save_predictions(model, val_loader, device)
+    #         # 生成可视化结果
+    #         save_predictions(model, val_loader, device)
         
-        # 保存最新模型
-        torch.save({
-            'epoch': epoch + 1,
-            'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-            'scheduler_state_dict': scheduler.state_dict(),
-            'best_miou': best_miou,
-        }, os.path.join(args.checkpoint_dir, f'{args.model_type}_latest.pth'))
+    #     # 保存最新模型
+    #     torch.save({
+    #         'epoch': epoch + 1,
+    #         'model_state_dict': model.state_dict(),
+    #         'optimizer_state_dict': optimizer.state_dict(),
+    #         'scheduler_state_dict': scheduler.state_dict(),
+    #         'best_miou': best_miou,
+    #     }, os.path.join(args.checkpoint_dir, f'{args.model_type}_latest.pth'))
         
-        gc.collect()
-        torch.cuda.empty_cache()
+    #     gc.collect()
+    #     torch.cuda.empty_cache()
     
 
-    plt.figure(figsize=(12, 10))
+    # plt.figure(figsize=(12, 10))
     
 
-    plt.subplot(2, 2, 1)
-    plt.plot(history['train_loss'], label='Train')
-    plt.plot(history['val_loss'], label='Validation')
-    plt.title('Loss')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.legend()
+    # plt.subplot(2, 2, 1)
+    # plt.plot(history['train_loss'], label='Train')
+    # plt.plot(history['val_loss'], label='Validation')
+    # plt.title('Loss')
+    # plt.xlabel('Epoch')
+    # plt.ylabel('Loss')
+    # plt.legend()
     
-    plt.subplot(2, 2, 2)
-    plt.plot(history['pixel_acc'])
-    plt.title('Pixel Accuracy')
-    plt.xlabel('Epoch')
-    plt.ylabel('Accuracy')
+    # plt.subplot(2, 2, 2)
+    # plt.plot(history['pixel_acc'])
+    # plt.title('Pixel Accuracy')
+    # plt.xlabel('Epoch')
+    # plt.ylabel('Accuracy')
     
 
-    plt.subplot(2, 2, 3)
-    plt.plot(history['miou'])
-    plt.title('Mean IoU')
-    plt.xlabel('Epoch')
-    plt.ylabel('mIoU')
+    # plt.subplot(2, 2, 3)
+    # plt.plot(history['miou'])
+    # plt.title('Mean IoU')
+    # plt.xlabel('Epoch')
+    # plt.ylabel('mIoU')
     
-    plt.tight_layout()
-    plt.savefig(os.path.join(args.checkpoint_dir, f'{args.model_type}_history.png'))
-    plt.close()
+    # plt.tight_layout()
+    # plt.savefig(os.path.join(args.checkpoint_dir, f'{args.model_type}_history.png'))
+    # plt.close()
     
-    print(f'训练完成! 最佳 mIoU: {best_miou:.4f}')
+    # print(f'训练完成! 最佳 mIoU: {best_miou:.4f}')
 
 if __name__ == '__main__':
     main() 

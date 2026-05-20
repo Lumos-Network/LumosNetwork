@@ -11,7 +11,7 @@ void xor(char *type, char *path)
     append_layer2grpah(g, l2);
     append_layer2grpah(g, l3);
     append_layer2grpah(g, l4);
-    Session *sess = create_session(g, 1, 2, 1, 2, type, path);
+    Session *sess = create_session(g, 1, 2, 1, 1, 2, type, path);
     set_train_params(sess, 150, 4, 4, 0.1);
     SGDOptimizer_sess(sess, 0.9, 0, 0, 0, 0);
     init_session(sess, "./demo/xor/train.txt", "./demo/xor/label.txt");
@@ -29,7 +29,7 @@ void xor_detect(char *type, char *path)
     append_layer2grpah(g, l2);
     append_layer2grpah(g, l3);
     append_layer2grpah(g, l4);
-    Session *sess = create_session(g, 1, 2, 1, 2, type, path);
+    Session *sess = create_session(g, 1, 2, 1, 1, 2, type, path);
     set_detect_params(sess);
     init_session(sess, "./demo/xor/train.txt", "./demo/xor/label.txt");
     detect_classification(sess);

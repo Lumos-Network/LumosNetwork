@@ -93,7 +93,7 @@ void vgg16_cifar10(char *type, char *path)
     init_constant_bias(l35, 0);
     init_constant_bias(l36, 0);
 
-    Session *sess = create_session(g, 32, 32, 3, 10, type, path);
+    Session *sess = create_session(g, 32, 32, 3, 1, 10, type, path);
     float *mean = calloc(3, sizeof(float));
     float *std = calloc(3, sizeof(float));
     mean[0] = 0.5;
@@ -166,7 +166,7 @@ void vgg16_cifar10_detect(char *type, char *path)
     append_layer2grpah(g, l35);
     append_layer2grpah(g, l36);
     append_layer2grpah(g, l37);
-    Session *sess = create_session(g, 32, 32, 3, 10, type, path);
+    Session *sess = create_session(g, 32, 32, 3, 1, 10, type, path);
     float *mean = calloc(3, sizeof(float));
     float *std = calloc(3, sizeof(float));
     mean[0] = 0.5;

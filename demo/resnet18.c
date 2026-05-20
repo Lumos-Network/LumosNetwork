@@ -108,7 +108,7 @@ void resnet18(char *type, char *path)
 
     init_kaiming_uniform_bias(l34, "fan_in");
 
-    Session *sess = create_session(g, 224, 224, 3, 5, type, path);
+    Session *sess = create_session(g, 224, 224, 3, 1, 5, type, path);
     float *mean = calloc(3, sizeof(float));
     float *std = calloc(3, sizeof(float));
     mean[0] = 0.485;
@@ -208,7 +208,7 @@ void resnet18_detect(char*type, char *path)
     append_layer2grpah(g, l33);
     append_layer2grpah(g, l34);
     append_layer2grpah(g, l35);
-    Session *sess = create_session(g, 224, 224, 3, 5, type, path);
+    Session *sess = create_session(g, 224, 224, 3, 1, 5, type, path);
     float *mean = calloc(3, sizeof(float));
     float *std = calloc(3, sizeof(float));
     mean[0] = 0.485;

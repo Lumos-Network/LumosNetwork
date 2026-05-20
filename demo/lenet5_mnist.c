@@ -19,7 +19,7 @@ void lenet5_mnist(char *type, char *path)
     append_layer2grpah(g, l6);
     append_layer2grpah(g, l7);
     append_layer2grpah(g, l8);
-    Session *sess = create_session(g, 32, 32, 1, 10, type, path);
+    Session *sess = create_session(g, 32, 32, 1, 1, 10, type, path);
     set_train_params(sess, 10, 16, 16, 0.001);
     SGDOptimizer_sess(sess, 0.9, 0, 0, 0, 0);
     init_session(sess, "./data/mnist/train.txt", "./data/mnist/train_label.txt");
@@ -45,7 +45,7 @@ void lenet5_mnist_detect(char*type, char *path)
     append_layer2grpah(g, l6);
     append_layer2grpah(g, l7);
     append_layer2grpah(g, l8);
-    Session *sess = create_session(g, 32, 32, 1, 10, type, path);
+    Session *sess = create_session(g, 32, 32, 1, 1, 10, type, path);
     set_detect_params(sess);
     init_session(sess, "./data/mnist/test.txt", "./data/mnist/test_label.txt");
     detect_classification(sess);

@@ -225,7 +225,7 @@ void googlenet(char *type, char *path)
         }
     }
 
-    Session *sess = create_session(graph, 96, 96, 3, 100, type, path);
+    Session *sess = create_session(graph, 96, 96, 3, 1, 100, type, path);
     float *mean = calloc(3, sizeof(float));
     float *std = calloc(3, sizeof(float));
     mean[0] = 0.485;
@@ -458,7 +458,7 @@ void googlenet_detect(char*type, char *path)
         append_layer2grpah(graph, ls[i]);
     }
 
-    Session *sess = create_session(graph, 96, 96, 3, 100, type, path);
+    Session *sess = create_session(graph, 96, 96, 3, 1, 100, type, path);
     float *mean = calloc(3, sizeof(float));
     float *std = calloc(3, sizeof(float));
     mean[0] = 0.485;

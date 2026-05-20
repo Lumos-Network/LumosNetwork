@@ -57,7 +57,7 @@ void darknet(char *type, char *path)
     init_kaiming_uniform_kernel(l16, sqrt(5.0), "fan_in", "leaky");
     init_kaiming_uniform_kernel(l19, sqrt(5.0), "fan_in", "leaky");
     init_kaiming_uniform_kernel(l22, sqrt(5.0), "fan_in", "leaky");
-    Session *sess = create_session(graph, 256, 256, 3, 5, type, path);
+    Session *sess = create_session(graph, 256, 256, 3, 1, 5, type, path);
     float *mean = calloc(3, sizeof(float));
     float *std = calloc(3, sizeof(float));
     mean[0] = 0.485;
@@ -123,7 +123,7 @@ void darknet_detect(char*type, char *path)
     append_layer2grpah(graph, l21);
     append_layer2grpah(graph, l22);
     append_layer2grpah(graph, l23);
-    Session *sess = create_session(graph, 256, 256, 3, 5, type, path);
+    Session *sess = create_session(graph, 256, 256, 3, 1, 5, type, path);
     float *mean = calloc(3, sizeof(float));
     float *std = calloc(3, sizeof(float));
     mean[0] = 0.485;

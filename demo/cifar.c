@@ -67,7 +67,7 @@ void cifar(char *type, char *path)
     init_kaiming_uniform_kernel(l13, sqrt(5), "fan_in", "leaky");
     init_kaiming_uniform_kernel(l15, sqrt(5), "fan_in", "leaky");
 
-    Session *sess = create_session(graph, 28, 28, 3, 10, type, path);
+    Session *sess = create_session(graph, 28, 28, 3, 1, 10, type, path);
     float *mean = calloc(3, sizeof(float));
     float *std = calloc(3, sizeof(float));
     mean[0] = 0.5;
@@ -139,7 +139,7 @@ void cifar_detect(char*type, char *path)
     append_layer2grpah(graph, l15);
     append_layer2grpah(graph, l16);
     append_layer2grpah(graph, l17);
-    Session *sess = create_session(graph, 28, 28, 3, 10, type, path);
+    Session *sess = create_session(graph, 28, 28, 3, 1, 10, type, path);
     float *mean = calloc(3, sizeof(float));
     float *std = calloc(3, sizeof(float));
     mean[0] = 0.5;

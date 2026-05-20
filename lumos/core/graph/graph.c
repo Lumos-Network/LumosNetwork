@@ -61,7 +61,7 @@ void init_graph(Graph *g, int w, int h, int c, int coretype, int subdivision, in
     }
 }
 
-void set_graph(Graph *g, float *space, float *truth, float *loss)
+void set_graph(Graph *g, float *space, int *truth, float *loss)
 {
     Node *layer = g->head;
     Layer *l;

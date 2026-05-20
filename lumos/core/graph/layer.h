@@ -120,7 +120,7 @@ struct layer{
     float *input;
     float *output;
     float *delta;
-    float *truth;
+    int *truth;
     float *loss;
     float *workspace;
     float *kernel_weights_delta;

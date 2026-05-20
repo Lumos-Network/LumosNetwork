@@ -51,8 +51,8 @@ void fcn8(char *type, char *path)
     for (int i = 0; i < 29; ++i){
         append_layer2grpah(graph, layers[i]);
     }
-    Session *sess = create_session(graph, 320, 320, 3, 21, type, path);
-    set_train_params(sess, 50, 64, 64, 0.0001);
-    SGDOptimizer_sess(sess, 0.9, 0, 0, 0, 0);
-    init_session(sess, "./data/cifar100/train.txt", "./data/cifar100/train_label.txt");
+    // Session *sess = create_session(graph, 320, 320, 3, 21, type, path);
+    // set_train_params(sess, 50, 64, 64, 0.0001);
+    // SGDOptimizer_sess(sess, 0.9, 0, 0, 0, 0);
+    // init_session(sess, "./data/cifar100/train.txt", "./data/cifar100/train_label.txt");
 }
