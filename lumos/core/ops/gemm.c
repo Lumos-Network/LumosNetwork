@@ -1,7 +1,8 @@
 #include "gemm.h"
 
-void gemm(int TA, int TB, int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C)
+void gemm(int TA, int TB, int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C, int flag)
 {
+    fill_cpu(C, flag, 0, 1);
     if (!TA && !TB)
     {
         gemm_nn(AM, AN, BM, BN, ALPHA, A, B, C);

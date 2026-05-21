@@ -18,8 +18,7 @@ extern "C" {
 
 #define GEMM_BLOCK 16
 
-void gemm_gpu(int TA, int TB, int AM, int AN, int BM, int BN, float ALPHA, 
-        float *A, float *B, float *C);
+void gemm_gpu(int TA, int TB, int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C, int flag);
 
 void gemm_nn_gpu(int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C);
 void gemm_tn_gpu(int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C);

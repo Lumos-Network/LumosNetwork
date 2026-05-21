@@ -11,16 +11,63 @@ import matplotlib.pyplot as plt
 import gc  
 from dataload import get_data_loaders, NUM_CLASSES, decode_segmap
 from fcn_model import get_fcn_model
+import struct
+
+def forward_hook(module, input, output):
+    flag = "input"
+    shape = None
+    data = None
+    if (flag == "input"):
+        shape = input[0].shape
+        data = input[0].tolist()
+    else:
+        shape = output.shape
+        data = output.tolist()
+    print("OutShape: {}".format(shape))
+    data_f = []
+    with open("./backup/in_py", "wb") as fp:
+        for i in range(shape[0]):
+            for j in range(shape[1]):
+                for k in range(shape[2]):
+                    data_f += data[i][j][k]
+        for i in range(len(data_f)):
+            fp.write(struct.pack('f', data_f[i]))
+        fp.close()
+
+# grad_input 中各部分梯度的‌顺序取决于模块 forward 函数的输入顺序‌：
+# ‌nn.Linear‌（有 bias）：
+# grad_input 顺序：[bias_grad, input_grad, weight_grad]
+# ‌nn.Conv2d‌（有 bias）：
+# grad_input 顺序：[input_grad, weight_grad, bias_grad]
+# ‌nn.ReLU‌（无参数）：
+# grad_input 仅包含：[input_grad]
+def backward_hook(module, grad_input, grad_output):
+    # print("gradshape:{}".format(grad_input[0].shape))
+    input_grad = grad_input[0]
+    shape = input_grad.shape
+    print(shape)
+    grad = input_grad.tolist()
+    # print(grad)
+    data = []
+    with open("./backup/grad_py", "wb") as fp:
+        for i in range(shape[0]):
+            for j in range(shape[1]):
+                for k in range(shape[2]):
+                    data += grad[i][j][k]
+        print(len(data))
+        for i in range(len(data)):
+            fp.write(struct.pack('f', data[i]))
+        fp.close()
 
 def parse_args():
     parser = argparse.ArgumentParser(description='FCN 语义分割 PyTorch 实现')
-    parser.add_argument('--voc-root', type=str, default='./data/VOC2012',
+    parser.add_argument('--voc-root', type=str, default='./data/VOCT',
                         help='VOC数据集根目录')
     parser.add_argument('--model-type', type=str, default='fcn8s', choices=['fcn8s', 'fcn16s', 'fcn32s'],
                         help='FCN模型类型 (fcn8s, fcn16s, fcn32s)')
     parser.add_argument('--batch-size', type=int, default=4,
                         help='训练的批次大小')
-    parser.add_argument('--epochs', type=int, default=50,
+    parser.add_argument('--epochs', type=int, default=1,
                         help='训练的轮数')
     parser.add_argument('--lr', type=float, default=0.005,
                         help='学习率')
@@ -167,7 +214,6 @@ def main():
     
     # 创建模型
     model = get_fcn_model(model_type=args.model_type, num_classes=NUM_CLASSES, pretrained=True)
-    print(model)
     model = model.to(device)
     
     # 定义损失函数和优化器
@@ -202,6 +248,33 @@ def main():
         'miou': []
     }
     
+    fp = open("./backup/LW_py", "wb")
+    for name, param in model.named_parameters():
+        data_f = []
+        print(f"Layer: {name}, Parameter Shape: {param.shape}") #param.shape [filters, channels, ksize, ksize]  [outputs, inputs]
+        if ("weight" in name and len(param.shape) == 4):
+            data = param.tolist()
+            for i in range(param.shape[0]):
+                for j in range(param.shape[1]):
+                    for k in range(param.shape[2]):
+                        data_f += data[i][j][k]
+        if ("weight" in name and len(param.shape) == 2):
+            data = param.tolist()
+            for i in range(param.shape[0]):
+                data_f += data[i]
+        if ("weight" in name and len(param.shape) == 1):
+            data_f += param.tolist()
+        if ("bias" in name):
+            data = param.tolist()
+            data_f += data
+        print(len(data_f))
+        for i in range(len(data_f)):
+            fp.write(struct.pack('f', data_f[i]))
+    fp.close()
+    
+    model.features5[0].register_forward_hook(forward_hook)
+    # model.l1.register_backward_hook(backward_hook)
+    
     for epoch in range(start_epoch, args.epochs):
         # 训练阶段
         model.train()
@@ -210,21 +283,15 @@ def main():
         
         t0 = time.time()
         for images, targets in tqdm(train_loader, desc=f'Epoch {epoch+1}/{args.epochs}'):
-            print(images.shape)
-            print(targets.shape)
-            print(targets)
             images = images.to(device)
             targets = targets.to(device)
-            break
-        break
-            
-    #         optimizer.zero_grad()
-            
-    #         outputs = model(images)
-    #         print("输出形状:", outputs.shape)
-    #         print("标签形状:", targets.shape)
-    #         loss = criterion(outputs, targets)
-            
+            optimizer.zero_grad()
+            outputs = model(images)
+            # print("输出形状:", outputs.shape)
+            # print("标签形状:", targets.shape)
+            loss = criterion(outputs, targets)
+            print(loss.item())
+
     #         loss.backward()
     #         optimizer.step()
             

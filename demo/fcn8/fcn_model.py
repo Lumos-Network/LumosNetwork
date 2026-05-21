@@ -290,3 +290,6 @@ def get_fcn_model(model_type='fcn8s', num_classes=NUM_CLASSES, pretrained=True):
         return FCN8s(num_classes=num_classes, pretrained=pretrained)
     else:
         raise ValueError("Unsupported model type. Choose from 'fcn32s', 'fcn16s', or 'fcn8s'.")
+
+model = get_fcn_model(model_type='fcn8s', num_classes=21, pretrained=True)
+print(model)

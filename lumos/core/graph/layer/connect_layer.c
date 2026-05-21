@@ -148,7 +148,7 @@ void weightinit_connect_layer(Layer l, FILE *fp)
 void forward_connect_layer(Layer l, int num)
 {
     fill_cpu(l.output, num*l.outputs, 0, 1);
-    gemm(0, 1, num, l.inputs, l.outputs, l.inputs, 1, l.input, l.kernel_weights, l.output);
+    gemm(0, 1, num, l.inputs, l.outputs, l.inputs, 1, l.input, l.kernel_weights, l.output, 0);
     if (l.bias){
         add_bias(l.output, l.bias_weights, num, l.outputs, 1);
     }
@@ -159,8 +159,8 @@ void backward_connect_layer(Layer l, int num, float *n_delta)
 {
     gradient_list(l.output, num*l.outputs, n_delta, l.active);
     if (l.bias) backward_bias(l.bias_delta, n_delta, num, l.outputs, 1);
-    gemm(1, 0, num, l.inputs, num, l.outputs, 1, l.input, n_delta, l.kernel_weights_delta);
-    gemm(0, 0, num, l.outputs, l.outputs, l.inputs, 1, n_delta, l.kernel_weights, l.delta);
+    gemm(1, 0, num, l.inputs, num, l.outputs, 1, l.input, n_delta, l.kernel_weights_delta, 0);
+    gemm(0, 0, num, l.outputs, l.outputs, l.inputs, 1, n_delta, l.kernel_weights, l.delta, 0);
 }
 
 void connect_layer_SGDOptimizer(Layer l, float rate, float momentum, float dampening, float decay, int nesterov, int maximize)

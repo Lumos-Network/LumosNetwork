@@ -1,10 +1,20 @@
 #include "softmax_gpu.h"
 
-__global__ void softmax_kernel(float *data, int num, float *space, float *ALPHA)
+__global__ void softmax_kernel(float *data, int num, float *space)
 {
     int index = threadIdx.x + blockIdx.x * blockDim.x;
-    if (index >= num) return;
-    space[index] = data[index] / ALPHA[0];
+    if (index >= 1) return;
+    float max_val = -INFINITY;
+    float sum_exp = 0;
+    for (int i = 0; i < num; ++i){
+        max_val = max(max_val, data[i]);
+    }
+    for (int i = 0; i < num; ++i){
+        sum_exp += expf(data[i] - max_val);
+    }
+    for (int i = 0; i < num; ++i){
+        space[i] = expf(data[i] - max_val) / sum_exp;
+    }
 }
 
 __global__ void softmax_gradient_kernel(float *data, int num, float *space, float *ALPHA)
@@ -14,9 +24,9 @@ __global__ void softmax_gradient_kernel(float *data, int num, float *space, floa
     space[index] = (data[index] + ALPHA[0]) * data[index];
 }
 
-void softmax_gpu(float *data, int num, float *space, float *ALPHA)
+void softmax_gpu(float *data, int num, float *space)
 {
-    softmax_kernel<<<(num+BLOCK-1)/BLOCK, BLOCK>>>(data, num, space, ALPHA);
+    softmax_kernel<<<(1+BLOCK-1)/BLOCK, BLOCK>>>(data, num, space);
 }
 
 void softmax_gradient_gpu(float *data, int num, float *space, float *ALPHA)

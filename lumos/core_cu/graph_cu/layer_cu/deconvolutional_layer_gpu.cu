@@ -12,7 +12,7 @@ void init_deconvolutional_layer_gpu(Layer *l, int w, int h, int c, int subdivisi
     l->output_c = l->filters;
     l->outputs = l->output_h * l->output_w * l->output_c;
 
-    l->workspace_size = l->ksize*l->ksize*l->input_c*l->output_h*l->output_w;
+    l->workspace_size = l->ksize*l->ksize*l->filters*l->input_h*l->input_w;
 
     cudaMalloc((void**)&l->output, subdivision*l->outputs*sizeof(float));
     cudaMalloc((void**)&l->delta, subdivision*l->inputs*sizeof(float));
@@ -94,7 +94,7 @@ void forward_deconvolutional_layer_gpu(Layer l, int num)
         int offset_o = i * l.outputs;
         float *input = l.input + offset_i;
         float *output = l.output + offset_o;
-        gemm_gpu(1, 0, l.filters, l.ksize*l.ksize*l.input_c, l.filters, l.output_h*l.output_w, 1, l.kernel_weights, input, l.workspace);
+        gemm_gpu(1, 0, l.input_c, l.ksize*l.ksize*l.filters, l.input_c, l.input_h*l.input_w, 1, l.kernel_weights, input, l.workspace, l.ksize*l.ksize*l.filters*l.input_h*l.input_w);
         col2im_gpu(l.workspace, l.ksize, l.stride, l.pad, l.output_h, l.output_w, l.output_c, output);
     }
     if (l.bias){
@@ -116,8 +116,8 @@ void backward_deconvolutional_layer_gpu(Layer l, int num, float *n_delta)
         float *delta_l = l.delta + offset_i;
         float *delta_n = n_delta + offset_o;
         im2col_gpu(delta_n, l.output_h, l.output_w, l.output_c, l.ksize, l.stride, l.pad, l.workspace);
-        gemm_gpu(0, 1, l.filters, l.output_h*l.output_w, l.ksize*l.ksize*l.input_c, l.output_h*l.output_w, 1, input, l.workspace, l.kernel_weights_delta);
-        gemm_gpu(1, 0, l.filters, l.ksize*l.ksize*l.input_c, l.filters, l.output_h*l.output_w, 1, l.kernel_weights, l.workspace, delta_l);
+        gemm_gpu(1, 1, l.input_h*l.input_w, l.input_c, l.ksize*l.ksize*l.filters, l.input_h*l.input_w, 1, input, l.workspace, l.kernel_weights_delta, 0);
+        gemm_gpu(0, 0, l.input_c, l.ksize*l.ksize*l.filters, l.ksize*l.ksize*l.filters, l.input_h*l.input_w, 1, l.kernel_weights, l.workspace, delta_l, 0);
     }
 }
 

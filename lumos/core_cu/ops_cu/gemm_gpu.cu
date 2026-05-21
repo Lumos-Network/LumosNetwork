@@ -48,9 +48,9 @@ __global__ void gemm_tt_kernel(int AM, int AN, int BM, int BN, float ALPHA, floa
     C[i * BM + j] += res;
 }
 
-void gemm_gpu(int TA, int TB, int AM, int AN, int BM, int BN, float ALPHA, 
-        float *A, float *B, float *C)
+void gemm_gpu(int TA, int TB, int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C, int flag)
 {
+    fill_gpu(C, flag, 0, 1);
     if (!TA && !TB)
     {
         gemm_nn_gpu(AM, AN, BM, BN, ALPHA, A, B, C);

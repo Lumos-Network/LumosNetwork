@@ -3,7 +3,7 @@
 void fcn8(char *type, char *path)
 {
     Graph *graph = create_graph();
-    Layer **layers = malloc(29*sizeof(Layer*));
+    Layer **layers = malloc(30*sizeof(Layer*));
     layers[0] = make_convolutional_layer(64, 3, 1, 1, 1, "relu");
     layers[1] = make_convolutional_layer(64, 3, 1, 1, 1, "relu");
     layers[2] = make_maxpool_layer(2, 2, 0);
@@ -47,12 +47,32 @@ void fcn8(char *type, char *path)
     fuse_pool3[1] = layers[27];
 
     layers[28] = make_deconvolutional_layer(21, 16, 8, 4, 1, "linear");
+    layers[29] = make_crossentropy_layer(NULL, 255);
 
-    for (int i = 0; i < 29; ++i){
+    for (int i = 0; i < 30; ++i){
         append_layer2grpah(graph, layers[i]);
+        Layer *l = layers[i];
+        if (l->type == CONVOLUTIONAL){
+            init_kaiming_uniform_kernel(l, sqrt(5.0), "fan_in", "relu");
+            init_constant_bias(l, 0);
+        }
+        if (l->type == DECONVOLUTIONAL){
+            init_kaiming_uniform_kernel(l, sqrt(5.0), "fan_in", "relu");
+            init_constant_bias(l, 0);
+        }
     }
-    // Session *sess = create_session(graph, 320, 320, 3, 21, type, path);
-    // set_train_params(sess, 50, 64, 64, 0.0001);
-    // SGDOptimizer_sess(sess, 0.9, 0, 0, 0, 0);
-    // init_session(sess, "./data/cifar100/train.txt", "./data/cifar100/train_label.txt");
+    Session *sess = create_session(graph, 320, 320, 3, 320*320, 21, type, path);
+    float *mean = calloc(3, sizeof(float));
+    float *std = calloc(3, sizeof(float));
+    mean[0] = 0.485;
+    mean[1] = 0.456;
+    mean[2] = 0.406;
+    std[0] = 0.229;
+    std[1] = 0.224;
+    std[2] = 0.225;
+    transform_normalize_sess(sess, mean, std);
+    set_train_params(sess, 30, 8, 8, 0.0001);
+    SGDOptimizer_sess(sess, 0.9, 0, 0, 0, 0);
+    init_session(sess, "./data/VOC2012/train.txt", "./data/VOC2012/train_label.txt");
+    train(sess);
 }
