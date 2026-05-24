@@ -40,19 +40,21 @@ void init_convolutional_layer_gpu(Layer *l, int w, int h, int c, int subdivision
 void weightinit_convolutional_layer_gpu(Layer l, FILE *fp)
 {
     if (fp){
-        float *kernel_weights = (float*)calloc(l.filters*l.ksize*l.ksize*l.input_c, sizeof(float));
-        fread(kernel_weights, sizeof(float), l.ksize*l.ksize*l.filters*l.input_c, fp);
-        cudaMemcpy(l.kernel_weights, kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float), cudaMemcpyHostToDevice);
-        cudaMemcpy(l.update_kernel_weights, kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float), cudaMemcpyHostToDevice);
-        free(kernel_weights);
-        if (l.bias){
-            float *bias_weights = (float*)calloc(l.filters, sizeof(float));
-            fread(bias_weights, sizeof(float), l.filters, fp);
-            cudaMemcpy(l.bias_weights, bias_weights, l.filters*sizeof(float), cudaMemcpyHostToDevice);
-            cudaMemcpy(l.update_bias_weights, bias_weights, l.filters*sizeof(float), cudaMemcpyHostToDevice);
-            free(bias_weights);
+        int flag = 0;
+        int weights_num = l.filters*l.ksize*l.ksize*l.input_c;
+        if (l.bias) weights_num += l.filters;
+        float *weights = (float*)malloc(weights_num*sizeof(float));
+        flag = fread(weights, sizeof(float), weights_num, fp);
+        if (flag == weights_num){
+            cudaMemcpy(l.kernel_weights, weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float), cudaMemcpyHostToDevice);
+            cudaMemcpy(l.update_kernel_weights, weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float), cudaMemcpyHostToDevice);
+            if (l.bias){
+                cudaMemcpy(l.bias_weights, weights+l.filters*l.ksize*l.ksize*l.input_c, l.filters*sizeof(float), cudaMemcpyHostToDevice);
+                cudaMemcpy(l.update_bias_weights, weights+l.filters*l.ksize*l.ksize*l.input_c, l.filters*sizeof(float), cudaMemcpyHostToDevice);
+            }
+            return;
         }
-        return;
+        free(weights);
     }
     char *def_mode = (char *)"fan_in";
     char *def_nonlinearity = (char *)"leaky";

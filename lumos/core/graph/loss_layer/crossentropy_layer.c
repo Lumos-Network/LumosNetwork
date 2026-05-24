@@ -1,51 +1,76 @@
 #include "crossentropy_layer.h"
 
-void crossentropy(float *data, int *truth, int num, float *scale, int ignore, float *space)
+void max_channel_cpu(float *data, int w, int h, int c, int index, float *space)
 {
-    float M = 0;
-    float res = 0;
-    float scale_x = 1;
-    int index = truth[0];
-    if (ignore != -1){
-        if (truth[0] == ignore){
-            space[0] = 0;
-            return;
-        }
+    float max_val = -INFINITY;
+    for (int i = 0; i < c; ++i){
+        if (data[i*w*h+index] >= max_val) max_val = data[i*w*h+index];
     }
-    if (scale != NULL){
-        scale_x = scale[truth[0]];
-    }
-    max_cpu(data, num, &M);
-    for (int i = 0; i < num; ++i){
-        res += exp(data[i]-M);
-    }
-    space[0] = (-data[index]+M+log(res))*scale_x;
+    space[0] = max_val;
 }
 
-void crossentropy_gradient(float *data, int *truth, int num, float *scale, int ignore, float *space)
+void softmax_channel_cpu(float *data, int w, int h, int c, int index, float *space)
+{
+    float M = 0;
+    float res = 0;
+    max_channel_cpu(data, w, h, c, index, &M);
+    for (int i = 0; i < c; ++i){
+        res += expf(data[i*w*h+index]-M);
+    }
+    for (int i = 0; i < c; ++i){
+        space[i*w*h+index] = expf(data[i*w*h+index]-M)/res;
+    }
+}
+
+void crossentropy(float *data, int *truth, int w, int h, int c, int index, float *scale, int ignore, float *space)
 {
     float M = 0;
     float res = 0;
     float scale_x = 1;
+    int target = truth[index];
     if (ignore != -1){
-        if (truth[0] == ignore){
-            space[0] = 0;
+        if (target == ignore){
+            space[index] = 0.0;
             return;
         }
     }
     if (scale != NULL){
-        scale_x = scale[truth[0]];
+        scale_x = scale[target];
     }
-    max_cpu(data, num, &M);
-    for (int i = 0; i < num; ++i){
-        space[i] = exp(data[i]-M);
-        res += space[i];
+    max_channel_cpu(data, w, h, c, index, &M);
+    for (int i = 0; i < c; ++i){
+        res += expf(data[i*w*h+index]-M);
     }
-    for (int i = 0; i < num; ++i){
-        if (i == truth[0]){
-            space[i] = (space[i]/res-1)*scale_x;
+    space[index] = (-data[target*w*h+index]+M+log(res))*scale_x;
+}
+
+void crossentropy_gradient(float *data, int *truth, int w, int h, int c, int index, float *scale, int ignore, float *space)
+{
+    float M = 0;
+    float res = 0;
+    float scale_x = 1;
+    int target = truth[index];
+    if (ignore != -1){
+        if (target == ignore){
+            for (int i = 0; i < c; ++i){
+                space[i*w*h+index] = 0.0;
+            }
+            return;
+        }
+    }
+    if (scale != NULL){
+        scale_x = scale[target];
+    }
+    max_channel_cpu(data, w, h, c, index, &M);
+    for (int i = 0; i < c; ++i){
+        space[i*w*h+index] = expf(data[i*w*h+index]-M);
+        res += space[i*w*h+index];
+    }
+    for (int i = 0; i < c; ++i){
+        if (i == target){
+            space[i*w*h+index] = (space[i*w*h+index]/res-1)*scale_x/(w*h);
         } else {
-            space[i] = space[i]/res*scale_x;
+            space[i*w*h+index] = space[i*w*h+index]/res*scale_x/(w*h);
         }
     }
 }
@@ -96,7 +121,7 @@ void init_crossentropy_layer(Layer *l, int w, int h, int c, int subdivision)
     l->output_c = 1;
     l->outputs = l->output_h*l->output_w*l->output_c;
 
-    l->workspace_size = l->inputs;
+    l->workspace_size = 0;
 
     l->output = calloc(subdivision*l->outputs, sizeof(float));
     l->delta = calloc(subdivision*l->inputs, sizeof(float));
@@ -109,34 +134,32 @@ void forward_crossentropy_layer(Layer l, int num)
 {
     if (!l.status){
         for (int i = 0; i < l.input_h*l.input_w; ++i){
-            float *input = l.input+i*l.input_c;
-            float *detect = l.detect+i*l.input_c;
-            float *output = l.output+i;
-            crossentropy(input, l.truth, l.input_c, l.scale, l.ignore, output);
-            softmax(input, l.inputs, detect);
+            crossentropy(l.input, l.truth, l.input_w, l.input_h, l.input_c, i, l.scale, l.ignore, l.output);
+            softmax_channel_cpu(l.input, l.input_w, l.input_h, l.input_c, i, l.detect);
         }
+        return;
     } else {
         for (int i = 0; i < num; ++i){
             for (int j = 0; j < l.input_h*l.input_w; ++j){
-                float *input = l.input+(i*l.input_h*l.input_w+j)*l.input_c;
-                int *truth = l.truth+i*l.output_h*l.output_w+j;
-                float *output = l.output+i*l.output_h*l.output_w+j;
-                crossentropy(input, truth, l.input_c, l.scale, l.ignore, output);
+                float *input = l.input+i*l.inputs;
+                int *truth = l.truth+i*l.truth_num;
+                float *output = l.output+i*l.outputs;
+                crossentropy(input, truth, l.input_w, l.input_h, l.input_c, j, l.scale, l.ignore, output);
             }
         }
     }
     sum_cpu(l.output, l.outputs*num, l.loss);
-    multy_cpu(l.loss, 1, (float)1/num, 1);
+    multy_cpu(l.loss, 1, (float)1/(l.outputs*num), 1);
 }
 
 void backward_crossentropy_layer(Layer l, int num, float *n_delta)
 {
     for (int i = 0; i < num; ++i){
         for (int j = 0; j < l.input_h*l.input_w; ++j){
-            float *input = l.input+(i*l.input_h*l.input_w+j)*l.input_c;
-            int *truth = l.truth+i*l.output_h*l.output_w+j;
-            float *delta_l = l.delta+(i*l.input_h*l.input_w+j)*l.input_c;
-            crossentropy_gradient(input, truth, l.input_c, l.scale, l.ignore, delta_l);
+            float *input = l.input+i*l.inputs;
+            int *truth = l.truth+i*l.truth_num;
+            float *delta_l = l.delta+i*l.inputs;
+            crossentropy_gradient(input, truth, l.input_w, l.input_h, l.input_c, j, l.scale, l.ignore, delta_l);
         }
     }
 }

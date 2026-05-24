@@ -39,7 +39,7 @@ Layer *make_deconvolutional_layer(int filters, int ksize, int stride, int pad, i
     l->initcptkernel = NULL;
     l->initcptbias = NULL;
 
-    fprintf(stderr, "DeConvolutional Layer    :   [filters=%2d, ksize=%2d, stride=%2d, pad=%2d, bias=%d, active=%s]\n",
+    fprintf(stderr, "DeConvolutional Layer    :    [filters=%2d, ksize=%2d, stride=%2d, pad=%2d, bias=%d, active=%s]\n",
             l->filters, l->ksize, l->stride, l->pad, l->bias, active);
     return l;
 }
@@ -84,13 +84,21 @@ void init_deconvolutional_layer(Layer *l, int w, int h, int c, int subdivision)
 void weightinit_deconvolutional_layer(Layer l, FILE *fp)
 {
     if (fp){
-        fread(l.kernel_weights, sizeof(float), l.filters*l.ksize*l.ksize*l.input_c, fp);
-        memcpy(l.update_kernel_weights, l.kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float));
-        if (l.bias){
-            fread(l.bias_weights, sizeof(float), l.filters, fp);
-            memcpy(l.update_bias_weights, l.bias_weights, l.filters*sizeof(float));
+        int flag = 0;
+        int weights_num = l.filters*l.ksize*l.ksize*l.input_c;
+        if (l.bias) weights_num += l.filters;
+        float *weights = malloc(weights_num*sizeof(float));
+        flag = fread(weights, sizeof(float), weights_num, fp);
+        if (flag == weights_num){
+            memcpy(l.kernel_weights, weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float));
+            memcpy(l.update_kernel_weights, weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float));
+            if (l.bias){
+                memcpy(l.bias_weights, weights+l.filters*l.ksize*l.ksize*l.input_c, l.filters*sizeof(float));
+                memcpy(l.update_bias_weights, weights+l.filters*l.ksize*l.ksize*l.input_c, l.filters*sizeof(float));
+            }
+            return;
         }
-        return;
+        free(weights);
     }
     if (l.initcptkernel == NULL){
         deconvolutional_kaiming_uniform_kernel_init(l, sqrt(5.0), "fan_in", "leaky");
@@ -103,6 +111,7 @@ void weightinit_deconvolutional_layer(Layer l, FILE *fp)
         else if (initcptkernel.initype == XAVIER_UNIFORM_I) deconvolutional_xavier_uniform_kernel_init(l, initcptkernel.a);
         else if (initcptkernel.initype == KAIMING_NORMAL_I) deconvolutional_kaiming_normal_kernel_init(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
         else if (initcptkernel.initype == KAIMING_UNIFORM_I) deconvolutional_kaiming_uniform_kernel_init(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
+        else if (initcptkernel.initype == BilinearInterp_I) deconvolutional_bilinearinterp_init(l);
         else deconvolutional_kaiming_uniform_kernel_init(l, sqrt(5.0), "fan_in", "leaky");
     }
     if (l.bias){
@@ -152,7 +161,7 @@ void backward_deconvolutional_layer(Layer l, int num, float *n_delta)
         float *delta_l = l.delta + offset_i;
         float *delta_n = n_delta + offset_o;
         im2col(delta_n, l.output_h, l.output_w, l.output_c, l.ksize, l.stride, l.pad, l.workspace);
-        gemm(1, 1, l.input_h*l.input_w, l.input_c, l.ksize*l.ksize*l.filters, l.input_h*l.input_w, 1, input, l.workspace, l.kernel_weights_delta, 0);
+        gemm(0, 1, l.input_c, l.input_h*l.input_w, l.ksize*l.ksize*l.filters, l.input_h*l.input_w, 1, input, l.workspace, l.kernel_weights_delta, 0);
         gemm(0, 0, l.input_c, l.ksize*l.ksize*l.filters, l.ksize*l.ksize*l.filters, l.input_h*l.input_w, 1, l.kernel_weights, l.workspace, delta_l, 0);
     }
 }
@@ -379,4 +388,23 @@ void deconvolutional_kaiming_uniform_bias_init(Layer l, char *mode)
         l.bias_weights[i] = rand_uniform(-bound, bound);
     }
     memcpy(l.update_bias_weights, l.bias_weights, l.filters*sizeof(float));
+}
+
+void deconvolutional_bilinearinterp_init(Layer l)
+{
+    float center = 0.0;
+    int factor = (l.ksize + 1) / 2;
+    if ((l.ksize%2) == 1) center = factor - 1;
+    else center = factor - 0.5;
+    float *weightc = malloc(l.ksize*l.ksize*sizeof(float));
+    for (int i = 0; i < l.ksize*l.ksize; ++i){
+        int index_i = i / l.ksize;
+        int index_j = i % l.ksize;
+        weightc[i] = (1 - abs((index_i - center) / factor)) * (1 - abs((index_j - center) / factor));
+    }
+    for (int i = 0; i < l.filters*l.input_c; ++i){
+        memcpy(l.kernel_weights+i*l.ksize*l.ksize, weightc, l.ksize*l.ksize*sizeof(float));
+    }
+    memcpy(l.update_kernel_weights, l.kernel_weights, l.filters*l.input_c*l.ksize*l.ksize*sizeof(float));
+    free(weightc);
 }

@@ -107,13 +107,21 @@ void init_connect_layer(Layer *l, int w, int h, int c, int subdivision)
 void weightinit_connect_layer(Layer l, FILE *fp)
 {
     if (fp){
-        fread(l.kernel_weights, sizeof(float), l.outputs*l.inputs, fp);
-        memcpy(l.update_kernel_weights, l.kernel_weights, l.inputs*l.outputs*sizeof(float));
-        if (l.bias){
-            fread(l.bias_weights, sizeof(float), l.outputs, fp);
-            memcpy(l.update_bias_weights, l.bias_weights, l.outputs*sizeof(float));
+        int flag = 0;
+        int weights_num = l.outputs*l.inputs;
+        if (l.bias) weights_num += l.outputs;
+        float *weights = malloc(weights_num*sizeof(float));
+        flag = fread(weights, sizeof(float), weights_num, fp);
+        if (flag == weights_num){
+            memcpy(l.kernel_weights, weights, l.inputs*l.outputs*sizeof(float));
+            memcpy(l.update_kernel_weights, weights, l.inputs*l.outputs*sizeof(float));
+            if (l.bias){
+                memcpy(l.bias_weights, weights+l.inputs*l.outputs, l.outputs*sizeof(float));
+                memcpy(l.update_bias_weights, weights+l.inputs*l.outputs, l.outputs*sizeof(float));
+            }
+            return;
         }
-        return;
+        free(weights);
     }
     if (l.initcptkernel == NULL){
         connect_kaiming_uniform_kernel_init(l, sqrt(5.0), "fan_in", "leaky");

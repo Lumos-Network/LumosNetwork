@@ -53,6 +53,7 @@ void init_xavier_normal_kernel(Layer *l, float gain);
 void init_xavier_uniform_kernel(Layer *l, float gain);
 void init_kaiming_normal_kernel(Layer *l, float a, char *mode, char *nonlinearity);
 void init_kaiming_uniform_kernel(Layer *l, float a, char *mode, char *nonlinearity);
+void init_bilinearinterp_kernel(Layer *l);
 
 void init_constant_bias(Layer *l, float x);
 void init_normal_bias(Layer *l, float mean, float std);

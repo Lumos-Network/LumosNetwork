@@ -219,28 +219,25 @@ __global__ void max_kernel(float *data, int num, float *space)
 
 __global__ void sum_kernel(float *data, int num, float *space)
 {
-    int gid = blockIdx.x * blockDim.x + threadIdx.x;
-    __shared__ float tmp[BLOCK];
-    if(gid < num)
-    {
-        tmp[threadIdx.x] = data[gid];
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    __shared__ float res[BLOCK];
+    float temp = 0.0;
+    while (index < num){
+        temp += data[index];
+        index += gridDim.x *blockDim.x;
     }
-    else
-    {
-        tmp[threadIdx.x] = 0.0f;
-    }
-    __syncthreads();
+    res[threadIdx.x] = temp;
 
+    __syncthreads();
     for(int strip = blockDim.x / 2; strip > 0; strip = strip / 2)
     {
         if(threadIdx.x < strip)
-            tmp[threadIdx.x] += tmp[threadIdx.x + strip];
+            res[threadIdx.x] += res[threadIdx.x + strip];
         __syncthreads();
     }
 
-    if(threadIdx.x == 0)
-    {
-        space[blockIdx.x] = tmp[0];
+    if (threadIdx.x == 0){
+        atomicAdd(space, res[0]);
     }
 }
 

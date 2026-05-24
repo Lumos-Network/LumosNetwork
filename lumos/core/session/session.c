@@ -33,7 +33,7 @@ void init_session(Session *sess, char *data_path, char *label_path)
     }
     bind_train_data(sess, data_path);
     bind_train_label(sess, label_path);
-    init_graph(sess->graph, sess->width, sess->height, sess->channel, sess->coretype, sess->subdivision, sess->optimizer, sess->weights_path, sess->input);
+    init_graph(sess->graph, sess->width, sess->height, sess->channel, sess->truth_num, sess->coretype, sess->subdivision, sess->optimizer, sess->weights_path, sess->input);
     create_workspace(sess);
     set_graph(sess->graph, sess->workspace, sess->truth, sess->loss);
     transforms_sess(sess);
@@ -179,7 +179,7 @@ void load_train_label(Session *sess, int index)
 void train(Session *sess)
 {
     fprintf(stderr, "\nSession Start To Running\n");
-    float rate = -sess->learning_rate/sess->subdivision;
+    float rate = -sess->learning_rate/sess->batch;
     Graph *g = sess->graph;
     g->status = 1;
     for (int i = 0; i < sess->epoch; ++i){
@@ -351,6 +351,13 @@ void init_kaiming_uniform_kernel(Layer *l, float a, char *mode, char *nonlineari
     initcptkernel->a = a;
     initcptkernel->mode = mode;
     initcptkernel->nonlinearity = nonlinearity;
+    l->initcptkernel = initcptkernel;
+}
+
+void init_bilinearinterp_kernel(Layer *l)
+{
+    InitCptKernel *initcptkernel = malloc(sizeof(InitCptKernel));
+    initcptkernel->initype = BilinearInterp_I;
     l->initcptkernel = initcptkernel;
 }
 

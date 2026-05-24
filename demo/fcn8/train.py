@@ -61,13 +61,13 @@ def backward_hook(module, grad_input, grad_output):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='FCN 语义分割 PyTorch 实现')
-    parser.add_argument('--voc-root', type=str, default='./data/VOCT',
+    parser.add_argument('--voc-root', type=str, default='./data/VOC2012',
                         help='VOC数据集根目录')
     parser.add_argument('--model-type', type=str, default='fcn8s', choices=['fcn8s', 'fcn16s', 'fcn32s'],
                         help='FCN模型类型 (fcn8s, fcn16s, fcn32s)')
     parser.add_argument('--batch-size', type=int, default=4,
                         help='训练的批次大小')
-    parser.add_argument('--epochs', type=int, default=1,
+    parser.add_argument('--epochs', type=int, default=30,
                         help='训练的轮数')
     parser.add_argument('--lr', type=float, default=0.005,
                         help='学习率')
@@ -248,31 +248,31 @@ def main():
         'miou': []
     }
     
-    fp = open("./backup/LW_py", "wb")
-    for name, param in model.named_parameters():
-        data_f = []
-        print(f"Layer: {name}, Parameter Shape: {param.shape}") #param.shape [filters, channels, ksize, ksize]  [outputs, inputs]
-        if ("weight" in name and len(param.shape) == 4):
-            data = param.tolist()
-            for i in range(param.shape[0]):
-                for j in range(param.shape[1]):
-                    for k in range(param.shape[2]):
-                        data_f += data[i][j][k]
-        if ("weight" in name and len(param.shape) == 2):
-            data = param.tolist()
-            for i in range(param.shape[0]):
-                data_f += data[i]
-        if ("weight" in name and len(param.shape) == 1):
-            data_f += param.tolist()
-        if ("bias" in name):
-            data = param.tolist()
-            data_f += data
-        print(len(data_f))
-        for i in range(len(data_f)):
-            fp.write(struct.pack('f', data_f[i]))
-    fp.close()
+    # fp = open("./backup/LW_py", "wb")
+    # for name, param in model.named_parameters():
+    #     data_f = []
+        # print(f"Layer: {name}, Parameter Shape: {param.shape}") #param.shape [filters, channels, ksize, ksize]  [outputs, inputs]
+    #     if ("weight" in name and len(param.shape) == 4):
+    #         data = param.tolist()
+    #         for i in range(param.shape[0]):
+    #             for j in range(param.shape[1]):
+    #                 for k in range(param.shape[2]):
+    #                     data_f += data[i][j][k]
+    #     if ("weight" in name and len(param.shape) == 2):
+    #         data = param.tolist()
+    #         for i in range(param.shape[0]):
+    #             data_f += data[i]
+    #     if ("weight" in name and len(param.shape) == 1):
+    #         data_f += param.tolist()
+    #     if ("bias" in name):
+    #         data = param.tolist()
+    #         data_f += data
+    #     print(len(data_f))
+    #     for i in range(len(data_f)):
+    #         fp.write(struct.pack('f', data_f[i]))
+    # fp.close()
     
-    model.features5[0].register_forward_hook(forward_hook)
+    # model.features1[0].register_forward_hook(forward_hook)
     # model.l1.register_backward_hook(backward_hook)
     
     for epoch in range(start_epoch, args.epochs):
@@ -292,99 +292,99 @@ def main():
             loss = criterion(outputs, targets)
             print(loss.item())
 
-    #         loss.backward()
-    #         optimizer.step()
+            loss.backward()
+            optimizer.step()
             
-    #         train_loss += loss.item() * images.size(0)
-    #         batch_count += 1
+            train_loss += loss.item() * images.size(0)
+            batch_count += 1
             
-    #         del images, targets, outputs, loss
+            del images, targets, outputs, loss
             
-    #         if batch_count % 10 == 0:
-    #             torch.cuda.empty_cache()
+            if batch_count % 10 == 0:
+                torch.cuda.empty_cache()
         
-    #     train_loss = train_loss / train_dataset_size
-    #     history['train_loss'].append(train_loss)
+        train_loss = train_loss / train_dataset_size
+        history['train_loss'].append(train_loss)
         
-    #     # 调整学习率
-    #     scheduler.step()
+        # 调整学习率
+        scheduler.step()
         
-    #     # 执行垃圾回收
-    #     gc.collect()
-    #     torch.cuda.empty_cache()
+        # 执行垃圾回收
+        gc.collect()
+        torch.cuda.empty_cache()
         
-    #     # 评估模型
-    #     val_loss, pixel_acc, miou, class_iou = evaluate(model, val_loader, criterion, device)
-    #     history['val_loss'].append(val_loss)
-    #     history['pixel_acc'].append(pixel_acc)
-    #     history['miou'].append(miou)
+        # 评估模型
+        val_loss, pixel_acc, miou, class_iou = evaluate(model, val_loader, criterion, device)
+        history['val_loss'].append(val_loss)
+        history['pixel_acc'].append(pixel_acc)
+        history['miou'].append(miou)
         
-    #     # 打印进度
-    #     epoch_time = time.time() - t0
-    #     print(f'Epoch {epoch+1}/{args.epochs} - '
-    #           f'Time: {epoch_time:.2f}s - '
-    #           f'Train Loss: {train_loss:.4f} - '
-    #           f'Val Loss: {val_loss:.4f} - '
-    #           f'Pixel Acc: {pixel_acc:.4f} - '
-    #           f'mIoU: {miou:.4f}')
+        # 打印进度
+        epoch_time = time.time() - t0
+        print(f'Epoch {epoch+1}/{args.epochs} - '
+              f'Time: {epoch_time:.2f}s - '
+              f'Train Loss: {train_loss:.4f} - '
+              f'Val Loss: {val_loss:.4f} - '
+              f'Pixel Acc: {pixel_acc:.4f} - '
+              f'mIoU: {miou:.4f}')
         
-    #     # 保存最佳模型
-    #     if miou > best_miou:
-    #         best_miou = miou
-    #         torch.save({
-    #             'epoch': epoch + 1,
-    #             'model_state_dict': model.state_dict(),
-    #             'optimizer_state_dict': optimizer.state_dict(),
-    #             'scheduler_state_dict': scheduler.state_dict(),
-    #             'best_miou': best_miou,
-    #         }, os.path.join(args.checkpoint_dir, f'{args.model_type}_best.pth'))
-    #         print(f'保存最佳模型, mIoU: {best_miou:.4f}')
+        # 保存最佳模型
+        if miou > best_miou:
+            best_miou = miou
+            torch.save({
+                'epoch': epoch + 1,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'scheduler_state_dict': scheduler.state_dict(),
+                'best_miou': best_miou,
+            }, os.path.join(args.checkpoint_dir, f'{args.model_type}_best.pth'))
+            print(f'保存最佳模型, mIoU: {best_miou:.4f}')
             
-    #         # 生成可视化结果
-    #         save_predictions(model, val_loader, device)
+            # 生成可视化结果
+            save_predictions(model, val_loader, device)
         
-    #     # 保存最新模型
-    #     torch.save({
-    #         'epoch': epoch + 1,
-    #         'model_state_dict': model.state_dict(),
-    #         'optimizer_state_dict': optimizer.state_dict(),
-    #         'scheduler_state_dict': scheduler.state_dict(),
-    #         'best_miou': best_miou,
-    #     }, os.path.join(args.checkpoint_dir, f'{args.model_type}_latest.pth'))
+        # 保存最新模型
+        torch.save({
+            'epoch': epoch + 1,
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'scheduler_state_dict': scheduler.state_dict(),
+            'best_miou': best_miou,
+        }, os.path.join(args.checkpoint_dir, f'{args.model_type}_latest.pth'))
         
-    #     gc.collect()
-    #     torch.cuda.empty_cache()
+        gc.collect()
+        torch.cuda.empty_cache()
     
 
-    # plt.figure(figsize=(12, 10))
+    plt.figure(figsize=(12, 10))
     
 
-    # plt.subplot(2, 2, 1)
-    # plt.plot(history['train_loss'], label='Train')
-    # plt.plot(history['val_loss'], label='Validation')
-    # plt.title('Loss')
-    # plt.xlabel('Epoch')
-    # plt.ylabel('Loss')
-    # plt.legend()
+    plt.subplot(2, 2, 1)
+    plt.plot(history['train_loss'], label='Train')
+    plt.plot(history['val_loss'], label='Validation')
+    plt.title('Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
     
-    # plt.subplot(2, 2, 2)
-    # plt.plot(history['pixel_acc'])
-    # plt.title('Pixel Accuracy')
-    # plt.xlabel('Epoch')
-    # plt.ylabel('Accuracy')
+    plt.subplot(2, 2, 2)
+    plt.plot(history['pixel_acc'])
+    plt.title('Pixel Accuracy')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
     
 
-    # plt.subplot(2, 2, 3)
-    # plt.plot(history['miou'])
-    # plt.title('Mean IoU')
-    # plt.xlabel('Epoch')
-    # plt.ylabel('mIoU')
+    plt.subplot(2, 2, 3)
+    plt.plot(history['miou'])
+    plt.title('Mean IoU')
+    plt.xlabel('Epoch')
+    plt.ylabel('mIoU')
     
-    # plt.tight_layout()
-    # plt.savefig(os.path.join(args.checkpoint_dir, f'{args.model_type}_history.png'))
-    # plt.close()
+    plt.tight_layout()
+    plt.savefig(os.path.join(args.checkpoint_dir, f'{args.model_type}_history.png'))
+    plt.close()
     
-    # print(f'训练完成! 最佳 mIoU: {best_miou:.4f}')
+    print(f'训练完成! 最佳 mIoU: {best_miou:.4f}')
 
 if __name__ == '__main__':
     main() 

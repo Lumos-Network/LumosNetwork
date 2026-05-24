@@ -27,7 +27,8 @@ typedef enum {
 } LayerType;
 
 typedef enum {
-    CONSTANT_I, NORMAL_I, UNIFORM_I, XAVIER_NORMAL_I, XAVIER_UNIFORM_I, KAIMING_NORMAL_I, KAIMING_UNIFORM_I
+    CONSTANT_I, NORMAL_I, UNIFORM_I, XAVIER_NORMAL_I, XAVIER_UNIFORM_I, KAIMING_NORMAL_I, \
+    KAIMING_UNIFORM_I, BilinearInterp_I
 } InitType;
 
 typedef struct initcptkernel{
@@ -102,6 +103,7 @@ typedef zerograd_layer_gpu ZeroGradLayerGpu;
 
 struct layer{
     LayerType type;
+    int lock;
     int optimizer;
     int status;
     int input_h;

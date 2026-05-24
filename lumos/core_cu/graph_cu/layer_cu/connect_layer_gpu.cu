@@ -40,19 +40,21 @@ void init_connect_layer_gpu(Layer *l, int w, int h, int c, int subdivision)
 void weightinit_connect_layer_gpu(Layer l, FILE *fp)
 {
     if (fp){
-        float *kernel_weights = (float*)calloc(l.inputs*l.outputs, sizeof(float));
-        fread(kernel_weights, sizeof(float), l.outputs*l.inputs, fp);
-        cudaMemcpy(l.kernel_weights, kernel_weights, l.inputs*l.outputs*sizeof(float), cudaMemcpyHostToDevice);
-        cudaMemcpy(l.update_kernel_weights, kernel_weights, l.inputs*l.outputs*sizeof(float), cudaMemcpyHostToDevice);
-        free(kernel_weights);
-        if (l.bias){
-            float *bias_weights = (float*)calloc(l.outputs, sizeof(float));
-            fread(bias_weights, sizeof(float), l.outputs, fp);
-            cudaMemcpy(l.bias_weights, bias_weights, l.outputs*sizeof(float), cudaMemcpyHostToDevice);
-            cudaMemcpy(l.update_bias_weights, bias_weights, l.outputs*sizeof(float), cudaMemcpyHostToDevice);
-            free(bias_weights);
+        int flag = 0;
+        int weights_num = l.inputs*l.outputs;
+        if (l.bias) weights_num += l.outputs;
+        float *weights = (float*)malloc(weights_num*sizeof(float));
+        flag = fread(weights, sizeof(float), weights_num, fp);
+        if (flag == weights_num){
+            cudaMemcpy(l.kernel_weights, weights, l.inputs*l.outputs*sizeof(float), cudaMemcpyHostToDevice);
+            cudaMemcpy(l.update_kernel_weights, weights, l.inputs*l.outputs*sizeof(float), cudaMemcpyHostToDevice);
+            if (l.bias){
+                cudaMemcpy(l.bias_weights, weights+l.inputs*l.outputs, l.outputs*sizeof(float), cudaMemcpyHostToDevice);
+                cudaMemcpy(l.update_bias_weights, weights+l.inputs*l.outputs, l.outputs*sizeof(float), cudaMemcpyHostToDevice);
+            }
+            return;
         }
-        return;
+        free(weights);
     }
     char *def_mode = (char *)"fan_in";
     char *def_nonlinearity = (char *)"leaky";

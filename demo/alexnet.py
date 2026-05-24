@@ -49,7 +49,7 @@ def forward_hook(module, input, output):
 # grad_input 仅包含：[input_grad]
 def backward_hook(module, grad_input, grad_output):
     # print("gradshape:{}".format(grad_input[0].shape))
-    input_grad = grad_input[1]
+    input_grad = grad_input[0]
     shape = input_grad.shape
     print(shape)
     grad = input_grad.tolist()
@@ -57,9 +57,9 @@ def backward_hook(module, grad_input, grad_output):
     data = []
     with open("./backup/grad_py", "wb") as fp:
         for i in range(shape[0]):
-            # for j in range(shape[1]):
-            #     for k in range(shape[2]):
-            data += grad[i]
+            for j in range(shape[1]):
+                for k in range(shape[2]):
+                    data += grad[i][j][k]
         print(len(data))
         for i in range(len(data)):
             fp.write(struct.pack('f', data[i]))
@@ -179,7 +179,7 @@ for i in range(len(data_f)):
 fp.close()
 
 # model.l16.register_forward_hook(forward_hook)
-model.l16.register_backward_hook(backward_hook)
+model.l11.register_backward_hook(backward_hook)
 
 # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")

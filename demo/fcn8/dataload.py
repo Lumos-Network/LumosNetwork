@@ -99,9 +99,9 @@ class VOCSegmentation(Dataset):
         mask = Image.open(mask_path).convert('RGB')
         # 统一调整图像和掩码大小，确保尺寸一致
         # 对于图像使用双线性插值以保持平滑
-        img = img.resize((self.img_size, self.img_size), PIL_BILINEAR)
+        img = img.resize((self.img_size, self.img_size))
         # 对于掩码使用最近邻插值以避免引入新的类别值
-        mask = mask.resize((self.img_size, self.img_size), PIL_NEAREST)
+        mask = mask.resize((self.img_size, self.img_size), resample=Image.NEAREST)
         # 应用图像变换（如果提供）
         if self.transform is not None:
             img = self.transform(img)

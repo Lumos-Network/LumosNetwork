@@ -47,6 +47,8 @@ void deconvolutional_xavier_uniform_bias_init_gpu(Layer l, float gain);
 void deconvolutional_kaiming_normal_bias_init_gpu(Layer l, char *mode);
 void deconvolutional_kaiming_uniform_bias_init_gpu(Layer l, char *mode);
 
+void deconvolutional_bilinearinterp_init_gpu(Layer l);
+
 void deconvolutional_layer_SGDOptimizer_gpu(Layer l, float rate, float momentum, float dampening, float decay, int nesterov, int maximize);
 
 #ifdef __cplusplus

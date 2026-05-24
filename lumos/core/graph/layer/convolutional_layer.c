@@ -84,13 +84,21 @@ void init_convolutional_layer(Layer *l, int w, int h, int c, int subdivision)
 void weightinit_convolutional_layer(Layer l, FILE *fp)
 {
     if (fp){
-        fread(l.kernel_weights, sizeof(float), l.filters*l.ksize*l.ksize*l.input_c, fp);
-        memcpy(l.update_kernel_weights, l.kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float));
-        if (l.bias){
-            fread(l.bias_weights, sizeof(float), l.filters, fp);
-            memcpy(l.update_bias_weights, l.bias_weights, l.filters*sizeof(float));
+        int flag = 0;
+        int weights_num = l.filters*l.ksize*l.ksize*l.input_c;
+        if (l.bias) weights_num += l.filters;
+        float *weights = malloc(weights_num*sizeof(float));
+        flag = fread(weights, sizeof(float), weights_num, fp);
+        if (flag == weights_num){
+            memcpy(l.kernel_weights, weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float));
+            memcpy(l.update_kernel_weights, weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float));
+            if (l.bias){
+                memcpy(l.bias_weights, weights+l.filters*l.ksize*l.ksize*l.input_c, l.filters*sizeof(float));
+                memcpy(l.update_bias_weights, weights+l.filters*l.ksize*l.ksize*l.input_c, l.filters*sizeof(float));
+            }
+            return;
         }
-        return;
+        free(weights);
     }
     if (l.initcptkernel == NULL){
         convolutional_kaiming_uniform_kernel_init(l, sqrt(5.0), "fan_in", "leaky");

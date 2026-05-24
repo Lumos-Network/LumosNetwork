@@ -40,19 +40,21 @@ void init_deconvolutional_layer_gpu(Layer *l, int w, int h, int c, int subdivisi
 void weightinit_deconvolutional_layer_gpu(Layer l, FILE *fp)
 {
     if (fp){
-        float *kernel_weights = (float*)malloc(l.filters*l.ksize*l.ksize*l.input_c*sizeof(float));
-        fread(kernel_weights, sizeof(float), l.filters*l.ksize*l.ksize*l.input_c, fp);
-        cudaMemcpy(l.kernel_weights, kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float), cudaMemcpyHostToDevice);
-        cudaMemcpy(l.update_kernel_weights, kernel_weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float), cudaMemcpyHostToDevice);
-        if (l.bias){
-            float *bias_weights = (float*)malloc(l.filters*sizeof(float));
-            fread(bias_weights, sizeof(float), l.filters, fp);
-            cudaMemcpy(l.bias_weights, bias_weights, l.filters*sizeof(float), cudaMemcpyHostToDevice);
-            cudaMemcpy(l.update_bias_weights, bias_weights, l.filters*sizeof(float), cudaMemcpyHostToDevice);
-            free(bias_weights);
+        int flag = 0;
+        int weights_num = l.filters*l.ksize*l.ksize*l.input_c;
+        if (l.bias) weights_num += l.filters;
+        float *weights = (float*)malloc(weights_num*sizeof(float));
+        flag = fread(weights, sizeof(float), weights_num, fp);
+        if (flag == weights_num){
+            cudaMemcpy(l.kernel_weights, weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float), cudaMemcpyHostToDevice);
+            cudaMemcpy(l.update_kernel_weights, weights, l.filters*l.ksize*l.ksize*l.input_c*sizeof(float), cudaMemcpyHostToDevice);
+            if (l.bias){
+                cudaMemcpy(l.bias_weights, weights+l.filters*l.ksize*l.ksize*l.input_c, l.filters*sizeof(float), cudaMemcpyHostToDevice);
+                cudaMemcpy(l.update_bias_weights, weights+l.filters*l.ksize*l.ksize*l.input_c, l.filters*sizeof(float), cudaMemcpyHostToDevice);
+            }
+            return;
         }
-        free(kernel_weights);
-        return;
+        free(weights);
     }
     char *def_mode = (char *)"fan_in";
     char *def_nonlinearity = (char *)"leaky";
@@ -67,6 +69,7 @@ void weightinit_deconvolutional_layer_gpu(Layer l, FILE *fp)
         else if (initcptkernel.initype == XAVIER_UNIFORM_I) deconvolutional_xavier_uniform_kernel_init_gpu(l, initcptkernel.a);
         else if (initcptkernel.initype == KAIMING_NORMAL_I) deconvolutional_kaiming_normal_kernel_init_gpu(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
         else if (initcptkernel.initype == KAIMING_UNIFORM_I) deconvolutional_kaiming_uniform_kernel_init_gpu(l, initcptkernel.a, initcptkernel.mode, initcptkernel.nonlinearity);
+        else if (initcptkernel.initype == BilinearInterp_I) deconvolutional_bilinearinterp_init_gpu(l);
         else deconvolutional_kaiming_uniform_kernel_init_gpu(l, sqrt(5.0), def_mode, def_nonlinearity);
     }
     if (l.bias){
@@ -116,7 +119,7 @@ void backward_deconvolutional_layer_gpu(Layer l, int num, float *n_delta)
         float *delta_l = l.delta + offset_i;
         float *delta_n = n_delta + offset_o;
         im2col_gpu(delta_n, l.output_h, l.output_w, l.output_c, l.ksize, l.stride, l.pad, l.workspace);
-        gemm_gpu(1, 1, l.input_h*l.input_w, l.input_c, l.ksize*l.ksize*l.filters, l.input_h*l.input_w, 1, input, l.workspace, l.kernel_weights_delta, 0);
+        gemm_gpu(0, 1, l.input_c, l.input_h*l.input_w, l.ksize*l.ksize*l.filters, l.input_h*l.input_w, 1, input, l.workspace, l.kernel_weights_delta, 0);
         gemm_gpu(0, 0, l.input_c, l.ksize*l.ksize*l.filters, l.ksize*l.ksize*l.filters, l.input_h*l.input_w, 1, l.kernel_weights, l.workspace, delta_l, 0);
     }
 }
@@ -384,4 +387,23 @@ void deconvolutional_kaiming_uniform_bias_init_gpu(Layer l, char *mode)
     cudaMemcpy(l.bias_weights, bias_weights, l.filters*sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(l.update_bias_weights, bias_weights, l.filters*sizeof(float), cudaMemcpyHostToDevice);
     free(bias_weights);
+}
+
+void deconvolutional_bilinearinterp_init_gpu(Layer l)
+{
+    float center = 0.0;
+    int factor = (l.ksize + 1) / 2;
+    if ((l.ksize%2) == 1) center = factor - 1;
+    else center = factor - 0.5;
+    float *weightc = (float*)malloc(l.ksize*l.ksize*sizeof(float));
+    for (int i = 0; i < l.ksize*l.ksize; ++i){
+        int index_i = i / l.ksize;
+        int index_j = i % l.ksize;
+        weightc[i] = (1 - abs((index_i - center) / factor)) * (1 - abs((index_j - center) / factor));
+    }
+    for (int i = 0; i < l.filters*l.input_c; ++i){
+        cudaMemcpy(l.kernel_weights+i*l.ksize*l.ksize, weightc, l.ksize*l.ksize*sizeof(float), cudaMemcpyHostToDevice);
+    }
+    cudaMemcpy(l.update_kernel_weights, l.kernel_weights, l.filters*l.input_c*l.ksize*l.ksize*sizeof(float), cudaMemcpyDeviceToDevice);
+    free(weightc);
 }
