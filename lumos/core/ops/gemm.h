@@ -7,12 +7,12 @@
 extern "C"{
 #endif
 // flag=1 C制零后运算
-void gemm(int TA, int TB, int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C, int flag);
+void gemm(int TA, int TB, int M, int N, int K, float ALPHA, float *A, int lda, float *B, int ldb, float BETA, float *C, int ldc);
 
-void gemm_nn(int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C);
-void gemm_tn(int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C);
-void gemm_nt(int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C);
-void gemm_tt(int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C);
+void gemm_nn(int M, int N, int K, float ALPHA, float *A, int lda, float *B, int ldb, float *C, int ldc);
+void gemm_tn(int M, int N, int K, float ALPHA, float *A, int lda, float *B, int ldb, float *C, int ldc);
+void gemm_nt(int M, int N, int K, float ALPHA, float *A, int lda, float *B, int ldb, float *C, int ldc);
+void gemm_tt(int M, int N, int K, float ALPHA, float *A, int lda, float *B, int ldb, float *C, int ldc);
 
 #ifdef __cplusplus
 }

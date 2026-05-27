@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "gpu.h"
 #include "cpu_gpu.h"
@@ -18,12 +19,12 @@ extern "C" {
 
 #define GEMM_BLOCK 16
 
-void gemm_gpu(int TA, int TB, int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C, int flag);
+void gemm_gpu(int TA, int TB, int M, int N, int K, float ALPHA, float *A, int lda, float *B, int ldb, float BETA, float *C, int ldc);
 
-void gemm_nn_gpu(int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C);
-void gemm_tn_gpu(int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C);
-void gemm_nt_gpu(int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C);
-void gemm_tt_gpu(int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C);
+// void gemm_nn_gpu(int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C);
+// void gemm_tn_gpu(int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C);
+// void gemm_nt_gpu(int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C);
+// void gemm_tt_gpu(int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C);
 
 #ifdef __cplusplus
 }

@@ -71,6 +71,7 @@ void forward_shortcut_layer(Layer l, int num)
     } else {
         matrix_add_cpu(l.input, shortcut->input, num*l.inputs, l.output);
     }
+    if (l.active == LINEAR) return;
     activate_list(l.output, num*l.outputs, l.output, l.active);
 }
 

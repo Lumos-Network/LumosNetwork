@@ -16,7 +16,11 @@ extern "C" {
 
 #define BLOCK 512
 
+void error(const char *s);
+int cuda_get_device();
 dim3 cuda_gridsize(size_t n);
+cublasHandle_t blas_handle();
+void check_error(cudaError_t status);
 
 #ifdef __cplusplus
 }

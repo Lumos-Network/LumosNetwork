@@ -14,5 +14,8 @@
 
 int main()
 {
-    fcn8("gpu", NULL);
+    // fcn8("gpu", "./backup/LW_py");
+    // googlenet("gpu", NULL);
+    xor("gpu", NULL);
+    xor_detect("gpu", "./backup/LW_f");
 }

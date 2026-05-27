@@ -68,9 +68,8 @@ class MyDataset(Dataset):
         fh = open(txt_path, 'r')
         imgs = []
         for line in fh:
-            pathi = line.rstrip()
-            pathl = pathi[:-4]+"l.png"
-            imgs.append((pathi, pathl)) # 类别转为整型int
+            pathl = "./data/VOC2012/SegmentationClass/"+line.strip().split('/')[-1]
+            imgs.append((line.strip(), pathl)) # 类别转为整型int
             self.imgs = imgs 
             self.transform = transform
             self.target_transform = target_transform
@@ -101,21 +100,137 @@ class MyDataset(Dataset):
     def __len__(self):
         return len(self.imgs)
 
-class DCONV(nn.Module):
-    def __init__(self):
-        super(DCONV, self).__init__()
-        self.l1 = nn.Conv2d(3, 21, 5, 1, 1)
-        self.l2 = nn.ConvTranspose2d(21, 21, 5, 1, 1, bias=False)
-        self.l3 = nn.CrossEntropyLoss(ignore_index=255)
+class FCN8(nn.Module):
+    def __init__(self, num_classes=1000):
+        super(FCN8, self).__init__()
+        self.l1 = nn.Conv2d(3, 64, kernel_size=3, padding=1)
+        self.l2 = nn.Conv2d(64, 64, kernel_size=3, padding=1)
+        self.l3 = nn.MaxPool2d(kernel_size=2, stride=2)
+
+        # Block 2
+        self.l4 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
+        self.l5 = nn.Conv2d(128, 128, kernel_size=3, padding=1)
+        self.l6 = nn.MaxPool2d(kernel_size=2, stride=2)
+
+        # Block 3
+        self.l7 = nn.Conv2d(128, 256, kernel_size=3, padding=1)
+        self.l8 = nn.Conv2d(256, 256, kernel_size=3, padding=1)
+        self.l9 = nn.Conv2d(256, 256, kernel_size=3, padding=1)
+        self.l10 = nn.MaxPool2d(kernel_size=2, stride=2)
+
+        # Block 4
+        self.l11 = nn.Conv2d(256, 512, kernel_size=3, padding=1)
+        self.l12 = nn.Conv2d(512, 512, kernel_size=3, padding=1)
+        self.l13 = nn.Conv2d(512, 512, kernel_size=3, padding=1)
+        self.l14 = nn.MaxPool2d(kernel_size=2, stride=2)
+
+        # Block 5
+        self.l15 = nn.Conv2d(512, 512, kernel_size=3, padding=1)
+        self.l16 = nn.Conv2d(512, 512, kernel_size=3, padding=1)
+        self.l17 = nn.Conv2d(512, 512, kernel_size=3, padding=1)
+        self.l18 = nn.MaxPool2d(kernel_size=2, stride=2)
+
+        self.l19 = nn.Conv2d(512, 1024, 7, 1, 3) # fc6
+        # self.l20 = nn.Dropout(0.3)
+        self.l21 = nn.Conv2d(1024, 1024, 1, 1) #fc7
+        # self.l22 = nn.Dropout(0.3)
+        
+        self.l23 = nn.Conv2d(1024, num_classes, 1, 1)
+        self.l24 = nn.ConvTranspose2d(num_classes, num_classes, 4, 2, 1, bias=False)
+        
+        self.l25 = nn.Conv2d(512, num_classes, 1, 1)
+        self.l26 = nn.ConvTranspose2d(num_classes, num_classes, 4, 2, 1, bias=False)
+        
+        self.l27 = nn.Conv2d(256, num_classes, 1, 1)
+        self.l28 = nn.ConvTranspose2d(num_classes, num_classes, 16, 8, 4, bias=False)
+        
+        self.l29 = nn.CrossEntropyLoss(ignore_index=255)
+        self._initialize_weights()
+
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.ConvTranspose2d):
+                # 双线性上采样的初始化
+                m.weight.data.zero_()
+                m.weight.data = self._make_bilinear_weights(m.kernel_size[0], m.out_channels)
+    
+    def _make_bilinear_weights(self, size, num_channels):
+        """生成双线性插值的权重"""
+        factor = (size + 1) // 2
+        if size % 2 == 1:
+            center = factor - 1
+        else:
+            center = factor - 0.5
+        og = torch.FloatTensor(size, size)
+        for i in range(size):
+            for j in range(size):
+                og[i, j] = (1 - abs((i - center) / factor)) * (1 - abs((j - center) / factor))
+        filter = torch.zeros(num_channels, num_channels, size, size)
+        for i in range(num_channels):
+            filter[i, i] = og
+        return filter
 
     def forward(self, x, labels):
         x = self.l1(x)
         x = torch.relu(x)
         x = self.l2(x)
-        x = self.l3(x, labels)
+        x = torch.relu(x)
+        x = self.l3(x)
+        
+        x = self.l4(x)
+        x = torch.relu(x)
+        x = self.l5(x)
+        x = torch.relu(x)
+        x = self.l6(x)
+        
+        x = self.l7(x)
+        x = torch.relu(x)
+        x = self.l8(x)
+        x = torch.relu(x)
+        x = self.l9(x)
+        x = torch.relu(x)
+        pool3 = self.l10(x) # pool3
+        
+        x = self.l11(pool3)
+        x = torch.relu(x)
+        x = self.l12(x)
+        x = torch.relu(x)
+        x = self.l13(x)
+        x = torch.relu(x)
+        pool4 = self.l14(x) # pool4
+        
+        x = self.l15(pool4)
+        x = torch.relu(x)
+        x = self.l16(x)
+        x = torch.relu(x)
+        x = self.l17(x)
+        x = torch.relu(x)
+        pool5 = self.l18(x) # pool5
+        
+        x = self.l19(pool5) # fc6
+        x = torch.relu(x)
+        # x = self.l20(x)
+        x = self.l21(x) # fc7
+        x = torch.relu(x)
+        # x = self.l22(x)
+
+        x = self.l23(x)
+        up2 = self.l24(x)
+
+        x = self.l25(pool4)
+        x = x + up2
+        
+        up4 = self.l26(x)
+        
+        x = self.l27(pool3)
+        x = x + up4
+        
+        x = self.l28(x)
+        x = self.l29(x, labels)
         return x
 
 data_transform = transforms.Compose([
+    transforms.Resize((320,320)),  # 随机裁剪成224×224
     transforms.ToTensor(),  # 转换成Tensor（PyTorch能处理的数据格式）
     # 标准化：让数据更符合模型训练要求，数值范围更稳定
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
@@ -126,13 +241,13 @@ batch_size = 4
 train_data = MyDataset('./data/VOCT/train.txt', transform=data_transform)
 trainloader = torch.utils.data.DataLoader(dataset=train_data, batch_size=batch_size, shuffle=False)
 
-model = DCONV()
+model = FCN8(num_classes=21)
 optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 
 fp = open("./backup/LW_py", "wb")
-data_f = []
 for name, param in model.named_parameters():
     # print(f"Layer: {name}, Parameter Shape: {param.shape}") #param.shape [filters, channels, ksize, ksize]  [outputs, inputs]
+    data_f = []
     if ("weight" in name and len(param.shape) == 4):
         data = param.tolist()
         for i in range(param.shape[0]):
@@ -148,20 +263,20 @@ for name, param in model.named_parameters():
     if ("bias" in name):
         data = param.tolist()
         data_f += data
-# print(len(data_f))
-for i in range(len(data_f)):
-    fp.write(struct.pack('f', data_f[i]))
+    for i in range(len(data_f)):
+        fp.write(struct.pack('f', data_f[i]))
 fp.close()
 
 # model.l3.register_forward_hook(forward_hook)
-model.l2.register_backward_hook(backward_hook)
+# model.l28.register_backward_hook(backward_hook)
 
-device = torch.device("cpu")
+device = torch.device("cuda")
 model.to(device)
 
 for epoch in range(num_epochs):
     model.train()
     running_loss = 0.0  # 记录每轮的损失
+    num = 0
     for i, data in enumerate(trainloader, 0):
         # 获取输入：图片（inputs）和对应的标签（labels，比如0代表玫瑰，1代表郁金香）
         inputs, labels = data[0].to(device), data[1].to(device)
@@ -169,111 +284,32 @@ for epoch in range(num_epochs):
         outputs = model(inputs, labels)
         outputs.backward()
         optimizer.step()
-        print(outputs.item())
+        running_loss += outputs.item()
+        print("loss:{}".format(outputs.item()))
+        num += 1
+        if num == 2:
+            break
+    print("AVGloss:{}".format(running_loss/num))
 
-# import torch
-# import torch.nn as nn
-# from torchvision import models
-# import struct
-
-# # ====================== 1. 手动搭建 VGG16 网络 ======================
-# class VGG16(nn.Module):
-#     def __init__(self, num_classes=1000):
-#         super(VGG16, self).__init__()
-#         self.features = nn.Sequential(
-#             # Block 1
-#             nn.Conv2d(3, 64, kernel_size=3, padding=1),
-#             nn.ReLU(inplace=True),
-#             nn.Conv2d(64, 64, kernel_size=3, padding=1),
-#             nn.ReLU(inplace=True),
-#             nn.MaxPool2d(kernel_size=2, stride=2),
-
-#             # Block 2
-#             nn.Conv2d(64, 128, kernel_size=3, padding=1),
-#             nn.ReLU(inplace=True),
-#             nn.Conv2d(128, 128, kernel_size=3, padding=1),
-#             nn.ReLU(inplace=True),
-#             nn.MaxPool2d(kernel_size=2, stride=2),
-
-#             # Block 3
-#             nn.Conv2d(128, 256, kernel_size=3, padding=1),
-#             nn.ReLU(inplace=True),
-#             nn.Conv2d(256, 256, kernel_size=3, padding=1),
-#             nn.ReLU(inplace=True),
-#             nn.Conv2d(256, 256, kernel_size=3, padding=1),
-#             nn.ReLU(inplace=True),
-#             nn.MaxPool2d(kernel_size=2, stride=2),
-
-#             # Block 4
-#             nn.Conv2d(256, 512, kernel_size=3, padding=1),
-#             nn.ReLU(inplace=True),
-#             nn.Conv2d(512, 512, kernel_size=3, padding=1),
-#             nn.ReLU(inplace=True),
-#             nn.Conv2d(512, 512, kernel_size=3, padding=1),
-#             nn.ReLU(inplace=True),
-#             nn.MaxPool2d(kernel_size=2, stride=2),
-
-#             # Block 5
-#             nn.Conv2d(512, 512, kernel_size=3, padding=1),
-#             nn.ReLU(inplace=True),
-#             nn.Conv2d(512, 512, kernel_size=3, padding=1),
-#             nn.ReLU(inplace=True),
-#             nn.Conv2d(512, 512, kernel_size=3, padding=1),
-#             nn.ReLU(inplace=True),
-#             nn.MaxPool2d(kernel_size=2, stride=2),
-#         )
-
-#         # 分类头
-#         self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
-#         self.classifier = nn.Sequential(
-#             nn.Linear(512 * 7 * 7, 4096),
-#             nn.ReLU(inplace=True),
-#             nn.Dropout(),
-#             nn.Linear(4096, 4096),
-#             nn.ReLU(inplace=True),
-#             nn.Dropout(),
-#             nn.Linear(4096, num_classes),
-#         )
-
-#     def forward(self, x):
-#         x = self.features(x)
-#         x = self.avgpool(x)
-#         x = torch.flatten(x, 1)
-#         x = self.classifier(x)
-#         return x
-
-# # ====================== 2. 加载官方预训练权重 ======================
-# model = VGG16(num_classes=1000)
-
-# # 2. 加载 torchvision 提供的官方预训练权重
-# pretrained_vgg = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
-
-# # 3. 把预训练权重加载到自己的模型
-# model.load_state_dict(pretrained_vgg.state_dict())
-
-# fp = open("./backup/LW_py", "wb")
-# data_f = []
-# for name, param in model.named_parameters():
-#     # print(f"Layer: {name}, Parameter Shape: {param.shape}") #param.shape [filters, channels, ksize, ksize]  [outputs, inputs]
-#     if "features" not in name:
-#         break
-#     if ("weight" in name and len(param.shape) == 4):
-#         data = param.tolist()
-#         for i in range(param.shape[0]):
-#             for j in range(param.shape[1]):
-#                 for k in range(param.shape[2]):
-#                     data_f += data[i][j][k]
-#     if ("weight" in name and len(param.shape) == 2):
-#         data = param.tolist()
-#         for i in range(param.shape[0]):
-#             data_f += data[i]
-#     if ("weight" in name and len(param.shape) == 1):
-#         data_f += param.tolist()
-#     if ("bias" in name):
-#         data = param.tolist()
-#         data_f += data
-# # print(len(data_f))
-# for i in range(len(data_f)):
-#     fp.write(struct.pack('f', data_f[i]))
-# fp.close()
-
+fp = open("./backup/LW_fp", "wb")
+for name, param in model.named_parameters():
+    # print(f"Layer: {name}, Parameter Shape: {param.shape}") #param.shape [filters, channels, ksize, ksize]  [outputs, inputs]
+    data_f = []
+    if ("weight" in name and len(param.shape) == 4):
+        data = param.tolist()
+        for i in range(param.shape[0]):
+            for j in range(param.shape[1]):
+                for k in range(param.shape[2]):
+                    data_f += data[i][j][k]
+    if ("weight" in name and len(param.shape) == 2):
+        data = param.tolist()
+        for i in range(param.shape[0]):
+            data_f += data[i]
+    if ("weight" in name and len(param.shape) == 1):
+        data_f += param.tolist()
+    if ("bias" in name):
+        data = param.tolist()
+        data_f += data
+    for i in range(len(data_f)):
+        fp.write(struct.pack('f', data_f[i]))
+fp.close()

@@ -29,9 +29,9 @@ void fcn8(char *type, char *path)
     layers[17] = make_maxpool_layer(2, 2, 0);
     // pool5
     layers[18] = make_convolutional_layer(1024, 7, 1, 3, 1, "relu"); // fc6
-    layers[19] = make_dropout_layer(0.3);
+    // layers[19] = make_dropout_layer(0.3);
     layers[20] = make_convolutional_layer(1024, 1, 1, 0, 1, "relu"); // fc7
-    layers[21] = make_dropout_layer(0.3);
+    // layers[21] = make_dropout_layer(0.3);
     // 跳跃连接+上采样
     layers[22] = make_convolutional_layer(num_class, 1, 1, 0, 1, "linear"); // score_fr
     layers[23] = make_deconvolutional_layer(num_class, 4, 2, 1, 0, "linear"); // up2
@@ -50,10 +50,11 @@ void fcn8(char *type, char *path)
     layers[32] = make_crossentropy_layer(NULL, 255);
 
     for (int i = 0; i < 33; ++i){
+        if (i == 19 || i == 21) continue;
         append_layer2grpah(graph, layers[i]);
         Layer *l = layers[i];
         if (l->type == CONVOLUTIONAL){
-            init_kaiming_uniform_kernel(l, sqrt(5.0), "fan_in", "relu");
+            init_kaiming_uniform_kernel(l, 0, "fan_in", "relu");
             init_constant_bias(l, 0);
         }
         if (l->type == DECONVOLUTIONAL){
@@ -71,8 +72,8 @@ void fcn8(char *type, char *path)
     std[2] = 0.225;
     transform_normalize_sess(sess, mean, std);
     transform_resize_sess(sess, 320, 320);
-    set_train_params(sess, 30, 8, 8, 0.0001);
-    SGDOptimizer_sess(sess, 0.9, 0, 1e-4, 0, 0);
+    set_train_params(sess, 40, 8, 8, 0.01);
+    SGDOptimizer_sess(sess, 0.9, 0, 0, 0, 0);
     init_session(sess, "./data/VOC2012/train.txt", "./data/VOC2012/train_label.txt");
     train(sess);
 }

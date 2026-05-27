@@ -35,6 +35,7 @@ void forward_shortcut_layer_gpu(Layer l, int num)
     } else {
         matrix_add_gpu(l.input, shortcut->input, num*l.inputs, l.output);
     }
+    if (l.active == LINEAR) return;
     activate_list_gpu(l.output, num*l.outputs, l.output, l.active);
 }
 

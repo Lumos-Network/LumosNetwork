@@ -91,10 +91,11 @@ void weightinit_connect_layer_gpu(Layer l, FILE *fp)
 void forward_connect_layer_gpu(Layer l, int num)
 {
     fill_gpu(l.output, num*l.outputs, 0, 1);
-    gemm_gpu(0, 1, num, l.inputs, l.outputs, l.inputs, 1, l.input, l.kernel_weights, l.output, 0);
+    gemm_gpu(0, 1, num, l.outputs, l.inputs, 1, l.input, l.inputs, l.kernel_weights, l.inputs, 1, l.output, l.outputs);
     if (l.bias){
         add_bias_gpu(l.output, l.bias_weights, num, l.outputs, 1);
     }
+    if (l.active == LINEAR) return;
     activate_list_gpu(l.output, num*l.outputs, l.output, l.active);
 }
 
@@ -102,8 +103,8 @@ void backward_connect_layer_gpu(Layer l, int num, float *n_delta)
 {
     gradient_list_gpu(l.output, num*l.outputs, n_delta, l.active);
     if (l.bias) backward_bias_gpu(l.bias_delta, n_delta, num, l.outputs, 1);
-    gemm_gpu(1, 0, num, l.inputs, num, l.outputs, 1, l.input, n_delta, l.kernel_weights_delta, 0);
-    gemm_gpu(0, 0, num, l.outputs, l.outputs, l.inputs, 1, n_delta, l.kernel_weights, l.delta, 0);
+    gemm_gpu(1, 0, l.outputs, l.inputs, num, 1, n_delta, l.outputs, l.input, l.inputs, 1, l.kernel_weights_delta, l.inputs);
+    gemm_gpu(0, 0, num, l.inputs, l.outputs, 1, n_delta, l.outputs, l.kernel_weights, l.inputs, 1, l.delta, l.inputs);
 }
 
 void connect_layer_SGDOptimizer_gpu(Layer l, float rate, float momentum, float dampening, float decay, int nesterov, int maximize)

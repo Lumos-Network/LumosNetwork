@@ -121,6 +121,7 @@ void forward_normalization_layer(Layer l, int num)
     }
     scale_bias(l.output, l.kernel_weights, num, l.filters, l.ksize);
     add_bias(l.output, l.bias_weights, num, l.filters, l.ksize);
+    if (l.active == LINEAR) return;
     activate_list(l.output, num*l.outputs, l.output, l.active);
 }
 

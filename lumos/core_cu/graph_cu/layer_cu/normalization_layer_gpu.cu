@@ -96,6 +96,7 @@ void forward_normalization_layer_gpu(Layer l, int num)
     }
     scale_bias_gpu(l.output, l.kernel_weights, num, l.filters, l.ksize);
     add_bias_gpu(l.output, l.bias_weights, num, l.filters, l.ksize);
+    if (l.active == LINEAR) return;
     activate_list_gpu(l.output, num*l.outputs, l.output, l.active);
 }
 

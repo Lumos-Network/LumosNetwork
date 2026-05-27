@@ -139,12 +139,15 @@ void forward_deconvolutional_layer(Layer l, int num)
         int offset_o = i * l.outputs;
         float *input = l.input + offset_i;
         float *output = l.output + offset_o;
-        gemm(1, 0, l.input_c, l.ksize*l.ksize*l.filters, l.input_c, l.input_h*l.input_w, 1, l.kernel_weights, input, l.workspace, l.ksize*l.ksize*l.filters*l.input_h*l.input_w);
+        gemm(1, 0, l.ksize*l.ksize*l.filters, l.input_h*l.input_w, l.input_c, 1,
+            l.kernel_weights, l.ksize*l.ksize*l.filters, input, l.input_h*l.input_w, 0,
+            l.workspace, l.input_h*l.input_w);
         col2im(l.workspace, l.ksize, l.stride, l.pad, l.output_h, l.output_w, l.output_c, output);
     }
     if (l.bias){
         add_bias(l.output, l.bias_weights, num, l.filters, l.output_h*l.output_w);
     }
+    if (l.active == LINEAR) return;
     activate_list(l.output, num*l.outputs, l.output, l.active);
 }
 
@@ -161,8 +164,12 @@ void backward_deconvolutional_layer(Layer l, int num, float *n_delta)
         float *delta_l = l.delta + offset_i;
         float *delta_n = n_delta + offset_o;
         im2col(delta_n, l.output_h, l.output_w, l.output_c, l.ksize, l.stride, l.pad, l.workspace);
-        gemm(0, 1, l.input_c, l.input_h*l.input_w, l.ksize*l.ksize*l.filters, l.input_h*l.input_w, 1, input, l.workspace, l.kernel_weights_delta, 0);
-        gemm(0, 0, l.input_c, l.ksize*l.ksize*l.filters, l.ksize*l.ksize*l.filters, l.input_h*l.input_w, 1, l.kernel_weights, l.workspace, delta_l, 0);
+        gemm(0, 1, l.input_c, l.ksize*l.ksize*l.filters, l.input_h*l.input_w, 1,
+            input, l.input_h*l.input_w, l.workspace, l.input_h*l.input_w, 1,
+            l.kernel_weights_delta, l.ksize*l.ksize*l.filters);
+        gemm(0, 0, l.input_c, l.input_h*l.input_w, l.ksize*l.ksize*l.filters, 1,
+            l.kernel_weights, l.ksize*l.ksize*l.filters, l.workspace, l.input_h*l.input_w, 1,
+            delta_l, l.input_h*l.input_w);
     }
 }
 
@@ -402,8 +409,8 @@ void deconvolutional_bilinearinterp_init(Layer l)
         int index_j = i % l.ksize;
         weightc[i] = (1 - abs((index_i - center) / factor)) * (1 - abs((index_j - center) / factor));
     }
-    for (int i = 0; i < l.filters*l.input_c; ++i){
-        memcpy(l.kernel_weights+i*l.ksize*l.ksize, weightc, l.ksize*l.ksize*sizeof(float));
+    for (int i = 0; i < l.filters; ++i){
+        memcpy(l.kernel_weights+i*(l.input_c+i)*l.ksize*l.ksize, weightc, l.ksize*l.ksize*sizeof(float));
     }
     memcpy(l.update_kernel_weights, l.kernel_weights, l.filters*l.input_c*l.ksize*l.ksize*sizeof(float));
     free(weightc);

@@ -139,12 +139,14 @@ void forward_convolutional_layer(Layer l, int num)
         float *input = l.input + offset_i;
         float *output = l.output + offset_o;
         im2col(input, l.input_h, l.input_w, l.input_c, l.ksize, l.stride, l.pad, l.workspace);
-        gemm(0, 0, l.filters, l.ksize * l.ksize * l.input_c, l.ksize * l.ksize * l.input_c, l.output_h * l.output_w, 1,
-             l.kernel_weights, l.workspace, output, 0);
+        gemm(0, 0, l.filters, l.output_w*l.output_h, l.ksize*l.ksize*l.input_c, 1,
+            l.kernel_weights, l.ksize*l.ksize*l.input_c, l.workspace, l.output_w*l.output_h,
+            1, output, l.output_w*l.output_h);
     }
     if (l.bias){
         add_bias(l.output, l.bias_weights, num, l.filters, l.output_h*l.output_w);
     }
+    if (l.active == LINEAR) return;
     activate_list(l.output, num*l.outputs, l.output, l.active);
 }
 
@@ -161,13 +163,12 @@ void backward_convolutional_layer(Layer l, int num, float *n_delta)
         float *delta_l = l.delta + offset_i;
         float *delta_n = n_delta + offset_o;
         im2col(input, l.input_h, l.input_w, l.input_c, l.ksize, l.stride, l.pad, l.workspace);
-        gemm(0, 1, l.filters, l.output_h * l.output_w,
-             l.ksize * l.ksize * l.input_c, l.output_h * l.output_w, 1,
-             delta_n, l.workspace, l.kernel_weights_delta, 0);
-        fill_cpu(l.workspace, l.input_c*l.ksize*l.ksize*l.output_h*l.output_w, 0, 1);
-        gemm(1, 0, l.filters, l.ksize * l.ksize * l.input_c,
-             l.filters, l.output_h * l.output_w, 1,
-             l.kernel_weights, delta_n, l.workspace, 0);
+        gemm(0, 1, l.filters, l.ksize*l.ksize*l.input_c, l.output_h*l.output_w, 1,
+            delta_n, l.output_w*l.output_h, l.workspace, l.output_w*l.output_h, 1,
+            l.kernel_weights_delta, l.ksize*l.ksize*l.input_c);
+        gemm(1, 0, l.ksize*l.ksize*l.input_c, l.output_h*l.output_w, l.filters, 1,
+            l.kernel_weights, l.ksize*l.ksize*l.input_c, delta_n, l.output_w*l.output_h,
+            0, l.workspace, l.output_w*l.output_h);
         col2im(l.workspace, l.ksize, l.stride, l.pad, l.input_h, l.input_w, l.input_c, delta_l);
     }
 }

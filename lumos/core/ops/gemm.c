@@ -1,86 +1,93 @@
 #include "gemm.h"
 
-void gemm(int TA, int TB, int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C, int flag)
+void gemm(int TA, int TB, int M, int N, int K, float ALPHA, 
+        float *A, int lda, 
+        float *B, int ldb,
+        float BETA,
+        float *C, int ldc)
 {
-    fill_cpu(C, flag, 0, 1);
-    if (!TA && !TB)
-    {
-        gemm_nn(AM, AN, BM, BN, ALPHA, A, B, C);
+    int i, j;
+    for(i = 0; i < M; ++i){
+        for(j = 0; j < N; ++j){
+            C[i*ldc + j] *= BETA;
+        }
     }
-    else if (TA && !TB)
-    {
-        gemm_tn(AM, AN, BM, BN, ALPHA, A, B, C);
-    }
-    else if (!TA && TB)
-    {
-        gemm_nt(AM, AN, BM, BN, ALPHA, A, B, C);
-    }
+    if(!TA && !TB)
+        gemm_nn(M, N, K, ALPHA,A,lda, B, ldb,C,ldc);
+    else if(TA && !TB)
+        gemm_tn(M, N, K, ALPHA,A,lda, B, ldb,C,ldc);
+    else if(!TA && TB)
+        gemm_nt(M, N, K, ALPHA,A,lda, B, ldb,C,ldc);
     else
-    {
-        gemm_tt(AM, AN, BM, BN, ALPHA, A, B, C);
-    }
+        gemm_tt(M, N, K, ALPHA,A,lda, B, ldb,C,ldc);
 }
 
-void gemm_nn(int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C)
+void gemm_nn(int M, int N, int K, float ALPHA, 
+        float *A, int lda, 
+        float *B, int ldb,
+        float *C, int ldc)
 {
+    int i,j,k;
     #pragma omp parallel for
-    for (int i = 0; i < AM; ++i)
-    {
-        for (int j = 0; j < AN; ++j)
-        {
-            register float temp = ALPHA * A[i * AN + j];
-            for (int k = 0; k < BN; ++k)
-            {
-                C[i * BN + k] += temp * B[j * BN + k];
+    for(i = 0; i < M; ++i){
+        for(k = 0; k < K; ++k){
+            register float A_PART = ALPHA*A[i*lda+k];
+            for(j = 0; j < N; ++j){
+                C[i*ldc+j] += A_PART*B[k*ldb+j];
             }
         }
     }
 }
 
-void gemm_tn(int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C)
+void gemm_nt(int M, int N, int K, float ALPHA, 
+        float *A, int lda, 
+        float *B, int ldb,
+        float *C, int ldc)
 {
+    int i,j,k;
     #pragma omp parallel for
-    for (int i = 0; i < AN; ++i)
-    {
-        for (int j = 0; j < AM; ++j)
-        {
-            register float temp = ALPHA * A[j * AN + i];
-            for (int k = 0; k < BN; ++k)
-            {
-                C[i * BN + k] += temp * B[j * BN + k];
+    for(i = 0; i < M; ++i){
+        for(j = 0; j < N; ++j){
+            register float sum = 0;
+            for(k = 0; k < K; ++k){
+                sum += ALPHA*A[i*lda+k]*B[j*ldb + k];
+            }
+            C[i*ldc+j] += sum;
+        }
+    }
+}
+
+void gemm_tn(int M, int N, int K, float ALPHA, 
+        float *A, int lda, 
+        float *B, int ldb,
+        float *C, int ldc)
+{
+    int i,j,k;
+    #pragma omp parallel for
+    for(i = 0; i < M; ++i){
+        for(k = 0; k < K; ++k){
+            register float A_PART = ALPHA*A[k*lda+i];
+            for(j = 0; j < N; ++j){
+                C[i*ldc+j] += A_PART*B[k*ldb+j];
             }
         }
     }
 }
 
-void gemm_nt(int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C)
+void gemm_tt(int M, int N, int K, float ALPHA, 
+        float *A, int lda, 
+        float *B, int ldb,
+        float *C, int ldc)
 {
+    int i,j,k;
     #pragma omp parallel for
-    for (int i = 0; i < AM; ++i)
-    {
-        for (int j = 0; j < AN; ++j)
-        {
-            register float temp = ALPHA * A[i * AN + j];
-            for (int k = 0; k < BM; ++k)
-            {
-                C[i * BM + k] += temp * B[k * BN + j];
+    for(i = 0; i < M; ++i){
+        for(j = 0; j < N; ++j){
+            register float sum = 0;
+            for(k = 0; k < K; ++k){
+                sum += ALPHA*A[i+k*lda]*B[k+j*ldb];
             }
-        }
-    }
-}
-
-void gemm_tt(int AM, int AN, int BM, int BN, float ALPHA, float *A, float *B, float *C)
-{
-    #pragma omp parallel for
-    for (int i = 0; i < AN; ++i)
-    {
-        for (int j = 0; j < AM; ++j)
-        {
-            register float temp = ALPHA * A[j * AN + i];
-            for (int k = 0; k < BM; ++k)
-            {
-                C[i * BM + k] += temp * B[k * BN + j];
-            }
+            C[i*ldc+j] += sum;
         }
     }
 }
