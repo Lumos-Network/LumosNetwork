@@ -141,4 +141,5 @@ void backward_crossentropy_layer_gpu(Layer l, int num, float *n_delta)
 void zerograd_crossentropy_layer_gpu(Layer l, int subdivision)
 {
     fill_gpu(l.delta, subdivision*l.inputs, 0, 1);
+    fill_gpu(l.loss, 1, 0, 1);
 }

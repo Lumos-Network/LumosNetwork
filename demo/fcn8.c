@@ -72,7 +72,7 @@ void fcn8(char *type, char *path)
     std[2] = 0.225;
     transform_normalize_sess(sess, mean, std);
     transform_resize_sess(sess, 320, 320);
-    set_train_params(sess, 40, 8, 8, 0.01);
+    set_train_params(sess, 50, 4, 4, 0.001);
     SGDOptimizer_sess(sess, 0.9, 0, 0, 0, 0);
     init_session(sess, "./data/VOC2012/train.txt", "./data/VOC2012/train_label.txt");
     train(sess);

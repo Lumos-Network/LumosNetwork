@@ -27,13 +27,12 @@ void gemm_nn(int M, int N, int K, float ALPHA,
         float *B, int ldb,
         float *C, int ldc)
 {
-    int i,j,k;
     #pragma omp parallel for
-    for(i = 0; i < M; ++i){
-        for(k = 0; k < K; ++k){
-            register float A_PART = ALPHA*A[i*lda+k];
-            for(j = 0; j < N; ++j){
-                C[i*ldc+j] += A_PART*B[k*ldb+j];
+    for (int i = 0; i < M; ++i){
+        for (int j = 0; j < K; ++j){
+            register float temp = ALPHA * A[i * K + j];
+            for (int k = 0; k < N; ++k){
+                C[i * N + k] += temp * B[j * N + k];
             }
         }
     }
@@ -44,15 +43,13 @@ void gemm_nt(int M, int N, int K, float ALPHA,
         float *B, int ldb,
         float *C, int ldc)
 {
-    int i,j,k;
     #pragma omp parallel for
-    for(i = 0; i < M; ++i){
-        for(j = 0; j < N; ++j){
-            register float sum = 0;
-            for(k = 0; k < K; ++k){
-                sum += ALPHA*A[i*lda+k]*B[j*ldb + k];
+    for (int i = 0; i < M; ++i){
+        for (int j = 0; j < K; ++j){
+            register float temp = ALPHA * A[i * K + j];
+            for (int k = 0; k < N; ++k){
+                C[i * N + k] += temp * B[k * K + j];
             }
-            C[i*ldc+j] += sum;
         }
     }
 }
@@ -62,13 +59,12 @@ void gemm_tn(int M, int N, int K, float ALPHA,
         float *B, int ldb,
         float *C, int ldc)
 {
-    int i,j,k;
     #pragma omp parallel for
-    for(i = 0; i < M; ++i){
-        for(k = 0; k < K; ++k){
-            register float A_PART = ALPHA*A[k*lda+i];
-            for(j = 0; j < N; ++j){
-                C[i*ldc+j] += A_PART*B[k*ldb+j];
+    for (int i = 0; i < M; ++i){
+        for (int j = 0; j < K; ++j){
+            register float temp = ALPHA * A[j * M + i];
+            for (int k = 0; k < N; ++k){
+                C[i * N + k] += temp * B[j * N + k];
             }
         }
     }
@@ -79,15 +75,13 @@ void gemm_tt(int M, int N, int K, float ALPHA,
         float *B, int ldb,
         float *C, int ldc)
 {
-    int i,j,k;
     #pragma omp parallel for
-    for(i = 0; i < M; ++i){
-        for(j = 0; j < N; ++j){
-            register float sum = 0;
-            for(k = 0; k < K; ++k){
-                sum += ALPHA*A[i+k*lda]*B[k+j*ldb];
+    for (int i = 0; i < M; ++i){
+        for (int j = 0; j < K; ++j){
+            register float temp = ALPHA * A[j * M + i];
+            for (int k = 0; k < N; ++k){
+                C[i * N + k] += temp * B[k * K + j];
             }
-            C[i*ldc+j] += sum;
         }
     }
 }

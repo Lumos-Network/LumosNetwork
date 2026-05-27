@@ -236,7 +236,7 @@ data_transform = transforms.Compose([
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
 
-num_epochs = 1
+num_epochs = 4
 batch_size = 4
 train_data = MyDataset('./data/VOCT/train.txt', transform=data_transform)
 trainloader = torch.utils.data.DataLoader(dataset=train_data, batch_size=batch_size, shuffle=False)
@@ -285,31 +285,29 @@ for epoch in range(num_epochs):
         outputs.backward()
         optimizer.step()
         running_loss += outputs.item()
-        print("loss:{}".format(outputs.item()))
+        # print("loss:{}".format(outputs.item()))
         num += 1
-        if num == 2:
-            break
     print("AVGloss:{}".format(running_loss/num))
 
-fp = open("./backup/LW_fp", "wb")
-for name, param in model.named_parameters():
-    # print(f"Layer: {name}, Parameter Shape: {param.shape}") #param.shape [filters, channels, ksize, ksize]  [outputs, inputs]
-    data_f = []
-    if ("weight" in name and len(param.shape) == 4):
-        data = param.tolist()
-        for i in range(param.shape[0]):
-            for j in range(param.shape[1]):
-                for k in range(param.shape[2]):
-                    data_f += data[i][j][k]
-    if ("weight" in name and len(param.shape) == 2):
-        data = param.tolist()
-        for i in range(param.shape[0]):
-            data_f += data[i]
-    if ("weight" in name and len(param.shape) == 1):
-        data_f += param.tolist()
-    if ("bias" in name):
-        data = param.tolist()
-        data_f += data
-    for i in range(len(data_f)):
-        fp.write(struct.pack('f', data_f[i]))
-fp.close()
+# fp = open("./backup/LW_fp", "wb")
+# for name, param in model.named_parameters():
+#     # print(f"Layer: {name}, Parameter Shape: {param.shape}") #param.shape [filters, channels, ksize, ksize]  [outputs, inputs]
+#     data_f = []
+#     if ("weight" in name and len(param.shape) == 4):
+#         data = param.tolist()
+#         for i in range(param.shape[0]):
+#             for j in range(param.shape[1]):
+#                 for k in range(param.shape[2]):
+#                     data_f += data[i][j][k]
+#     if ("weight" in name and len(param.shape) == 2):
+#         data = param.tolist()
+#         for i in range(param.shape[0]):
+#             data_f += data[i]
+#     if ("weight" in name and len(param.shape) == 1):
+#         data_f += param.tolist()
+#     if ("bias" in name):
+#         data = param.tolist()
+#         data_f += data
+#     for i in range(len(data_f)):
+#         fp.write(struct.pack('f', data_f[i]))
+# fp.close()
