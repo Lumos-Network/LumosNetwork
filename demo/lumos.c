@@ -17,7 +17,7 @@ int main()
     // alexnet_flower("gpu", NULL);
     // fcn8("gpu", "./backup/LW_py");
     // fcn8_detect("gpu", "./backup/LW_f");
-    // xor("gpu", NULL);
+    xor_detect("gpu", "./demo/xor.lw");
     // alexnet_flower("gpu", NULL);
-    alexnet_flower_detect("gpu", "./backup/LW_f");
+    // alexnet_flower_detect("gpu", "./backup/LW_f");
 }

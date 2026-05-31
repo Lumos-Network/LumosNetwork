@@ -44,7 +44,7 @@ float step_scheduler(float rate, int step_size, int *milestones, int num, float 
         new_lr = rate * gamma;
         return new_lr;
     }
-    return rate;
+    return new_lr;
 }
 
 float multistep_scheduler(float rate, int step_size, int *milestones, int num, float lr_min, float lr_max, float gamma, int T_curr, int T_max)
@@ -56,7 +56,7 @@ float multistep_scheduler(float rate, int step_size, int *milestones, int num, f
             return new_lr;
         }
     }
-    return rate;
+    return new_lr;
 }
 
 float exponential_scheduler(float rate, int step_size, int *milestones, int num, float lr_min, float lr_max, float gamma, int T_curr, int T_max)
