@@ -100,5 +100,8 @@
 void gemm_gpu(int TA, int TB, int M, int N, int K, float ALPHA, float *A, int lda, float *B, int ldb, float BETA, float *C, int ldc)
 {
     cublasHandle_t handle = blas_handle();
+    // cublasHandle_t handle;
+    // cublasCreate(&handle);
     cublasSgemm(handle, (TB ? CUBLAS_OP_T : CUBLAS_OP_N), (TA ? CUBLAS_OP_T : CUBLAS_OP_N), N, M, K, &ALPHA, B, ldb, A, lda, &BETA, C, ldc);
+    // cublasDestroy(handle);
 }

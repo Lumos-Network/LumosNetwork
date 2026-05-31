@@ -407,10 +407,10 @@ void deconvolutional_bilinearinterp_init_gpu(Layer l)
     for (int i = 0; i < l.ksize*l.ksize; ++i){
         int index_i = i / l.ksize;
         int index_j = i % l.ksize;
-        weightc[i] = (1 - abs((index_i - center) / factor)) * (1 - abs((index_j - center) / factor));
+        weightc[i] = (1 - fabs((index_i - center) / factor)) * (1 - fabs((index_j - center) / factor));
     }
     for (int i = 0; i < l.filters; ++i){
-        cudaMemcpy(l.kernel_weights+i*(l.input_c+i)*l.ksize*l.ksize, weightc, l.ksize*l.ksize*sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(l.kernel_weights+i*l.input_c*l.ksize*l.ksize+i*l.ksize*l.ksize, weightc, l.ksize*l.ksize*sizeof(float), cudaMemcpyHostToDevice);
     }
     cudaMemcpy(l.update_kernel_weights, l.kernel_weights, l.filters*l.input_c*l.ksize*l.ksize*sizeof(float), cudaMemcpyDeviceToDevice);
     free(weightc);

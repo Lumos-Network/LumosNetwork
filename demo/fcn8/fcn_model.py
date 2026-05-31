@@ -192,26 +192,24 @@ class FCN8s(nn.Module):
         
         # 全连接层替换为1x1卷积
         self.fc6 = nn.Conv2d(512, 4096, kernel_size=7, padding=3)
-        self.relu6 = nn.ReLU(inplace=True)
+        # self.relu6 = nn.ReLU(inplace=True)
         self.drop6 = nn.Dropout2d()
         
         self.fc7 = nn.Conv2d(4096, 4096, kernel_size=1)
-        self.relu7 = nn.ReLU(inplace=True)
+        # self.relu7 = nn.ReLU(inplace=True)
         self.drop7 = nn.Dropout2d()
         
         # 分类层
         self.score_fr = nn.Conv2d(4096, num_classes, kernel_size=1)
-        
-        # pool3和pool4的1x1卷积，用于特征融合
-        self.score_pool4 = nn.Conv2d(512, num_classes, kernel_size=1)
-        self.score_pool3 = nn.Conv2d(256, num_classes, kernel_size=1)
-        
         # 2倍上采样conv7特征
         self.upsample2_1 = nn.ConvTranspose2d(num_classes, num_classes, kernel_size=4, stride=2, padding=1, bias=False)
         
+        # pool3和pool4的1x1卷积，用于特征融合
+        self.score_pool4 = nn.Conv2d(512, num_classes, kernel_size=1)
         # 2倍上采样融合后的特征
         self.upsample2_2 = nn.ConvTranspose2d(num_classes, num_classes, kernel_size=4, stride=2, padding=1, bias=False)
-        
+
+        self.score_pool3 = nn.Conv2d(256, num_classes, kernel_size=1)
         # 8倍上采样回原始图像大小
         self.upsample8 = nn.ConvTranspose2d(num_classes, num_classes, kernel_size=16, stride=8, padding=4, bias=False)
         
@@ -227,10 +225,10 @@ class FCN8s(nn.Module):
         pool4 = self.features4(pool3)# 保存pool4的输出用于后续融合
         x = self.features5(pool4)
         # 全连接层 (以卷积形式实现)
-        x = self.relu6(self.fc6(x))
-        x = self.drop6(x)
-        x = self.relu7(self.fc7(x))
-        x = self.drop7(x)
+        x = torch.relu(self.fc6(x))
+        # x = self.drop6(x)
+        x = torch.relu(self.fc7(x))
+        # x = self.drop7(x)
         x = self.score_fr(x)# 分类
         x = self.upsample2_1(x)# 2倍上采样
         # 获取pool4的分数并裁剪

@@ -78,12 +78,12 @@ void forward_shortcut_layer(Layer l, int num)
 void backward_shortcut_layer(Layer l, int num, float *n_delta)
 {
     Layer *shortcut = l.shortcut;
+    gradient_list(l.output, num*l.outputs, n_delta, l.active);
     if (l.shortcut_type == SHORT){
         matrix_add_cpu(shortcut->delta, n_delta, num*l.outputs, shortcut->delta);
     } else {
-        gradient_list(l.output, num*l.outputs, l.workspace, l.active);
-        matrix_multiply_cpu(l.workspace, n_delta, num*l.inputs, l.delta);
-        memcpy(shortcut->delta, l.delta, num*l.inputs*sizeof(float));
+        matrix_add_cpu(l.delta, n_delta, num*l.outputs, l.delta);
+        matrix_add_cpu(shortcut->delta, l.delta, num*l.outputs, shortcut->delta);
     }
 }
 

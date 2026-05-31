@@ -71,7 +71,7 @@ void crossentropy_gradient_gpu(float *data, int *truth, int w, int h, int c, flo
 __global__ void softmax_channel_kernel(float *data, int w, int h, int c, float *space)
 {
     int index = threadIdx.x + blockIdx.x * blockDim.x;
-    if (index >= 1) return;
+    if (index >= w*h) return;
     float max_val = -INFINITY;
     float sum_exp = 0;
     for (int i = 0; i < c; ++i){
@@ -115,7 +115,7 @@ void forward_crossentropy_layer_gpu(Layer l, int num)
 {
     if (!l.status){
         crossentropy_gpu(l.input, l.truth, l.input_w, l.input_h, l.input_c, l.scale, l.ignore, l.output);
-        softmax_channel_gpu(l.input, l.input_w, l.input_h, l.input_c, l.detect);
+        cudaMemcpy(l.detect, l.input, l.inputs*sizeof(float), cudaMemcpyDeviceToDevice);
     } else {
         for (int i = 0; i < num; ++i){
             float *input = l.input + i*l.inputs;

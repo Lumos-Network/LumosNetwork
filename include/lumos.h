@@ -27,6 +27,7 @@ void set_train_params(Session *sess, int epoch, int batch, int subdivision, floa
 void set_detect_params(Session *sess);
 void train(Session *sess);
 void detect_classification(Session *sess);
+void detect_segmentation(Session *sess);
 void SGDOptimizer_sess(Session *sess, float momentum, float dampening, float decay, int nesterov, int maximize);
 void transform_resize_sess(Session *sess, int height, int width);
 void transform_normalize_sess(Session *sess, float *mean, float *std);

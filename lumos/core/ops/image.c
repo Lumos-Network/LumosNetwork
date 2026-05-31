@@ -47,7 +47,7 @@ float *load_image_data(char *img_path, int *w, int *h, int *c)
     return im_new;
 }
 
-void save_image_data(float *img, int w, int h, int c, char *savepath)
+void save_image_data(int *img, int w, int h, int c, char *savepath)
 {
     int i, k;
     unsigned char *data = malloc((w * h * c) * sizeof(char));

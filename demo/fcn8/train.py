@@ -67,9 +67,9 @@ def parse_args():
                         help='FCN模型类型 (fcn8s, fcn16s, fcn32s)')
     parser.add_argument('--batch-size', type=int, default=4,
                         help='训练的批次大小')
-    parser.add_argument('--epochs', type=int, default=30,
+    parser.add_argument('--epochs', type=int, default=1,
                         help='训练的轮数')
-    parser.add_argument('--lr', type=float, default=0.005,
+    parser.add_argument('--lr', type=float, default=0.001,
                         help='学习率')
     parser.add_argument('--momentum', type=float, default=0.9,
                         help='SGD动量')
@@ -202,15 +202,15 @@ def main():
     print(f'使用设备: {device}')
     
     # 加载数据
-    train_loader, val_loader = get_data_loaders(
+    train_loader = get_data_loaders(
         args.voc_root,
-        batch_size=args.batch_size,
-        num_workers=args.num_workers
+        batch_size=4,
+        num_workers=1
     )
-    train_dataset_size = len(train_loader.dataset) if hasattr(train_loader.dataset, '__len__') else len(train_loader) * train_loader.batch_size
-    val_dataset_size = len(val_loader.dataset) if hasattr(val_loader.dataset, '__len__') else len(val_loader) * val_loader.batch_size
+    # train_dataset_size = len(train_loader.dataset) if hasattr(train_loader.dataset, '__len__') else len(train_loader) * train_loader.batch_size
+    # val_dataset_size = len(val_loader.dataset) if hasattr(val_loader.dataset, '__len__') else len(val_loader) * val_loader.batch_size
     
-    print(f'训练样本数: {train_dataset_size}, 验证样本数: {val_dataset_size}')
+    # print(f'训练样本数: {train_dataset_size}, 验证样本数: {val_dataset_size}')
     
     # 创建模型
     model = get_fcn_model(model_type=args.model_type, num_classes=NUM_CLASSES, pretrained=True)
@@ -247,33 +247,32 @@ def main():
         'pixel_acc': [],
         'miou': []
     }
+    print(model)
+    fp = open("./backup/LW_py", "wb")
+    for name, param in model.named_parameters():
+        data_f = []
+        print(f"Layer: {name}, Parameter Shape: {param.shape}") #param.shape [filters, channels, ksize, ksize]  [outputs, inputs]
+        if ("weight" in name and len(param.shape) == 4):
+            data = param.tolist()
+            for i in range(param.shape[0]):
+                for j in range(param.shape[1]):
+                    for k in range(param.shape[2]):
+                        data_f += data[i][j][k]
+        if ("weight" in name and len(param.shape) == 2):
+            data = param.tolist()
+            for i in range(param.shape[0]):
+                data_f += data[i]
+        if ("weight" in name and len(param.shape) == 1):
+            data_f += param.tolist()
+        if ("bias" in name):
+            data = param.tolist()
+            data_f += data
+        for i in range(len(data_f)):
+            fp.write(struct.pack('f', data_f[i]))
+    fp.close()
     
-    # fp = open("./backup/LW_py", "wb")
-    # for name, param in model.named_parameters():
-    #     data_f = []
-        # print(f"Layer: {name}, Parameter Shape: {param.shape}") #param.shape [filters, channels, ksize, ksize]  [outputs, inputs]
-    #     if ("weight" in name and len(param.shape) == 4):
-    #         data = param.tolist()
-    #         for i in range(param.shape[0]):
-    #             for j in range(param.shape[1]):
-    #                 for k in range(param.shape[2]):
-    #                     data_f += data[i][j][k]
-    #     if ("weight" in name and len(param.shape) == 2):
-    #         data = param.tolist()
-    #         for i in range(param.shape[0]):
-    #             data_f += data[i]
-    #     if ("weight" in name and len(param.shape) == 1):
-    #         data_f += param.tolist()
-    #     if ("bias" in name):
-    #         data = param.tolist()
-    #         data_f += data
-    #     print(len(data_f))
-    #     for i in range(len(data_f)):
-    #         fp.write(struct.pack('f', data_f[i]))
-    # fp.close()
-    
-    # model.features1[0].register_forward_hook(forward_hook)
-    # model.l1.register_backward_hook(backward_hook)
+    # model.score_pool4.register_forward_hook(forward_hook)
+    # model.score_pool4.register_backward_hook(backward_hook)
     
     for epoch in range(start_epoch, args.epochs):
         # 训练阶段
@@ -282,7 +281,31 @@ def main():
         batch_count = 0
         
         t0 = time.time()
+        print("-------------------------------------------------------")
+        # fim = open("./backup/in_p", "wb")
+        # flb = open("./backup/tr_p", "wb")
+        # im_data = []
+        # lb_data = []
+        num = 0;
         for images, targets in tqdm(train_loader, desc=f'Epoch {epoch+1}/{args.epochs}'):
+            # print("--------------------")
+            # shape_im = images.shape
+            # data_im = images.tolist()
+            # for i in range(shape_im[0]):
+            #     for j in range(shape_im[1]):
+            #         for k in range(shape_im[2]):
+            #             im_data += data_im[i][j][k]
+            # for i in range(len(im_data)):
+            #     fim.write(struct.pack('f', im_data[i]))
+
+            # shape_lb = targets.shape
+            # data_lb = targets.tolist()
+            # for i in range(shape_lb[0]):
+            #     for j in range(shape_lb[1]):
+            #         lb_data += data_lb[i][j]
+            # for i in range(len(lb_data)):
+            #     flb.write(struct.pack('f', lb_data[i]))
+
             images = images.to(device)
             targets = targets.to(device)
             optimizer.zero_grad()
@@ -291,100 +314,103 @@ def main():
             # print("标签形状:", targets.shape)
             loss = criterion(outputs, targets)
             print(loss.item())
-
             loss.backward()
             optimizer.step()
+            num += 1
+            if num == 20:
+                break
+        break
             
-            train_loss += loss.item() * images.size(0)
-            batch_count += 1
+    #         train_loss += loss.item() * images.size(0)
+    #         batch_count += 1
             
-            del images, targets, outputs, loss
+    #         del images, targets, outputs, loss
             
-            if batch_count % 10 == 0:
-                torch.cuda.empty_cache()
+    #         if batch_count % 10 == 0:
+    #             torch.cuda.empty_cache()
         
-        train_loss = train_loss / train_dataset_size
-        history['train_loss'].append(train_loss)
+    #     train_loss = train_loss / train_dataset_size
+    #     history['train_loss'].append(train_loss)
         
-        # 调整学习率
-        scheduler.step()
+    #     # 调整学习率
+    #     scheduler.step()
         
-        # 执行垃圾回收
-        gc.collect()
-        torch.cuda.empty_cache()
+    #     # 执行垃圾回收
+    #     gc.collect()
+    #     torch.cuda.empty_cache()
         
-        # 评估模型
-        val_loss, pixel_acc, miou, class_iou = evaluate(model, val_loader, criterion, device)
-        history['val_loss'].append(val_loss)
-        history['pixel_acc'].append(pixel_acc)
-        history['miou'].append(miou)
+    #     # 评估模型
+    #     val_loss, pixel_acc, miou, class_iou = evaluate(model, val_loader, criterion, device)
+    #     history['val_loss'].append(val_loss)
+    #     history['pixel_acc'].append(pixel_acc)
+    #     history['miou'].append(miou)
         
-        # 打印进度
-        epoch_time = time.time() - t0
-        print(f'Epoch {epoch+1}/{args.epochs} - '
-              f'Time: {epoch_time:.2f}s - '
-              f'Train Loss: {train_loss:.4f} - '
-              f'Val Loss: {val_loss:.4f} - '
-              f'Pixel Acc: {pixel_acc:.4f} - '
-              f'mIoU: {miou:.4f}')
+    #     # 打印进度
+    #     epoch_time = time.time() - t0
+    #     print(f'Epoch {epoch+1}/{args.epochs} - '
+    #           f'Time: {epoch_time:.2f}s - '
+    #           f'Train Loss: {train_loss:.4f} - '
+    #           f'Val Loss: {val_loss:.4f} - '
+    #           f'Pixel Acc: {pixel_acc:.4f} - '
+    #           f'mIoU: {miou:.4f}')
         
-        # 保存最佳模型
-        if miou > best_miou:
-            best_miou = miou
-            torch.save({
-                'epoch': epoch + 1,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'scheduler_state_dict': scheduler.state_dict(),
-                'best_miou': best_miou,
-            }, os.path.join(args.checkpoint_dir, f'{args.model_type}_best.pth'))
-            print(f'保存最佳模型, mIoU: {best_miou:.4f}')
+    #     # 保存最佳模型
+    #     if miou > best_miou:
+    #         best_miou = miou
+    #         torch.save({
+    #             'epoch': epoch + 1,
+    #             'model_state_dict': model.state_dict(),
+    #             'optimizer_state_dict': optimizer.state_dict(),
+    #             'scheduler_state_dict': scheduler.state_dict(),
+    #             'best_miou': best_miou,
+    #         }, os.path.join(args.checkpoint_dir, f'{args.model_type}_best.pth'))
+    #         print(f'保存最佳模型, mIoU: {best_miou:.4f}')
             
-            # 生成可视化结果
-            save_predictions(model, val_loader, device)
+    #         # 生成可视化结果
+    #         save_predictions(model, val_loader, device)
         
-        # 保存最新模型
-        torch.save({
-            'epoch': epoch + 1,
-            'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-            'scheduler_state_dict': scheduler.state_dict(),
-            'best_miou': best_miou,
-        }, os.path.join(args.checkpoint_dir, f'{args.model_type}_latest.pth'))
+    #     # 保存最新模型
+    #     torch.save({
+    #         'epoch': epoch + 1,
+    #         'model_state_dict': model.state_dict(),
+    #         'optimizer_state_dict': optimizer.state_dict(),
+    #         'scheduler_state_dict': scheduler.state_dict(),
+    #         'best_miou': best_miou,
+    #     }, os.path.join(args.checkpoint_dir, f'{args.model_type}_latest.pth'))
         
-        gc.collect()
-        torch.cuda.empty_cache()
+    #     gc.collect()
+    #     torch.cuda.empty_cache()
     
 
-    plt.figure(figsize=(12, 10))
+    # plt.figure(figsize=(12, 10))
     
 
-    plt.subplot(2, 2, 1)
-    plt.plot(history['train_loss'], label='Train')
-    plt.plot(history['val_loss'], label='Validation')
-    plt.title('Loss')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.legend()
+    # plt.subplot(2, 2, 1)
+    # plt.plot(history['train_loss'], label='Train')
+    # plt.plot(history['val_loss'], label='Validation')
+    # plt.title('Loss')
+    # plt.xlabel('Epoch')
+    # plt.ylabel('Loss')
+    # plt.legend()
     
-    plt.subplot(2, 2, 2)
-    plt.plot(history['pixel_acc'])
-    plt.title('Pixel Accuracy')
-    plt.xlabel('Epoch')
-    plt.ylabel('Accuracy')
+    # plt.subplot(2, 2, 2)
+    # plt.plot(history['pixel_acc'])
+    # plt.title('Pixel Accuracy')
+    # plt.xlabel('Epoch')
+    # plt.ylabel('Accuracy')
     
 
-    plt.subplot(2, 2, 3)
-    plt.plot(history['miou'])
-    plt.title('Mean IoU')
-    plt.xlabel('Epoch')
-    plt.ylabel('mIoU')
+    # plt.subplot(2, 2, 3)
+    # plt.plot(history['miou'])
+    # plt.title('Mean IoU')
+    # plt.xlabel('Epoch')
+    # plt.ylabel('mIoU')
     
-    plt.tight_layout()
-    plt.savefig(os.path.join(args.checkpoint_dir, f'{args.model_type}_history.png'))
-    plt.close()
+    # plt.tight_layout()
+    # plt.savefig(os.path.join(args.checkpoint_dir, f'{args.model_type}_history.png'))
+    # plt.close()
     
-    print(f'训练完成! 最佳 mIoU: {best_miou:.4f}')
+    # print(f'训练完成! 最佳 mIoU: {best_miou:.4f}')
 
 if __name__ == '__main__':
     main() 

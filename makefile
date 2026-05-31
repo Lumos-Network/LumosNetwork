@@ -169,6 +169,7 @@ obj:
 backup:
 	mkdir backup
 	mkdir ./backup/data
+	mkdir ./backup/detect
 
 .PHONY: clean
 

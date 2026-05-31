@@ -127,10 +127,10 @@ class VOCSegmentation(Dataset):
                 color_match = r_match & g_match & b_match
                 mask_copy[color_match] = k
             # 打印类别分布（用于调试）
-            if index == 0:  # 只打印第一个样本的信息
-                unique_values, counts = np.unique(mask_copy, return_counts=True)
-                print("掩码中的唯一类别索引:", unique_values)
-                print("每个类别的像素数量:", counts)
+            # if index == 0:  # 只打印第一个样本的信息
+            #     unique_values, counts = np.unique(mask_copy, return_counts=True)
+            #     print("掩码中的唯一类别索引:", unique_values)
+            #     print("每个类别的像素数量:", counts)
             # 转换为PyTorch张量（长整型，用于交叉熵损失）
             mask = torch.from_numpy(mask_copy).long()
         return img, mask
@@ -192,7 +192,7 @@ def get_data_loaders(voc_root, batch_size=4, num_workers=4, img_size=320):
     """
     # 获取图像和掩码变换
     train_transform, train_target_transform = get_transforms(train=True)
-    val_transform, val_target_transform = get_transforms(train=False)
+    # val_transform, val_target_transform = get_transforms(train=False)
     
     # 创建训练数据集
     train_dataset = VOCSegmentation(
@@ -204,34 +204,34 @@ def get_data_loaders(voc_root, batch_size=4, num_workers=4, img_size=320):
     )
     
     # 创建验证数据集
-    val_dataset = VOCSegmentation(
-        root=voc_root,
-        split='val',  # 使用验证集划分
-        transform=val_transform,
-        target_transform=val_target_transform,
-        img_size=img_size
-    )
+    # val_dataset = VOCSegmentation(
+    #     root=voc_root,
+    #     split='val',  # 使用验证集划分
+    #     transform=val_transform,
+    #     target_transform=val_target_transform,
+    #     img_size=img_size
+    # )
     
     # 创建训练数据加载器
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
-        shuffle=True,  # 随机打乱数据
+        shuffle=False,  # 随机打乱数据
         num_workers=num_workers,  # 多线程加载
         pin_memory=True,  # 数据预加载到固定内存，加速GPU传输
         drop_last=True  # 丢弃最后不足一个批次的数据
     )
     
     # 创建验证数据加载器
-    val_loader = DataLoader(
-        val_dataset,
-        batch_size=batch_size,
-        shuffle=False,  # 不打乱数据
-        num_workers=num_workers,
-        pin_memory=True
-    )
+    # val_loader = DataLoader(
+    #     val_dataset,
+    #     batch_size=batch_size,
+    #     shuffle=False,  # 不打乱数据
+    #     num_workers=num_workers,
+    #     pin_memory=True
+    # )
     
-    return train_loader, val_loader
+    return train_loader
 
 def decode_segmap(segmap):
     """

@@ -244,11 +244,11 @@ void detect_classification(Session *sess)
         forward_graph(sess->graph, sess->coretype, sess->subdivision);
         if (sess->coretype == GPU){
             cudaMemcpy(truth, l->truth, sess->truth_num*sizeof(int), cudaMemcpyDeviceToHost);
-            cudaMemcpy(detect, l->detect, sess->class_num*sizeof(float), cudaMemcpyDeviceToHost);
+            cudaMemcpy(detect, l->input, l->inputs*sizeof(float), cudaMemcpyDeviceToHost);
             cudaMemcpy(loss, sess->loss, sizeof(float), cudaMemcpyDeviceToHost);
         } else {
             truth = l->truth;
-            detect = l->detect;
+            detect = l->input;
             loss[0] = sess->loss[0];
         }
         fprintf(stderr, "%s\n", sess->train_data_paths[i]);
@@ -266,6 +266,48 @@ void detect_classification(Session *sess)
         fprintf(stderr, "Loss:%.4f\n\n", loss[0]);
     }
     fprintf(stderr, "Detct Classification: %d/%d  %.2f\n", num, sess->train_data_num, (float)(num)/(float)(sess->train_data_num));
+}
+
+void detect_segmentation(Session *sess)
+{
+    fprintf(stderr, "\nSession Start To Running\n");
+    int *truth = NULL;
+    float *detect = NULL;
+    int *trans = calloc(sess->truth_num, sizeof(int));
+    float *loss = calloc(1, sizeof(float));
+    float ious = 0;
+    char savepath[200];
+    Graph *g = sess->graph;
+    g->status = 0;
+    Node *layer = g->tail;
+    Layer *l = layer->l;
+    if (sess->coretype == GPU){
+        truth = calloc(sess->truth_num, sizeof(int));
+        detect = calloc(sess->truth_num*sess->class_num, sizeof(float));
+    }
+    for (int i = 0; i < sess->train_data_num; ++i){
+        load_train_data_binary(sess, i);
+        load_train_label(sess, i);
+        forward_graph(sess->graph, sess->coretype, sess->subdivision);
+        if (sess->coretype == GPU){
+            cudaMemcpy(truth, l->truth, sess->truth_num*sizeof(int), cudaMemcpyDeviceToHost);
+            cudaMemcpy(detect, l->input, l->inputs*sizeof(float), cudaMemcpyDeviceToHost);
+            cudaMemcpy(loss, sess->loss, sizeof(float), cudaMemcpyDeviceToHost);
+        } else {
+            truth = l->truth;
+            detect = l->input;
+            loss[0] = sess->loss[0];
+        }
+        detect_transfer(detect, l->input_w, l->input_h, sess->class_num, trans);
+        float iou = detect_iou(trans, truth, l->truth_num);
+        ious += iou;
+        sprintf(savepath, "./backup/detect/%d.png", i);
+        save_image_data(trans, l->input_w, l->input_h, 1, savepath);
+        fprintf(stderr, "%s\n", sess->train_data_paths[i]);
+        fprintf(stderr, "IOU:%.2f%%\n", iou*100);
+    }
+    ious /= sess->train_data_num;
+    fprintf(stderr, "Segmentation: MIOU %.2f%%\n", ious*100);
 }
 
 void lr_scheduler_step(Session *sess, int step_size, float gamma)
@@ -484,4 +526,29 @@ void transforms_sess(Session *sess)
         free(im);
     }
     fclose(fp);
+}
+
+void detect_transfer(float *data, int w, int h, int c, int *trans)
+{
+    for (int index = 0; index < w*h; ++index){
+        float max_val = -INFINITY;
+        int tag = -1;
+        for (int i = 0; i < c; ++i){
+            if (data[i*w*h+index] >= max_val){
+                max_val = data[i*w*h+index];
+                tag = i;
+            }
+        }
+        trans[index] = tag;
+    }
+}
+
+float detect_iou(int *detect, int *truth, int num)
+{
+    int x = 0;
+    for (int i = 0; i < num; ++i){
+        if (detect[i] == truth[i]) x += 1;
+    }
+    float res = (float)x / (float)num;
+    return res;
 }

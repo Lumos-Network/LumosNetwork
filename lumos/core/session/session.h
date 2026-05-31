@@ -81,6 +81,7 @@ void set_detect_params(Session *sess);
 void create_workspace(Session *sess);
 void train(Session *sess);
 void detect_classification(Session *sess);
+void detect_segmentation(Session *sess);
 
 void load_train_data(Session *sess, int index);
 void load_train_data_binary(Session *sess, int index);
@@ -114,6 +115,9 @@ void AdamOptimizer_sess(Session *sess, float beta1, float beta2, float decay, in
 void transform_resize_sess(Session *sess, int height, int width);
 void transform_normalize_sess(Session *sess, float *mean, float *std);
 void transforms_sess(Session *sess);
+
+void detect_transfer(float *data, int w, int h, int c, int *trans);
+float detect_iou(int *detect, int *truth, int num);
 
 #ifdef __cplusplus
 }

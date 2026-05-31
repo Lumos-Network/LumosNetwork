@@ -192,6 +192,7 @@ for epoch in range(num_epochs):
     for i, data in enumerate(trainloader, 0):
         # 获取输入：图片（inputs）和对应的标签（labels，比如0代表玫瑰，1代表郁金香）
         inputs, labels = data[0].to(device), data[1].to(device)
+        print(inputs)
         optimizer.zero_grad()
         outputs = model(inputs, labels)
         # print(labels)
