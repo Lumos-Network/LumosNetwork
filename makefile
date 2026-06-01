@@ -127,7 +127,7 @@ endif
 
 ifeq ($(TEST), 0)
 OBJ+=	xor.o lenet5_mnist.o lenet5_fmnist.o alexnet_flower.o vgg16_cifar10.o resnet18.o cifar.o darknet.o googlenet.o \
-		fcn8.o
+		fcn8.o unet.o
 endif
 
 ifeq ($(TEST),1)

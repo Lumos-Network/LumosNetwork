@@ -34,9 +34,9 @@ void crossentropy(float *data, int *truth, int w, int h, int c, int index, float
             return;
         }
     }
-    if (scale != NULL){
-        scale_x = scale[target];
-    }
+    // if (scale != NULL){
+    //     scale_x = scale[target];
+    // }
     max_channel_cpu(data, w, h, c, index, &M);
     for (int i = 0; i < c; ++i){
         res += expf(data[i*w*h+index]-M);

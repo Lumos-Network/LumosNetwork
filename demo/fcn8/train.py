@@ -321,19 +321,19 @@ def main():
                 break
         break
             
-    #         train_loss += loss.item() * images.size(0)
-    #         batch_count += 1
+            train_loss += loss.item() * images.size(0)
+            batch_count += 1
             
-    #         del images, targets, outputs, loss
+            del images, targets, outputs, loss
             
-    #         if batch_count % 10 == 0:
-    #             torch.cuda.empty_cache()
+            if batch_count % 10 == 0:
+                torch.cuda.empty_cache()
         
-    #     train_loss = train_loss / train_dataset_size
-    #     history['train_loss'].append(train_loss)
+        train_loss = train_loss / train_dataset_size
+        history['train_loss'].append(train_loss)
         
-    #     # 调整学习率
-    #     scheduler.step()
+        # 调整学习率
+        scheduler.step()
         
     #     # 执行垃圾回收
     #     gc.collect()

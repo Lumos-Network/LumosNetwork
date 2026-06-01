@@ -118,6 +118,7 @@ struct layer{
 
     int workspace_size;
     int truth_num;
+    int class_num;
 
     float *input;
     float *output;

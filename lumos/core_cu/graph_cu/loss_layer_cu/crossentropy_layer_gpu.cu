@@ -12,9 +12,9 @@ __global__ void crossentropy_kernel(float *data, int *truth, int w, int h, int c
             return;
         }
     }
-    if (scale != NULL){
-        scale_x = scale[target];
-    }
+    // if (scale != NULL){
+    //     scale_x = scale[target];
+    // }
     float max_val = -INFINITY;
     float sum_exp = 0;
     for (int i = 0; i < c; ++i){
@@ -58,8 +58,8 @@ __global__ void crossentropy_gradient_kernel(float *data, int *truth, int w, int
         sum_exp += space[i*w*h+index];
     }
     for (int i = 0; i < c; ++i){
-        if (i == target) space[i*w*h+index] = (space[i*w*h+index]/sum_exp-1)*scale_x/(w*h);
-        else space[i*w*h+index] = space[i*w*h+index]/sum_exp*scale_x/(w*h);
+        if (i == target) space[i*w*h+index] = (space[i*w*h+index]/sum_exp-1)/(w*h)*scale_x;
+        else space[i*w*h+index] = (space[i*w*h+index]/sum_exp)/(w*h)*scale_x;
     }
 }
 
@@ -106,6 +106,14 @@ void init_crossentropy_layer_gpu(Layer *l, int w, int h, int c, int subdivision)
 
     cudaMalloc((void**)&l->output, subdivision*l->outputs*sizeof(float));
     cudaMalloc((void**)&l->delta, subdivision*l->inputs*sizeof(float));
+
+    if (l->scale != NULL){
+        float *scale = NULL;
+        cudaMalloc((void**)&scale, l->class_num*sizeof(float));
+        cudaMemcpy(scale, l->scale, l->class_num*sizeof(float), cudaMemcpyHostToDevice);
+        free(l->scale);
+        l->scale = scale;
+    }
 
     fprintf(stderr, "CrossEntropy    Layer    %3d*%3d*%3d ==> %3d*%3d*%3d\n", \
             l->input_w, l->input_h, l->input_c, l->output_w, l->output_h, l->output_c);

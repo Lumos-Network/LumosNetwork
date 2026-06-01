@@ -17,6 +17,7 @@ Session *create_session(Graph *graph, int h, int w, int c, int truth_num, int cl
     sess->weights_path = path;
     sess->resize = 0;
     sess->normalize = 0;
+    sess->lrscheduler = NULL;
     return sess;
 }
 
@@ -33,7 +34,7 @@ void init_session(Session *sess, char *data_path, char *label_path)
     }
     bind_train_data(sess, data_path);
     bind_train_label(sess, label_path);
-    init_graph(sess->graph, sess->width, sess->height, sess->channel, sess->truth_num, sess->coretype, sess->subdivision, sess->optimizer, sess->weights_path, sess->input);
+    init_graph(sess->graph, sess->width, sess->height, sess->channel, sess->truth_num, sess->class_num, sess->coretype, sess->subdivision, sess->optimizer, sess->weights_path, sess->input);
     create_workspace(sess);
     set_graph(sess->graph, sess->workspace, sess->truth, sess->loss);
     transforms_sess(sess);
@@ -179,7 +180,6 @@ void load_train_label(Session *sess, int index)
 void train(Session *sess)
 {
     fprintf(stderr, "\nSession Start To Running\n");
-    float rate = -sess->learning_rate/sess->batch;
     Graph *g = sess->graph;
     g->status = 1;
     for (int i = 0; i < sess->epoch; ++i){
@@ -190,6 +190,7 @@ void train(Session *sess)
         for (int j = 0; j < sub_epochs; ++j){
             for (int k = 0; k < sub_batchs; ++k){
                 if (j * sess->batch + k * sess->subdivision + sess->subdivision > sess->train_data_num) break;
+                float rate = -sess->learning_rate/sess->batch;
                 load_train_data_binary(sess, j * sess->batch + k * sess->subdivision);
                 load_train_label(sess, j * sess->batch + k * sess->subdivision);
                 zerograd_graph(sess->graph, sess->subdivision, sess->coretype);
@@ -213,6 +214,7 @@ void train(Session *sess)
             refresh_graph(sess->graph, sess->coretype);
             fprintf(stderr, "%d/%d    Loss:%f\n", j, sub_epochs, loss[1]);
         }
+        sess->learning_rate = run_lrscheduler(sess->lrscheduler, sess->learning_rate, 0, i);
         fprintf(stderr, " AvgLoss:%f", loss[0]/(sub_epochs * sub_batchs));
     }
     FILE *fp = fopen("./backup/LW_f", "wb");

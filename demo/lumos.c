@@ -11,13 +11,11 @@
 #include "image.h"
 #include "cpu.h"
 #include "cpu_gpu.h"
+#include "vgg16_cifar10.h"
+#include "unet.h"
 
 int main()
 {
-    // alexnet_flower("gpu", NULL);
-    // fcn8("gpu", "./backup/LW_py");
-    // fcn8_detect("gpu", "./backup/LW_f");
-    xor_detect("gpu", "./demo/xor.lw");
-    // alexnet_flower("gpu", NULL);
-    // alexnet_flower_detect("gpu", "./backup/LW_f");
+    unet("gpu", NULL);
+    unet_detect("gpu", "./backup/LW_f");
 }

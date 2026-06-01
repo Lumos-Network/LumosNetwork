@@ -64,4 +64,9 @@ void init_xavier_uniform_bias(Layer *l, float gain);
 void init_kaiming_normal_bias(Layer *l, char *mode);
 void init_kaiming_uniform_bias(Layer *l, char *mode);
 
+void lr_scheduler_step(Session *sess, int step_size, float gamma);
+void lr_scheduler_multistep(Session *sess, int *milestones, int num, float gamma);
+void lr_scheduler_exponential(Session *sess, float gamma);
+void lr_scheduler_cosineannealing(Session *sess, int T_max, float lr_min);
+
 #endif
