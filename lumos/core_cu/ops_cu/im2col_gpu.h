@@ -16,8 +16,8 @@
 extern "C" {
 #endif
 
-void im2col_gpu(float *img, int height, int width, int channel, int ksize, int stride, int pad, float *space);
-void col2im_gpu(float *img, int ksize, int stride, int pad, int out_h, int out_w, int out_c, float *space);
+void im2col_gpu(float *img, int height, int width, int channel, int ksize, int stride, int pad, int dilation, float *space);
+void col2im_gpu(float *img, int ksize, int stride, int pad, int dilation, int out_h, int out_w, int out_c, float *space);
 
 #ifdef __cplusplus
 }

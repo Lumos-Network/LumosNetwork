@@ -13,9 +13,11 @@
 #include "cpu_gpu.h"
 #include "vgg16_cifar10.h"
 #include "unet.h"
+#include "deeplabv1.h"
+#include "deeplabv2.h"
 
 int main()
 {
-    unet("gpu", NULL);
-    unet_detect("gpu", "./backup/LW_f");
+    deeplabv2("gpu", "./backup/LW_deeplabv2");
+    // deeplabv2_detect("gpu", "./backup/LW_f");
 }

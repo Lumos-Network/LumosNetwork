@@ -17,7 +17,7 @@
 extern "C"{
 #endif
 
-Layer *make_deconvolutional_layer(int filters, int ksize, int stride, int pad, int bias, char *active);
+Layer *make_deconvolutional_layer(int filters, int ksize, int stride, int pad, int dilation, int bias, char *active);
 
 void init_deconvolutional_layer(Layer *l, int w, int h, int c, int subdivision);
 void weightinit_deconvolutional_layer(Layer l, FILE *fp);

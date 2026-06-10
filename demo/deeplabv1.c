@@ -1,10 +1,10 @@
-#include "fcn8.h"
+#include "deeplabv1.h"
 
-void fcn8(char *type, char *path)
+void deeplabv1(char *type, char *path)
 {
     int num_class = 21;
     Graph *graph = create_graph();
-    Layer **layers = malloc(33*sizeof(Layer*));
+    Layer **layers = malloc(23*sizeof(Layer*));
     layers[0] = make_convolutional_layer(64, 3, 1, 1, 0, 1, "relu");
     layers[1] = make_convolutional_layer(64, 3, 1, 1, 0, 1, "relu");
     layers[2] = make_maxpool_layer(2, 2, 0);
@@ -27,37 +27,22 @@ void fcn8(char *type, char *path)
     layers[15] = make_convolutional_layer(512, 3, 1, 1, 0, 1, "relu");
     layers[16] = make_convolutional_layer(512, 3, 1, 1, 0, 1, "relu");
     layers[17] = make_maxpool_layer(2, 2, 0);
-    // pool5
-    layers[18] = make_convolutional_layer(4096, 7, 1, 3, 0, 1, "relu"); // fc6
-    layers[19] = make_dropout_layer(0.5);
-    layers[20] = make_convolutional_layer(4096, 1, 1, 0, 0, 1, "relu"); // fc7
-    layers[21] = make_dropout_layer(0.5);
-    // 跳跃连接+上采样
-    layers[22] = make_convolutional_layer(num_class, 1, 1, 0, 0, 1, "linear"); // score_fr
-    layers[23] = make_deconvolutional_layer(num_class, 4, 2, 1, 0, 0, "linear"); // up2
+    // fc6
+    layers[18] = make_convolutional_layer(1024, 3, 1, 6, 5, 1, "relu");
+    // fc7
+    layers[19] = make_convolutional_layer(1024, 1, 1, 0, 0, 1, "relu");
+    // score
+    layers[20] = make_convolutional_layer(num_class, 1, 1, 0, 0, 1, "linear");
+    // upsample
+    layers[21] = make_interpolate_layer(320, 320);
+    layers[22] = make_crossentropy_layer(NULL, -1);
 
-    layers[24] = make_shortcut_layer(layers[14], 1, "linear");
-    layers[25] = make_convolutional_layer(num_class, 1, 1, 0, 0, 1, "linear"); // score_pool4
-    layers[26] = make_shortcut_layer(layers[24], 0, "linear"); // fuse1
-
-    layers[27] = make_deconvolutional_layer(num_class, 4, 2, 1, 0, 0, "linear"); // up4
-
-    layers[28] = make_shortcut_layer(layers[10], 1, "linear");
-    layers[29] = make_convolutional_layer(num_class, 1, 1, 0, 0, 1, "linear"); // score_pool3
-    layers[30] = make_shortcut_layer(layers[28], 0, "linear");
-
-    layers[31] = make_deconvolutional_layer(num_class, 16, 8, 4, 0, 0, "linear");
-    layers[32] = make_crossentropy_layer(NULL, 255);
-
-    for (int i = 0; i < 33; ++i){
+    for (int i = 0; i < 23; ++i){
         append_layer2grpah(graph, layers[i]);
         Layer *l = layers[i];
         if (l->type == CONVOLUTIONAL){
             init_kaiming_uniform_kernel(l, 0, "fan_in", "relu");
             init_constant_bias(l, 0);
-        }
-        if (l->type == DECONVOLUTIONAL){
-            init_bilinearinterp_kernel(l);
         }
     }
     Session *sess = create_session(graph, 320, 320, 3, 320*320, num_class, type, path);
@@ -71,17 +56,17 @@ void fcn8(char *type, char *path)
     std[2] = 0.225;
     transform_normalize_sess(sess, mean, std);
     transform_resize_sess(sess, 320, 320);
-    set_train_params(sess, 50, 4, 4, 0.001);
-    SGDOptimizer_sess(sess, 0.9, 0, 0, 0, 0);
+    set_train_params(sess, 50, 8, 8, 0.001);
+    SGDOptimizer_sess(sess, 0.9, 0, 5e-4, 0, 0);
     init_session(sess, "./data/VOC2012/train.txt", "./data/VOC2012/train_label.txt");
     train(sess);
 }
 
-void fcn8_detect(char *type, char *path)
+void deeplabv1_detect(char*type, char *path)
 {
     int num_class = 21;
     Graph *graph = create_graph();
-    Layer **layers = malloc(33*sizeof(Layer*));
+    Layer **layers = malloc(23*sizeof(Layer*));
     layers[0] = make_convolutional_layer(64, 3, 1, 1, 0, 1, "relu");
     layers[1] = make_convolutional_layer(64, 3, 1, 1, 0, 1, "relu");
     layers[2] = make_maxpool_layer(2, 2, 0);
@@ -104,29 +89,17 @@ void fcn8_detect(char *type, char *path)
     layers[15] = make_convolutional_layer(512, 3, 1, 1, 0, 1, "relu");
     layers[16] = make_convolutional_layer(512, 3, 1, 1, 0, 1, "relu");
     layers[17] = make_maxpool_layer(2, 2, 0);
-    // pool5
-    layers[18] = make_convolutional_layer(4096, 7, 1, 3, 0, 1, "relu"); // fc6
-    layers[19] = make_dropout_layer(0.5);
-    layers[20] = make_convolutional_layer(4096, 1, 1, 0, 0, 1, "relu"); // fc7
-    layers[21] = make_dropout_layer(0.5);
-    // 跳跃连接+上采样
-    layers[22] = make_convolutional_layer(num_class, 1, 1, 0, 0, 1, "linear"); // score_fr
-    layers[23] = make_deconvolutional_layer(num_class, 4, 2, 1, 0, 0, "linear"); // up2
+    // fc6
+    layers[18] = make_convolutional_layer(1024, 3, 1, 6, 5, 1, "relu");
+    // fc7
+    layers[19] = make_convolutional_layer(1024, 1, 1, 0, 0, 1, "relu");
+    // score
+    layers[20] = make_convolutional_layer(num_class, 1, 1, 0, 0, 1, "linear");
+    // upsample
+    layers[21] = make_interpolate_layer(320, 320);
+    layers[22] = make_crossentropy_layer(NULL, -1);
 
-    layers[24] = make_shortcut_layer(layers[14], 1, "linear");
-    layers[25] = make_convolutional_layer(num_class, 1, 1, 0, 0, 1, "linear"); // score_pool4
-    layers[26] = make_shortcut_layer(layers[24], 0, "linear"); // fuse1
-
-    layers[27] = make_deconvolutional_layer(num_class, 4, 2, 1, 0, 0, "linear"); // up4
-
-    layers[28] = make_shortcut_layer(layers[10], 1, "linear");
-    layers[29] = make_convolutional_layer(num_class, 1, 1, 0, 0, 1, "linear"); // score_pool3
-    layers[30] = make_shortcut_layer(layers[28], 0, "linear");
-
-    layers[31] = make_deconvolutional_layer(num_class, 16, 8, 4, 0, 0, "linear");
-    layers[32] = make_crossentropy_layer(NULL, 255);
-
-    for (int i = 0; i < 33; ++i){
+    for (int i = 0; i < 23; ++i){
         append_layer2grpah(graph, layers[i]);
     }
 

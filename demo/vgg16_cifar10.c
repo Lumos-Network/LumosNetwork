@@ -3,27 +3,27 @@
 void vgg16_cifar10(char *type, char *path)
 {
     Graph *g = create_graph();
-    Layer *l1 = make_convolutional_layer(64, 3, 1, 1, 1, "relu");
-    Layer *l3 = make_convolutional_layer(64, 3, 1, 1, 1, "relu");
+    Layer *l1 = make_convolutional_layer(64, 3, 1, 1, 0, 1, "relu");
+    Layer *l3 = make_convolutional_layer(64, 3, 1, 1, 0, 1, "relu");
     Layer *l5 = make_maxpool_layer(2, 2, 0);
 
-    Layer *l6 = make_convolutional_layer(128, 3, 1, 1, 1, "relu");
-    Layer *l8 = make_convolutional_layer(128, 3, 1, 1, 1, "relu");
+    Layer *l6 = make_convolutional_layer(128, 3, 1, 1, 0, 1, "relu");
+    Layer *l8 = make_convolutional_layer(128, 3, 1, 1, 0, 1, "relu");
     Layer *l10 = make_maxpool_layer(2, 2, 0);
 
-    Layer *l11 = make_convolutional_layer(256, 3, 1, 1, 1, "relu");
-    Layer *l13 = make_convolutional_layer(256, 3, 1, 1, 1, "relu");
-    Layer *l15 = make_convolutional_layer(256, 3, 1, 1, 1, "relu");
+    Layer *l11 = make_convolutional_layer(256, 3, 1, 1, 0, 1, "relu");
+    Layer *l13 = make_convolutional_layer(256, 3, 1, 1, 0, 1, "relu");
+    Layer *l15 = make_convolutional_layer(256, 3, 1, 1, 0, 1, "relu");
     Layer *l17 = make_maxpool_layer(2, 2, 0);
 
-    Layer *l18 = make_convolutional_layer(512, 3, 1, 1, 1, "relu");
-    Layer *l20 = make_convolutional_layer(512, 3, 1, 1, 1, "relu");
-    Layer *l22 = make_convolutional_layer(512, 3, 1, 1, 1, "relu");
+    Layer *l18 = make_convolutional_layer(512, 3, 1, 1, 0, 1, "relu");
+    Layer *l20 = make_convolutional_layer(512, 3, 1, 1, 0, 1, "relu");
+    Layer *l22 = make_convolutional_layer(512, 3, 1, 1, 0, 1, "relu");
     Layer *l24 = make_maxpool_layer(2, 2, 0);
 
-    Layer *l25 = make_convolutional_layer(512, 3, 1, 1, 1, "relu");
-    Layer *l27 = make_convolutional_layer(512, 3, 1, 1, 1, "relu");
-    Layer *l29 = make_convolutional_layer(512, 3, 1, 1, 1, "relu");
+    Layer *l25 = make_convolutional_layer(512, 3, 1, 1, 0, 1, "relu");
+    Layer *l27 = make_convolutional_layer(512, 3, 1, 1, 0, 1, "relu");
+    Layer *l29 = make_convolutional_layer(512, 3, 1, 1, 0, 1, "relu");
     Layer *l31 = make_maxpool_layer(2, 2, 0);
 
     Layer *l32 = make_dropout_layer(0.5);
@@ -113,27 +113,27 @@ void vgg16_cifar10(char *type, char *path)
 void vgg16_cifar10_detect(char *type, char *path)
 {
     Graph *g = create_graph();
-    Layer *l1 = make_convolutional_layer(64, 3, 1, 1, 1, "relu");
-    Layer *l3 = make_convolutional_layer(64, 3, 1, 1, 1, "relu");
+    Layer *l1 = make_convolutional_layer(64, 3, 1, 1, 0, 1, "relu");
+    Layer *l3 = make_convolutional_layer(64, 3, 1, 1, 0, 1, "relu");
     Layer *l5 = make_maxpool_layer(2, 2, 0);
 
-    Layer *l6 = make_convolutional_layer(128, 3, 1, 1, 1, "relu");
-    Layer *l8 = make_convolutional_layer(128, 3, 1, 1, 1, "relu");
+    Layer *l6 = make_convolutional_layer(128, 3, 1, 1, 0, 1, "relu");
+    Layer *l8 = make_convolutional_layer(128, 3, 1, 1, 0, 1, "relu");
     Layer *l10 = make_maxpool_layer(2, 2, 0);
 
-    Layer *l11 = make_convolutional_layer(256, 3, 1, 1, 1, "relu");
-    Layer *l13 = make_convolutional_layer(256, 3, 1, 1, 1, "relu");
-    Layer *l15 = make_convolutional_layer(256, 3, 1, 1, 1, "relu");
+    Layer *l11 = make_convolutional_layer(256, 3, 1, 1, 0, 1, "relu");
+    Layer *l13 = make_convolutional_layer(256, 3, 1, 1, 0, 1, "relu");
+    Layer *l15 = make_convolutional_layer(256, 3, 1, 1, 0, 1, "relu");
     Layer *l17 = make_maxpool_layer(2, 2, 0);
 
-    Layer *l18 = make_convolutional_layer(512, 3, 1, 1, 1, "relu");
-    Layer *l20 = make_convolutional_layer(512, 3, 1, 1, 1, "relu");
-    Layer *l22 = make_convolutional_layer(512, 3, 1, 1, 1, "relu");
+    Layer *l18 = make_convolutional_layer(512, 3, 1, 1, 0, 1, "relu");
+    Layer *l20 = make_convolutional_layer(512, 3, 1, 1, 0, 1, "relu");
+    Layer *l22 = make_convolutional_layer(512, 3, 1, 1, 0, 1, "relu");
     Layer *l24 = make_maxpool_layer(2, 2, 0);
 
-    Layer *l25 = make_convolutional_layer(512, 3, 1, 1, 1, "relu");
-    Layer *l27 = make_convolutional_layer(512, 3, 1, 1, 1, "relu");
-    Layer *l29 = make_convolutional_layer(512, 3, 1, 1, 1, "relu");
+    Layer *l25 = make_convolutional_layer(512, 3, 1, 1, 0, 1, "relu");
+    Layer *l27 = make_convolutional_layer(512, 3, 1, 1, 0, 1, "relu");
+    Layer *l29 = make_convolutional_layer(512, 3, 1, 1, 0, 1, "relu");
     Layer *l31 = make_maxpool_layer(2, 2, 0);
 
     Layer *l32 = make_dropout_layer(0.5);

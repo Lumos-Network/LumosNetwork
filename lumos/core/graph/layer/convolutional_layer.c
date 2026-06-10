@@ -1,6 +1,6 @@
 #include "convolutional_layer.h"
 
-Layer *make_convolutional_layer(int filters, int ksize, int stride, int pad, int bias, char *active)
+Layer *make_convolutional_layer(int filters, int ksize, int stride, int pad, int dilation, int bias, char *active)
 {
     Layer *l = malloc(sizeof(Layer));
     l->type = CONVOLUTIONAL;
@@ -8,6 +8,7 @@ Layer *make_convolutional_layer(int filters, int ksize, int stride, int pad, int
     l->ksize = ksize;
     l->stride = stride;
     l->pad = pad;
+    l->dilation = dilation;
     l->bias = bias;
 
     Activation type = load_activate_type(active);
@@ -51,8 +52,9 @@ void init_convolutional_layer(Layer *l, int w, int h, int c, int subdivision)
     l->input_c = c;
     l->inputs = l->input_h * l->input_w * l->input_c;
 
-    l->output_h = (l->input_h + 2 * l->pad - l->ksize) / l->stride + 1;
-    l->output_w = (l->input_w + 2 * l->pad - l->ksize) / l->stride + 1;
+    int dksize = l->ksize*(l->dilation+1)-l->dilation;
+    l->output_h = (l->input_h + 2 * l->pad - dksize) / l->stride + 1;
+    l->output_w = (l->input_w + 2 * l->pad - dksize) / l->stride + 1;
     l->output_c = l->filters;
     l->outputs = l->output_h * l->output_w * l->output_c;
 
@@ -138,7 +140,7 @@ void forward_convolutional_layer(Layer l, int num)
         int offset_o = i * l.outputs;
         float *input = l.input + offset_i;
         float *output = l.output + offset_o;
-        im2col(input, l.input_h, l.input_w, l.input_c, l.ksize, l.stride, l.pad, l.workspace);
+        im2col(input, l.input_h, l.input_w, l.input_c, l.ksize, l.stride, l.pad, l.dilation, l.workspace);
         gemm(0, 0, l.filters, l.output_w*l.output_h, l.ksize*l.ksize*l.input_c, 1,
             l.kernel_weights, l.ksize*l.ksize*l.input_c, l.workspace, l.output_w*l.output_h,
             1, output, l.output_w*l.output_h);
@@ -162,14 +164,14 @@ void backward_convolutional_layer(Layer l, int num, float *n_delta)
         float *input = l.input + offset_i;
         float *delta_l = l.delta + offset_i;
         float *delta_n = n_delta + offset_o;
-        im2col(input, l.input_h, l.input_w, l.input_c, l.ksize, l.stride, l.pad, l.workspace);
+        im2col(input, l.input_h, l.input_w, l.input_c, l.ksize, l.stride, l.pad, l.dilation, l.workspace);
         gemm(0, 1, l.filters, l.ksize*l.ksize*l.input_c, l.output_h*l.output_w, 1,
             delta_n, l.output_w*l.output_h, l.workspace, l.output_w*l.output_h, 1,
             l.kernel_weights_delta, l.ksize*l.ksize*l.input_c);
         gemm(1, 0, l.ksize*l.ksize*l.input_c, l.output_h*l.output_w, l.filters, 1,
             l.kernel_weights, l.ksize*l.ksize*l.input_c, delta_n, l.output_w*l.output_h,
             0, l.workspace, l.output_w*l.output_h);
-        col2im(l.workspace, l.ksize, l.stride, l.pad, l.input_h, l.input_w, l.input_c, delta_l);
+        col2im(l.workspace, l.ksize, l.stride, l.pad, l.dilation, l.input_h, l.input_w, l.input_c, delta_l);
     }
 }
 

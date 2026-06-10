@@ -3,45 +3,45 @@
 void resnet18(char *type, char *path)
 {
     Graph *g = create_graph();
-    Layer *l1 = make_convolutional_layer(64, 7, 2, 3, 1, "relu");
+    Layer *l1 = make_convolutional_layer(64, 7, 2, 3, 0, 1, "relu");
     Layer *l2 = make_maxpool_layer(3, 2, 1);
 
-    Layer *l3 = make_convolutional_layer(64, 3, 1, 1, 1, "relu");
-    Layer *l4 = make_convolutional_layer(64, 3, 1, 1, 1, "linear");
+    Layer *l3 = make_convolutional_layer(64, 3, 1, 1, 0, 1, "relu");
+    Layer *l4 = make_convolutional_layer(64, 3, 1, 1, 0, 1, "linear");
     Layer *l5 = make_shortcut_layer(l3, 0, "relu");
 
-    Layer *l6 = make_convolutional_layer(64, 3, 1, 1, 1, "relu");
-    Layer *l7 = make_convolutional_layer(64, 3, 1, 1, 1, "linear");
+    Layer *l6 = make_convolutional_layer(64, 3, 1, 1, 0, 1, "relu");
+    Layer *l7 = make_convolutional_layer(64, 3, 1, 1, 0, 1, "linear");
     Layer *l8 = make_shortcut_layer(l6, 0, "relu");
 
-    Layer *l9 = make_convolutional_layer(128, 3, 2, 1, 1, "relu");
-    Layer *l10 = make_convolutional_layer(128, 3, 1, 1, 1, "linear");
+    Layer *l9 = make_convolutional_layer(128, 3, 2, 1, 0, 1, "relu");
+    Layer *l10 = make_convolutional_layer(128, 3, 1, 1, 0, 1, "linear");
     Layer *l11 = make_shortcut_layer(l9, 1, "linear");
-    Layer *l12 = make_convolutional_layer(128, 1, 2, 0, 1, "linear");
+    Layer *l12 = make_convolutional_layer(128, 1, 2, 0, 0, 1, "linear");
     Layer *l13 = make_shortcut_layer(l11, 0, "relu");
 
-    Layer *l14 = make_convolutional_layer(128, 3, 1, 1, 1, "relu");
-    Layer *l15 = make_convolutional_layer(128, 3, 1, 1, 1, "linear");
+    Layer *l14 = make_convolutional_layer(128, 3, 1, 1, 0, 1, "relu");
+    Layer *l15 = make_convolutional_layer(128, 3, 1, 1, 0, 1, "linear");
     Layer *l16 = make_shortcut_layer(l14, 0, "relu");
 
-    Layer *l17 = make_convolutional_layer(256, 3, 2, 1, 1, "relu");
-    Layer *l18 = make_convolutional_layer(256, 3, 1, 1, 1, "linear");
+    Layer *l17 = make_convolutional_layer(256, 3, 2, 1, 0, 1, "relu");
+    Layer *l18 = make_convolutional_layer(256, 3, 1, 1, 0, 1, "linear");
     Layer *l19 = make_shortcut_layer(l17, 1, "linear");
-    Layer *l20 = make_convolutional_layer(256, 1, 2, 0, 1, "linear");
+    Layer *l20 = make_convolutional_layer(256, 1, 2, 0, 0, 1, "linear");
     Layer *l21 = make_shortcut_layer(l19, 0, "relu");
 
-    Layer *l22 = make_convolutional_layer(256, 3, 1, 1, 1, "relu");
-    Layer *l23 = make_convolutional_layer(256, 3, 1, 1, 1, "linear");
+    Layer *l22 = make_convolutional_layer(256, 3, 1, 1, 0, 1, "relu");
+    Layer *l23 = make_convolutional_layer(256, 3, 1, 1, 0, 1, "linear");
     Layer *l24 = make_shortcut_layer(l22, 0, "relu");
 
-    Layer *l25 = make_convolutional_layer(512, 3, 2, 1, 1, "relu");
-    Layer *l26 = make_convolutional_layer(512, 3, 1, 1, 1, "linear");
+    Layer *l25 = make_convolutional_layer(512, 3, 2, 1, 0, 1, "relu");
+    Layer *l26 = make_convolutional_layer(512, 3, 1, 1, 0, 1, "linear");
     Layer *l27 = make_shortcut_layer(l25, 1, "linear");
-    Layer *l28 = make_convolutional_layer(512, 1, 2, 0, 1, "linear");
+    Layer *l28 = make_convolutional_layer(512, 1, 2, 0, 0, 1, "linear");
     Layer *l29 = make_shortcut_layer(l27, 0, "relu");
 
-    Layer *l30 = make_convolutional_layer(512, 3, 1, 1, 1, "relu");
-    Layer *l31 = make_convolutional_layer(512, 3, 1, 1, 1, "linear");
+    Layer *l30 = make_convolutional_layer(512, 3, 1, 1, 0, 1, "relu");
+    Layer *l31 = make_convolutional_layer(512, 3, 1, 1, 0, 1, "linear");
     Layer *l32 = make_shortcut_layer(l30, 0, "relu");
 
     Layer *l33 = make_avgpool_layer(7, 1, 0);
@@ -128,45 +128,45 @@ void resnet18(char *type, char *path)
 void resnet18_detect(char*type, char *path)
 {
     Graph *g = create_graph();
-    Layer *l1 = make_convolutional_layer(64, 7, 2, 3, 1, "relu");
+    Layer *l1 = make_convolutional_layer(64, 7, 2, 3, 0, 1, "relu");
     Layer *l2 = make_maxpool_layer(3, 2, 1);
 
-    Layer *l3 = make_convolutional_layer(64, 3, 1, 1, 1, "relu");
-    Layer *l4 = make_convolutional_layer(64, 3, 1, 1, 1, "linear");
+    Layer *l3 = make_convolutional_layer(64, 3, 1, 1, 0, 1, "relu");
+    Layer *l4 = make_convolutional_layer(64, 3, 1, 1, 0, 1, "linear");
     Layer *l5 = make_shortcut_layer(l3, 0, "relu");
 
-    Layer *l6 = make_convolutional_layer(64, 3, 1, 1, 1, "relu");
-    Layer *l7 = make_convolutional_layer(64, 3, 1, 1, 1, "linear");
+    Layer *l6 = make_convolutional_layer(64, 3, 1, 1, 0, 1, "relu");
+    Layer *l7 = make_convolutional_layer(64, 3, 1, 1, 0, 1, "linear");
     Layer *l8 = make_shortcut_layer(l6, 0, "relu");
 
-    Layer *l9 = make_convolutional_layer(128, 3, 2, 1, 1, "relu");
-    Layer *l10 = make_convolutional_layer(128, 3, 1, 1, 1, "linear");
+    Layer *l9 = make_convolutional_layer(128, 3, 2, 1, 0, 1, "relu");
+    Layer *l10 = make_convolutional_layer(128, 3, 1, 1, 0, 1, "linear");
     Layer *l11 = make_shortcut_layer(l9, 1, "linear");
-    Layer *l12 = make_convolutional_layer(128, 1, 2, 0, 1, "linear");
+    Layer *l12 = make_convolutional_layer(128, 1, 2, 0, 0, 1, "linear");
     Layer *l13 = make_shortcut_layer(l11, 0, "relu");
 
-    Layer *l14 = make_convolutional_layer(128, 3, 1, 1, 1, "relu");
-    Layer *l15 = make_convolutional_layer(128, 3, 1, 1, 1, "linear");
+    Layer *l14 = make_convolutional_layer(128, 3, 1, 1, 0, 1, "relu");
+    Layer *l15 = make_convolutional_layer(128, 3, 1, 1, 0, 1, "linear");
     Layer *l16 = make_shortcut_layer(l14, 0, "relu");
 
-    Layer *l17 = make_convolutional_layer(256, 3, 2, 1, 1, "relu");
-    Layer *l18 = make_convolutional_layer(256, 3, 1, 1, 1, "linear");
+    Layer *l17 = make_convolutional_layer(256, 3, 2, 1, 0, 1, "relu");
+    Layer *l18 = make_convolutional_layer(256, 3, 1, 1, 0, 1, "linear");
     Layer *l19 = make_shortcut_layer(l17, 1, "linear");
-    Layer *l20 = make_convolutional_layer(256, 1, 2, 0, 1, "linear");
+    Layer *l20 = make_convolutional_layer(256, 1, 2, 0, 0, 1, "linear");
     Layer *l21 = make_shortcut_layer(l19, 0, "relu");
 
-    Layer *l22 = make_convolutional_layer(256, 3, 1, 1, 1, "relu");
-    Layer *l23 = make_convolutional_layer(256, 3, 1, 1, 1, "linear");
+    Layer *l22 = make_convolutional_layer(256, 3, 1, 1, 0, 1, "relu");
+    Layer *l23 = make_convolutional_layer(256, 3, 1, 1, 0, 1, "linear");
     Layer *l24 = make_shortcut_layer(l22, 0, "relu");
 
-    Layer *l25 = make_convolutional_layer(512, 3, 2, 1, 1, "relu");
-    Layer *l26 = make_convolutional_layer(512, 3, 1, 1, 1, "linear");
+    Layer *l25 = make_convolutional_layer(512, 3, 2, 1, 0, 1, "relu");
+    Layer *l26 = make_convolutional_layer(512, 3, 1, 1, 0, 1, "linear");
     Layer *l27 = make_shortcut_layer(l25, 1, "linear");
-    Layer *l28 = make_convolutional_layer(512, 1, 2, 0, 1, "linear");
+    Layer *l28 = make_convolutional_layer(512, 1, 2, 0, 0, 1, "linear");
     Layer *l29 = make_shortcut_layer(l27, 0, "relu");
 
-    Layer *l30 = make_convolutional_layer(512, 3, 1, 1, 1, "relu");
-    Layer *l31 = make_convolutional_layer(512, 3, 1, 1, 1, "linear");
+    Layer *l30 = make_convolutional_layer(512, 3, 1, 1, 0, 1, "relu");
+    Layer *l31 = make_convolutional_layer(512, 3, 1, 1, 0, 1, "linear");
     Layer *l32 = make_shortcut_layer(l30, 0, "relu");
 
     Layer *l33 = make_avgpool_layer(7, 1, 0);

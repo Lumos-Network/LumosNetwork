@@ -21,9 +21,9 @@ extern "C" {
 #define SHORT 1
 
 typedef enum {
-    CONVOLUTIONAL, CONNECT, IM2COL, MAXPOOL, AVGPOOL, GLOBALMAX, GLOBALAVG, \
+    CONVOLUTIONAL, CONNECT, IM2COL, MAXPOOL, AVGPOOL, INTERPOLATE, \
     DROPOUT, SOFTMAX, LOGSOFTMAX, SHORTCUT, NORMALIZE, DECONVOLUTIONAL, INCEPTION, \
-    MSE, MAE, CE, NLL, CROSSENTROPY
+    CROSSENTROPY
 } LayerType;
 
 typedef enum {
@@ -141,6 +141,7 @@ struct layer{
     int ksize;
     int stride;
     int pad;
+    int dilation;
 
     int bias;
     // dropout 占比

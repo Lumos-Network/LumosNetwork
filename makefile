@@ -97,7 +97,7 @@ endif
 
 OBJ=	avgpool_layer.o connect_layer.o convolutional_layer.o graph.o maxpool_layer.o \
 		dropout_layer.o normalization_layer.o deconvolutional_layer.o inception_layer.o \
-		crossentropy_layer.o \
+		crossentropy_layer.o interpolate_layer.o \
 		active.o bias.o cpu.o gemm.o im2col.o image.o pooling.o random.o softmax.o normalize.o \
 		session.o optimize.o \
 		progress_bar.o \
@@ -107,7 +107,7 @@ OBJ=	avgpool_layer.o connect_layer.o convolutional_layer.o graph.o maxpool_layer
 OBJ+= 	gpu.o active_gpu.o bias_gpu.o cpu_gpu.o gemm_gpu.o im2col_gpu.o pooling_gpu.o softmax_gpu.o normalize_gpu.o \
 	  	avgpool_layer_gpu.o maxpool_layer_gpu.o connect_layer_gpu.o convolutional_layer_gpu.o \
 	  	dropout_layer_gpu.o normalization_layer_gpu.o \
-		crossentropy_layer_gpu.o \
+		crossentropy_layer_gpu.o interpolate_layer_gpu.o \
 		normalization_layer_gpu.o normalization_layer.o shortcut_layer.o shortcut_layer_gpu.o deconvolutional_layer_gpu.o \
 		inception_layer_gpu.o
 
@@ -127,7 +127,7 @@ endif
 
 ifeq ($(TEST), 0)
 OBJ+=	xor.o lenet5_mnist.o lenet5_fmnist.o alexnet_flower.o vgg16_cifar10.o resnet18.o cifar.o darknet.o googlenet.o \
-		fcn8.o unet.o
+		fcn8.o unet.o deeplabv1.o deeplabv2.o deeplabv3.o
 endif
 
 ifeq ($(TEST),1)

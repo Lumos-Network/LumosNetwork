@@ -268,6 +268,41 @@ class FCN8s(nn.Module):
         print(filter.shape)
         return filter
 
+class Deeplab(nn.Module):
+    def __init__(self, num_classes=1000):
+        super(Deeplab, self).__init__()
+        vgg16 = models.vgg16(pretrained=True)
+        features = list(vgg16.features.children())
+        self.features = nn.Sequential(*features[:31])
+        self.fc6 = nn.Conv2d(512, 1024, kernel_size=3, padding=6, dilation=6)
+        self.fc7 = nn.Conv2d(1024, 1024, kernel_size=1)
+        self.score = nn.Conv2d(1024, num_classes, kernel_size=1)
+        self.loss = nn.CrossEntropyLoss()
+        self._initialize_weights()
+
+    def _initialize_weights(self):
+        for m in [self.fc6, self.fc7, self.score]:
+            nn.init.normal_(m.weight, mean=0, std=0.01)
+            nn.init.constant_(m.bias, 0)
+
+    def forward(self, x, labels):
+        input_size = x.shape[2:]
+        
+        # 1. VGG 特征提取 (下采样 8倍)
+        x = self.features(x)  # (B, 512, H/8, W/8)
+        
+        # 2. 空洞卷积 + 1x1卷积
+        x = F.relu(self.fc6(x))
+        x = F.relu(self.fc7(x))
+        
+        # 3. 分类得分
+        x = self.score(x)  # (B, num_classes, H/8, W/8)
+        
+        # 4. 双线性上采样回原图尺寸
+        x = F.interpolate(x, size=input_size, mode='bilinear', align_corners=True)
+        loss = self.loss(x, labels)
+        return loss
+
 
 def get_fcn_model(model_type='fcn8s', num_classes=NUM_CLASSES, pretrained=True):
     """
@@ -287,5 +322,7 @@ def get_fcn_model(model_type='fcn8s', num_classes=NUM_CLASSES, pretrained=True):
         return FCN16s(num_classes=num_classes, pretrained=pretrained)
     elif model_type == 'fcn8s':
         return FCN8s(num_classes=num_classes, pretrained=pretrained)
+    elif model_type == 'deeplab':
+        return Deeplab(num_classes=num_classes)
     else:
         raise ValueError("Unsupported model type. Choose from 'fcn32s', 'fcn16s', or 'fcn8s'.")

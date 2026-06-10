@@ -3,13 +3,13 @@
 void alexnet_flower(char *type, char *path)
 {
     Graph *g = create_graph();
-    Layer *l1 = make_convolutional_layer(96, 11, 4, 2, 1, "relu");
+    Layer *l1 = make_convolutional_layer(96, 11, 4, 2, 0, 1, "relu");
     Layer *l2 = make_maxpool_layer(3, 2, 0);
-    Layer *l3 = make_convolutional_layer(256, 5, 1, 2, 1, "relu");
+    Layer *l3 = make_convolutional_layer(256, 5, 1, 2, 0, 1, "relu");
     Layer *l4 = make_maxpool_layer(3, 2, 0);
-    Layer *l5 = make_convolutional_layer(384, 3, 1, 1, 1, "relu");
-    Layer *l6 = make_convolutional_layer(384, 3, 1, 1, 1, "relu");
-    Layer *l7 = make_convolutional_layer(256, 3, 1, 1, 1, "relu");
+    Layer *l5 = make_convolutional_layer(384, 3, 1, 1, 0, 1, "relu");
+    Layer *l6 = make_convolutional_layer(384, 3, 1, 1, 0, 1, "relu");
+    Layer *l7 = make_convolutional_layer(256, 3, 1, 1, 0, 1, "relu");
     Layer *l8 = make_maxpool_layer(3, 2, 0);
     Layer *l9 = make_dropout_layer(0.5);
     Layer *l10 = make_connect_layer(4096, 1, "relu");
@@ -72,13 +72,13 @@ void alexnet_flower(char *type, char *path)
 void alexnet_flower_detect(char *type, char *path)
 {
     Graph *g = create_graph();
-    Layer *l1 = make_convolutional_layer(96, 11, 4, 2, 1, "relu");
+    Layer *l1 = make_convolutional_layer(96, 11, 4, 2, 0, 1, "relu");
     Layer *l2 = make_maxpool_layer(3, 2, 0);
-    Layer *l3 = make_convolutional_layer(256, 5, 1, 2, 1, "relu");
+    Layer *l3 = make_convolutional_layer(256, 5, 1, 2, 0, 1, "relu");
     Layer *l4 = make_maxpool_layer(3, 2, 0);
-    Layer *l5 = make_convolutional_layer(384, 3, 1, 1, 1, "relu");
-    Layer *l6 = make_convolutional_layer(384, 3, 1, 1, 1, "relu");
-    Layer *l7 = make_convolutional_layer(256, 3, 1, 1, 1, "relu");
+    Layer *l5 = make_convolutional_layer(384, 3, 1, 1, 0, 1, "relu");
+    Layer *l6 = make_convolutional_layer(384, 3, 1, 1, 0, 1, "relu");
+    Layer *l7 = make_convolutional_layer(256, 3, 1, 1, 0, 1, "relu");
     Layer *l8 = make_maxpool_layer(3, 2, 0);
     Layer *l9 = make_dropout_layer(0.5);
     Layer *l10 = make_connect_layer(4096, 1, "relu");

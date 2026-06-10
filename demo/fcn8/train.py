@@ -14,7 +14,7 @@ from fcn_model import get_fcn_model
 import struct
 
 def forward_hook(module, input, output):
-    flag = "input"
+    flag = "output"
     shape = None
     data = None
     if (flag == "input"):
@@ -63,8 +63,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description='FCN 语义分割 PyTorch 实现')
     parser.add_argument('--voc-root', type=str, default='./data/VOC2012',
                         help='VOC数据集根目录')
-    parser.add_argument('--model-type', type=str, default='fcn8s', choices=['fcn8s', 'fcn16s', 'fcn32s'],
-                        help='FCN模型类型 (fcn8s, fcn16s, fcn32s)')
+    parser.add_argument('--model-type', type=str, default='deeplab', choices=['fcn8s', 'fcn16s', 'fcn32s', 'deeplab'],
+                        help='FCN模型类型 (fcn8s, fcn16s, fcn32s, deeplab)')
     parser.add_argument('--batch-size', type=int, default=4,
                         help='训练的批次大小')
     parser.add_argument('--epochs', type=int, default=1,
@@ -73,7 +73,7 @@ def parse_args():
                         help='学习率')
     parser.add_argument('--momentum', type=float, default=0.9,
                         help='SGD动量')
-    parser.add_argument('--weight-decay', type=float, default=1e-4,
+    parser.add_argument('--weight-decay', type=float, default=0,
                         help='权重衰减')
     parser.add_argument('--num-workers', type=int, default=4,
                         help='数据加载线程数')
@@ -251,7 +251,7 @@ def main():
     fp = open("./backup/LW_py", "wb")
     for name, param in model.named_parameters():
         data_f = []
-        print(f"Layer: {name}, Parameter Shape: {param.shape}") #param.shape [filters, channels, ksize, ksize]  [outputs, inputs]
+        # print(f"Layer: {name}, Parameter Shape: {param.shape}") #param.shape [filters, channels, ksize, ksize]  [outputs, inputs]
         if ("weight" in name and len(param.shape) == 4):
             data = param.tolist()
             for i in range(param.shape[0]):
@@ -271,8 +271,9 @@ def main():
             fp.write(struct.pack('f', data_f[i]))
     fp.close()
     
-    # model.score_pool4.register_forward_hook(forward_hook)
-    # model.score_pool4.register_backward_hook(backward_hook)
+    print(model)
+    # model.score.register_forward_hook(forward_hook)
+    model.fc6.register_backward_hook(backward_hook)
     
     for epoch in range(start_epoch, args.epochs):
         # 训练阶段
@@ -309,31 +310,31 @@ def main():
             images = images.to(device)
             targets = targets.to(device)
             optimizer.zero_grad()
-            outputs = model(images)
+            outputs = model(images, targets)
             # print("输出形状:", outputs.shape)
             # print("标签形状:", targets.shape)
-            loss = criterion(outputs, targets)
-            print(loss.item())
-            loss.backward()
+            loss = outputs.item()
+            print(loss)
+            outputs.backward()
             optimizer.step()
             num += 1
-            if num == 20:
+            if num == 1:
                 break
         break
             
-            train_loss += loss.item() * images.size(0)
-            batch_count += 1
+        #     train_loss += loss.item() * images.size(0)
+        #     batch_count += 1
             
-            del images, targets, outputs, loss
+        #     del images, targets, outputs, loss
             
-            if batch_count % 10 == 0:
-                torch.cuda.empty_cache()
+        #     if batch_count % 10 == 0:
+        #         torch.cuda.empty_cache()
         
-        train_loss = train_loss / train_dataset_size
-        history['train_loss'].append(train_loss)
+        # train_loss = train_loss / train_dataset_size
+        # history['train_loss'].append(train_loss)
         
-        # 调整学习率
-        scheduler.step()
+        # # 调整学习率
+        # scheduler.step()
         
     #     # 执行垃圾回收
     #     gc.collect()
