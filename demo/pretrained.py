@@ -37,6 +37,3 @@ for i in range(len(data_f)):
     fp.write(struct.pack('f', data_f[i]))
 fp.close()
 
-# vgg16 = models.vgg16(pretrained=False)
-# model = nn.Sequential(*list(vgg16.children()))
-# print(model)

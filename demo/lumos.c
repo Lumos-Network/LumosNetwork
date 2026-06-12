@@ -15,9 +15,11 @@
 #include "unet.h"
 #include "deeplabv1.h"
 #include "deeplabv2.h"
+#include "deeplabv3.h"
 
 int main()
 {
-    deeplabv2("gpu", "./backup/LW_deeplabv2");
+    deeplabv3("gpu", "./backup/LW_deeplabv2");
     // deeplabv2_detect("gpu", "./backup/LW_f");
+    // deeplabv3("gpu", NULL);
 }

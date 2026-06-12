@@ -96,13 +96,12 @@ void avgpool_gradient_gpu(float *delta_l, int h, int w, int c, int ksize, int st
 __global__ void maxpool_gradient_kernel(float *delta_l, int h, int w, int c, float *delta_n, int *index)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i != 0) return;
-    for (int j = 0; j < h*w*c; ++j){
-        delta_l[index[j]] += delta_n[j];
-    }
+    if (i >= h*w*c) return;
+    atomicAdd(delta_l+index[i], delta_n[i]);
 }
 
 void maxpool_gradient_gpu(float *delta_l, int h, int w, int c, float *delta_n, int *index)
 {
-    maxpool_gradient_kernel<<<(h*w*c + BLOCK - 1)/BLOCK, BLOCK>>>(delta_l, h, w, c, delta_n, index);
+    int num = h*w*c;
+    maxpool_gradient_kernel<<<(num + BLOCK - 1)/BLOCK, BLOCK>>>(delta_l, h, w, c, delta_n, index);
 }

@@ -126,7 +126,7 @@ OBJ+=	layer_delta_call.o
 endif
 
 ifeq ($(TEST), 0)
-OBJ+=	xor.o lenet5_mnist.o lenet5_fmnist.o alexnet_flower.o vgg16_cifar10.o resnet18.o cifar.o darknet.o googlenet.o \
+OBJ+=	xor.o lenet5_mnist.o lenet5_fmnist.o alexnet_flower.o vgg16_cifar10.o resnet18.o resnet50.o cifar.o darknet.o googlenet.o \
 		fcn8.o unet.o deeplabv1.o deeplabv2.o deeplabv3.o
 endif
 
