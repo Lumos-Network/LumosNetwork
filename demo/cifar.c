@@ -78,8 +78,8 @@ void cifar(char *type, char *path)
     std[2] = 0.5;
     transform_normalize_sess(sess, mean, std);
     transform_resize_sess(sess, 28, 28);
-    set_train_params(sess, 50, 128, 128, 0.0001);
-    SGDOptimizer_sess(sess, 0.9, 0, 0, 0, 0);
+    set_train_params(sess, 50, 32, 32, 0.0001);
+    SGDOptimizer_sess(sess, 0.9, 0, 5e-4, 0, 0);
     init_session(sess, "./data/cifar10/train.txt", "./data/cifar10/train_label.txt");
     train(sess);
 }

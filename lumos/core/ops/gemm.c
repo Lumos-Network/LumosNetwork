@@ -30,9 +30,9 @@ void gemm_nn(int M, int N, int K, float ALPHA,
     #pragma omp parallel for
     for (int i = 0; i < M; ++i){
         for (int j = 0; j < K; ++j){
-            register float temp = ALPHA * A[i * K + j];
+            register float temp = ALPHA * A[i * lda + j];
             for (int k = 0; k < N; ++k){
-                C[i * N + k] += temp * B[j * N + k];
+                C[i * ldc + k] += temp * B[j * ldb + k];
             }
         }
     }
@@ -45,11 +45,12 @@ void gemm_nt(int M, int N, int K, float ALPHA,
 {
     #pragma omp parallel for
     for (int i = 0; i < M; ++i){
-        for (int j = 0; j < K; ++j){
-            register float temp = ALPHA * A[i * K + j];
-            for (int k = 0; k < N; ++k){
-                C[i * N + k] += temp * B[k * K + j];
+        for (int j = 0; j < N; ++j){
+            register float sum = 0;
+            for (int k = 0; k < K; ++k){
+                sum += ALPHA*A[i*lda+k]*B[j*ldb+k];
             }
+            C[i*ldc+j] += sum;
         }
     }
 }
@@ -62,9 +63,9 @@ void gemm_tn(int M, int N, int K, float ALPHA,
     #pragma omp parallel for
     for (int i = 0; i < M; ++i){
         for (int j = 0; j < K; ++j){
-            register float temp = ALPHA * A[j * M + i];
+            register float temp = ALPHA * A[j * lda + i];
             for (int k = 0; k < N; ++k){
-                C[i * N + k] += temp * B[j * N + k];
+                C[i * ldc + k] += temp * B[j * ldb + k];
             }
         }
     }
@@ -77,11 +78,12 @@ void gemm_tt(int M, int N, int K, float ALPHA,
 {
     #pragma omp parallel for
     for (int i = 0; i < M; ++i){
-        for (int j = 0; j < K; ++j){
-            register float temp = ALPHA * A[j * M + i];
-            for (int k = 0; k < N; ++k){
-                C[i * N + k] += temp * B[k * K + j];
+        for (int j = 0; j < N; ++j){
+            register float sum = 0;
+            for (int k = 0; k < K; ++k){
+                sum += ALPHA*A[i+k*lda]*B[k+j*ldb];
             }
+            C[i*ldc+j] += sum;
         }
     }
 }

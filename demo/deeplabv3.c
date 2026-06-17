@@ -163,6 +163,6 @@ void deeplabv3_detect(char*type, char *path)
     transform_normalize_sess(sess, mean, std);
     transform_resize_sess(sess, 320, 320);
     set_detect_params(sess);
-    init_session(sess, "./data/VOC2012/train.txt", "./data/VOC2012/train_label.txt");
+    init_session(sess, "./data/VOC2012/test.txt", "./data/VOC2012/test_label.txt");
     detect_segmentation(sess);
 }

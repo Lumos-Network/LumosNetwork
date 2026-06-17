@@ -45,6 +45,7 @@ Layer *make_normalization_layer(float momentum, int affine, char *active);
 Layer *make_shortcut_layer(Layer *shortcut, int shortcuttype, char *active);
 Layer *make_maxpool_layer(int ksize, int stride, int pad);
 Layer *make_interpolate_layer(int height, int width);
+Layer *make_local_layer(int filters, int ksize, int stride, int pad, int dilation, int bias, char *active);
 
 Layer *make_crossentropy_layer(float *scale, int ignore);
 

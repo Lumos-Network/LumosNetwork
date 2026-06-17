@@ -13,10 +13,10 @@ def DrawLoss(loss):
     y = loss
     plt.figure(1)
     plt.plot(x, y, label="Training Loss")
-    plt.title('FCN-8s loss')
+    plt.title('DeeplabV3 loss')
     plt.legend()
     plt.savefig("./log/loss.png", dpi=600)
 
 if __name__ == "__main__":
-    loss = GetLoss("./log/lumos.log")
+    loss = GetLoss("./log/deeplabv3.log")
     DrawLoss(loss)

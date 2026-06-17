@@ -10,7 +10,7 @@ VOC_COLORMAP = [
     [0, 64, 128]
 ]
 
-path = "./backup/detect/15.png"
+path = "./backup/detect/0.png"
 img = Image.open(path)
 segmap = np.array(img)
 if isinstance(segmap, torch.Tensor):

@@ -16,10 +16,12 @@
 #include "deeplabv1.h"
 #include "deeplabv2.h"
 #include "deeplabv3.h"
+#include "yolov1.h"
 
 int main()
 {
-    deeplabv3("gpu", "./backup/LW_deeplabv2");
-    // deeplabv2_detect("gpu", "./backup/LW_f");
-    // deeplabv3("gpu", NULL);
+    // darknet("gpu", "./backup/LW_f");
+    // darknet_detect("gpu", "./backup/LW_f");
+    // cifar("gpu", NULL);
+    deeplabv3_detect("gpu", "./backup/deeplabv3");
 }
