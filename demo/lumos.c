@@ -24,17 +24,8 @@
 
 int main()
 {
-    // darknet24("gpu", NULL);
-    void **labels = load_label_txt("./01.txt");
-    int *lindex = (int*)labels[0];
-    char *tmp = (char*)labels[1];
-    float *truth = malloc(5*sizeof(float));
-    for (int j = 0; j < 5; ++j){
-        truth[j] = atof(tmp+lindex[j+1]);
-        printf("%f ", truth[j]);
-    }
-    printf("\n");
-    free(lindex);
-    free(tmp);
-    free(labels);
+    // yolov1("gpu", "./backup/darknet24-200");
+    darknet24("cpu", NULL);
+    // lenet5_fmnist("gpu", NULL);
+    // deeplabv1("gpu", NULL);
 }

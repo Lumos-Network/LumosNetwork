@@ -37,7 +37,7 @@ void init_session(Session *sess, char *data_path, char *label_path)
     init_graph(sess->graph, sess->width, sess->height, sess->channel, sess->truth_num, sess->class_num, sess->coretype, sess->subdivision, sess->optimizer, sess->weights_path, sess->input);
     create_workspace(sess);
     set_graph(sess->graph, sess->workspace, sess->truth, sess->loss);
-    transforms_sess(sess);
+    // transforms_sess(sess);
     bind_train_data(sess, "./backup/train.txt");
 }
 

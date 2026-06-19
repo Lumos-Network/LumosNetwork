@@ -104,13 +104,30 @@ class VOCDataset(Dataset):
     def __getitem__(self, idx):
         img_id = self.img_ids[idx]
         # 读取图片
-        img_path = os.path.join(self.img_dir, f"{img_id}.jpg")
-        img = Image.open(img_path).convert("RGB")
+        # img_path = os.path.join(self.img_dir, f"{img_id}.jpg")
+        # img = Image.open(img_path).convert("RGB")
         # 读取标注
         xml_path = os.path.join(self.ann_dir, f"{img_id}.xml")
+        print(xml_path)
         objects, orig_w, orig_h = parse_voc_xml(xml_path)
         # 生成7x7x30标签
         target = voc_to_yolo_target(objects, orig_w, orig_h, self.img_size, self.S, self.B, self.C)
         # 图像预处理
-        img = self.transform(img)
-        return img, target
+        # img = self.transform(img)
+        data = []
+        target = target.tolist()
+        for j in range(7):
+            for k in range(7):
+                data += target[j][k]
+        with open("./data/VOC2012/label_object/"+img_id+".txt", "w") as f:
+            for i in range(len(data)-1):
+                f.write(f"{data[i]} ")
+            f.write(f"{data[-1]}")
+            f.write("\n")
+            f.close()
+        return target
+
+dataset = VOCDataset(root = "./data/VOC2012")
+for i in range(dataset.__len__()):
+    target = dataset.__getitem__(i)
+    # break
