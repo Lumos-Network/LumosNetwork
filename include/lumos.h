@@ -8,9 +8,9 @@
 #define GPU 1
 
 typedef enum {
-    CONVOLUTIONAL, CONNECT, IM2COL, MAXPOOL, AVGPOOL, GLOBALMAX, GLOBALAVG, \
+    CONVOLUTIONAL, CONNECT, IM2COL, MAXPOOL, AVGPOOL, INTERPOLATE, LOCAL, \
     DROPOUT, SOFTMAX, LOGSOFTMAX, SHORTCUT, NORMALIZE, DECONVOLUTIONAL, INCEPTION, \
-    MSE, MAE, CE, NLL, CROSSENTROPY
+    CROSSENTROPY, YOLO
 } LayerType;
 
 typedef struct session Session;
@@ -48,6 +48,7 @@ Layer *make_interpolate_layer(int height, int width);
 Layer *make_local_layer(int filters, int ksize, int stride, int pad, int dilation, int bias, char *active);
 
 Layer *make_crossentropy_layer(float *scale, int ignore);
+Layer *make_yolo_layer();
 
 void init_constant_kernel(Layer *l, float x);
 void init_normal_kernel(Layer *l, float mean, float std);

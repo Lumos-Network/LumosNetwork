@@ -12,7 +12,6 @@
 #include "image.h"
 #include "progress_bar.h"
 #include "optimize.h"
-#include "binary_f.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,7 +38,7 @@ typedef struct session{
     float *workspace;
     float *input;
 
-    int *truth;
+    float *truth;
     int truth_num;
     int class_num;
 
@@ -117,7 +116,7 @@ void transform_normalize_sess(Session *sess, float *mean, float *std);
 void transforms_sess(Session *sess);
 
 void detect_transfer(float *data, int w, int h, int c, int *trans);
-float detect_iou(int *detect, int *truth, int num);
+float detect_iou(int *detect, float *truth, int num);
 
 #ifdef __cplusplus
 }

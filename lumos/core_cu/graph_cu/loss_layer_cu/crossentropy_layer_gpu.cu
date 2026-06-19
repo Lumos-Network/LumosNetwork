@@ -1,20 +1,20 @@
 #include "crossentropy_layer_gpu.h"
 
-__global__ void crossentropy_kernel(float *data, int *truth, int w, int h, int c, float *scale, int ignore, float *space)
+__global__ void crossentropy_kernel(float *data, float *truth, int w, int h, int c, float *scale, int ignore, float *space)
 {
     int index = threadIdx.x + blockIdx.x * blockDim.x;
     float scale_x = 1;
     if (index >= w*h) return;
-    int target = truth[index];
+    int target = (int)truth[index];
     if (ignore != -1){
         if (target == ignore){
             space[index] = 0.0;
             return;
         }
     }
-    // if (scale != NULL){
-    //     scale_x = scale[target];
-    // }
+    if (scale != NULL){
+        scale_x = scale[target];
+    }
     float max_val = -INFINITY;
     float sum_exp = 0;
     for (int i = 0; i < c; ++i){
@@ -26,17 +26,17 @@ __global__ void crossentropy_kernel(float *data, int *truth, int w, int h, int c
     space[index] = (-data[target*w*h+index]+max_val+log(sum_exp))*scale_x;
 }
 
-void crossentropy_gpu(float *data, int *truth, int w, int h, int c, float *scale, int ignore, float *space)
+void crossentropy_gpu(float *data, float *truth, int w, int h, int c, float *scale, int ignore, float *space)
 {
     crossentropy_kernel<<<(w*h+BLOCK-1)/BLOCK, BLOCK>>>(data, truth, w, h, c, scale, ignore, space);
 }
 
-__global__ void crossentropy_gradient_kernel(float *data, int *truth, int w, int h, int c, float *scale, int ignore, float *space)
+__global__ void crossentropy_gradient_kernel(float *data, float *truth, int w, int h, int c, float *scale, int ignore, float *space)
 {
     int index = threadIdx.x + blockIdx.x * blockDim.x;
     float scale_x = 1;
     if (index >= w*h) return;
-    int target = truth[index];
+    int target = (int)truth[index];
     if (ignore != -1){
         if (target == ignore){
             for (int i = 0; i < c; ++i){
@@ -63,7 +63,7 @@ __global__ void crossentropy_gradient_kernel(float *data, int *truth, int w, int
     }
 }
 
-void crossentropy_gradient_gpu(float *data, int *truth, int w, int h, int c, float *scale, int ignore, float *space)
+void crossentropy_gradient_gpu(float *data, float *truth, int w, int h, int c, float *scale, int ignore, float *space)
 {
     crossentropy_gradient_kernel<<<(w*h+BLOCK-1)/BLOCK, BLOCK>>>(data, truth, w, h, c, scale, ignore, space);
 }
@@ -128,7 +128,7 @@ void forward_crossentropy_layer_gpu(Layer l, int num)
         for (int i = 0; i < num; ++i){
             float *input = l.input + i*l.inputs;
             float *output = l.output + i*l.outputs;
-            int *truth = l.truth + i*l.truth_num;
+            float *truth = l.truth + i*l.truth_num;
             crossentropy_gpu(input, truth, l.input_w, l.input_h, l.input_c, l.scale, l.ignore, output);
         }
     }
@@ -140,7 +140,7 @@ void backward_crossentropy_layer_gpu(Layer l, int num, float *n_delta)
 {
     for (int i = 0; i < num; ++i){
         float *input = l.input+i*l.inputs;
-        int *truth = l.truth+i*l.truth_num;
+        float *truth = l.truth+i*l.truth_num;
         float *delta_l = l.delta+i*l.inputs;
         crossentropy_gradient_gpu(input, truth, l.input_w, l.input_h, l.input_c, l.scale, l.ignore, delta_l);
     }

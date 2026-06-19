@@ -23,7 +23,7 @@ extern "C" {
 typedef enum {
     CONVOLUTIONAL, CONNECT, IM2COL, MAXPOOL, AVGPOOL, INTERPOLATE, LOCAL, \
     DROPOUT, SOFTMAX, LOGSOFTMAX, SHORTCUT, NORMALIZE, DECONVOLUTIONAL, INCEPTION, \
-    CROSSENTROPY
+    CROSSENTROPY, YOLO
 } LayerType;
 
 typedef enum {
@@ -123,7 +123,7 @@ struct layer{
     float *input;
     float *output;
     float *delta;
-    int *truth;
+    float *truth;
     float *loss;
     float *workspace;
     float *kernel_weights_delta;

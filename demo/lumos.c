@@ -17,11 +17,24 @@
 #include "deeplabv2.h"
 #include "deeplabv3.h"
 #include "yolov1.h"
+#include "darknet24.h"
+
+#include "text_f.h"
+#include "binary_f.h"
 
 int main()
 {
-    // darknet("gpu", "./backup/LW_f");
-    // darknet_detect("gpu", "./backup/LW_f");
-    // cifar("gpu", NULL);
-    deeplabv3_detect("gpu", "./backup/deeplabv3");
+    // darknet24("gpu", NULL);
+    void **labels = load_label_txt("./01.txt");
+    int *lindex = (int*)labels[0];
+    char *tmp = (char*)labels[1];
+    float *truth = malloc(5*sizeof(float));
+    for (int j = 0; j < 5; ++j){
+        truth[j] = atof(tmp+lindex[j+1]);
+        printf("%f ", truth[j]);
+    }
+    printf("\n");
+    free(lindex);
+    free(tmp);
+    free(labels);
 }

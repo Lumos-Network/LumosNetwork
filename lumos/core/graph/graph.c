@@ -63,7 +63,7 @@ void init_graph(Graph *g, int w, int h, int c, int truth_num, int class_num, int
     }
 }
 
-void set_graph(Graph *g, float *space, int *truth, float *loss)
+void set_graph(Graph *g, float *space, float *truth, float *loss)
 {
     Node *layer = g->head;
     Layer *l;
