@@ -65,13 +65,15 @@ __global__ void yolo_kernel(int num, float *pretrained, int lp, float *targets, 
     float bw = (1-mask)*pw1 + mask*pw2;
     float bh = (1-mask)*ph1 + mask*ph2;
     float bc = (1-mask)*cell_p[4] + mask*cell_p[9];
-    float lossxy = powf(bx-tx1, 2) + powf(by-ty1, 2);
-    float losswh = powf(sqrtf(bw)-sqrtf(tw1), 2) + powf(sqrtf(bh)-sqrtf(th1), 2);
+    bw = fabs(bw);
+    bh = fabs(bh);
+    float lossxy = pow(bx-tx1, 2) + pow(by-ty1, 2);
+    float losswh = pow(sqrt(bw)-sqrt(tw1), 2) + pow(sqrt(bh)-sqrt(th1), 2);
     float loss_coord = 5 * tc1 * (lossxy + losswh);
-    float loss_noobj = tc1*powf(bc-tc1, 2)+0.5*(1-tc1)*powf(bc-tc1, 2);
+    float loss_noobj = tc1*pow(bc-tc1, 2)+0.5*(1-tc1)*pow(bc-tc1, 2);
     float loss_class = 0;
     for (int k = 0; k < 20; ++k){
-        loss_class += tc1*powf((cell_p[10+k]-cell_t[10+k]), 2);
+        loss_class += tc1*pow((cell_p[10+k]-cell_t[10+k]), 2);
     }
     output[box_index] = loss_coord + loss_noobj + loss_class;
 }
@@ -109,10 +111,12 @@ __global__ void yolo_gradient_kernel(int num, float *pretrained, int lp, float *
     float bw = (1-mask)*pw1 + mask*pw2;
     float bh = (1-mask)*ph1 + mask*ph2;
     float bc = (1-mask)*cell_p[4] + mask*cell_p[9];
+    float tag_bw = (bw>0) ? 1:-1;
+    float tag_bh = (bh>0) ? 1:-1;
     delta_mask[0] = 5 * tc1 * 2*(bx-tx1);
     delta_mask[1] = 5 * tc1 * 2*(by-ty1);
-    delta_mask[2] = 5 * tc1 * (sqrtf(bw)-sqrtf(tw1)) / sqrtf(bw);
-    delta_mask[3] = 5 * tc1 * (sqrtf(bh)-sqrtf(th1)) / sqrtf(bh);
+    delta_mask[2] = 5 * tc1 * (sqrt(fabs(bw))-sqrt(tw1)) * tag_bw / sqrt(fabs(bw));
+    delta_mask[3] = 5 * tc1 * (sqrt(fabs(bh))-sqrt(th1)) * tag_bh / sqrt(fabs(bh));
     delta_mask[4] = 0.5 * tc1 * 2 * bc + (1-tc1) * 2 * bc;
     float *delta_class = delta+box_index*30+10;
     for (int k = 0; k < 20; ++k){
@@ -130,12 +134,12 @@ void init_yolo_layer_gpu(Layer *l, int w, int h, int c, int subdivision)
     l->output_h = 1;
     l->output_w = 1;
     l->output_c = 1;
-    l->outputs = 1;
+    l->outputs = 7*7;
 
     l->workspace_size = 0;
 
-    cudaMalloc((void**)l->output, subdivision*l->outputs*sizeof(float));
-    cudaMalloc((void**)l->delta, subdivision*l->inputs*sizeof(float));
+    cudaMalloc((void**)&l->output, subdivision*l->outputs*sizeof(float));
+    cudaMalloc((void**)&l->delta, subdivision*l->inputs*sizeof(float));
 
     fprintf(stderr, "YOLO    Layer    %3d*%3d*%3d ==> %3d*%3d*%3d\n", \
             l->input_w, l->input_h, l->input_c, l->output_w, l->output_h, l->output_c);
@@ -146,6 +150,8 @@ void forward_yolo_layer_gpu(Layer l, int num)
     int size = num*7*7;
     int block_num = (size + BLOCK-1) / BLOCK;
     yolo_kernel<<<block_num, BLOCK>>>(num, l.input, l.inputs, l.truth, l.output, l.outputs);
+    sum_gpu(l.output, l.outputs*num, l.loss);
+    multy_gpu(l.loss, 1, (float)1/(l.outputs*num), 1);
 }
 
 void backward_yolo_layer_gpu(Layer l, int num, float *n_delta)

@@ -21,11 +21,13 @@
 
 #include "text_f.h"
 #include "binary_f.h"
+#include <math.h>
+#include <string.h>
 
 int main()
 {
-    // yolov1("gpu", "./backup/darknet24-200");
-    darknet24("cpu", NULL);
+    yolov1("gpu", NULL);
+    // darknet24("gpu", NULL);
     // lenet5_fmnist("gpu", NULL);
     // deeplabv1("gpu", NULL);
 }

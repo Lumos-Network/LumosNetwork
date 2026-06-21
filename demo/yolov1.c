@@ -39,17 +39,24 @@ void yolov1(char *type, char *path)
     layers[26] = make_convolutional_layer(1024, 3, 1, 1, 0, 1, "relu");
     layers[27] = make_convolutional_layer(1024, 3, 1, 1, 0, 1, "relu");
 
-    layers[28] = make_connect_layer(4096, 1, "leaky");
+    layers[28] = make_local_layer(256, 3, 1, 1, 0, 0, "relu");
     layers[29] = make_dropout_layer(0.5);
-    layers[30] = make_connect_layer(grid_size*grid_size*(num_bbox*5+num_classes), 1, "linear");
+    layers[30] = make_connect_layer(grid_size*grid_size*(num_bbox*5+num_classes), 0, "linear");
     layers[31] = make_yolo_layer();
 
     for (int i = 0; i < 32; ++i) {
         append_layer2grpah(graph, layers[i]);
         Layer *l = layers[i];
+        if (l->type == CONVOLUTIONAL){
+            init_kaiming_uniform_kernel(l, sqrt(5.0), "fan_in", "relu");
+            init_constant_bias(l, 0);
+        }
         if (l->type == CONNECT){
             init_kaiming_normal_kernel(l, sqrt(5.0), "fan_in", "relu");
             init_constant_bias(l, 0);
+        }
+        if (l->type == LOCAL){
+            init_kaiming_uniform_kernel(l, sqrt(5.0), "fan_in", "relu");
         }
     }
 
@@ -64,9 +71,8 @@ void yolov1(char *type, char *path)
     std[2] = 0.225;
     transform_normalize_sess(sess, mean, std);
     transform_resize_sess(sess, 448, 448);
-    set_train_params(sess, 200, 64, 64, 0.0005);
+    set_train_params(sess, 100, 32, 32, 0.00001);
     SGDOptimizer_sess(sess, 0.9, 0, 5e-4, 0, 0);
-    lr_scheduler_step(sess, 100, 0.1);
     init_session(sess, "./data/VOC2012/train_object.txt", "./data/VOC2012/train_object_label.txt");
     train(sess);
 }

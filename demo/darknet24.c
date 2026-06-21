@@ -54,7 +54,7 @@ void darknet24(char *type, char *path)
         }
     }
 
-    Session *sess = create_session(graph, 224, 224, 3, 1, num_classes, type, path);
+    Session *sess = create_session(graph, 448, 448, 3, 1, num_classes, type, path);
     float *mean = calloc(3, sizeof(float));
     float *std = calloc(3, sizeof(float));
     mean[0] = 0.485;
@@ -64,10 +64,10 @@ void darknet24(char *type, char *path)
     std[1] = 0.224;
     std[2] = 0.225;
     transform_normalize_sess(sess, mean, std);
-    transform_resize_sess(sess, 224, 224);
-    set_train_params(sess, 50, 4, 4, 0.0001);
+    transform_resize_sess(sess, 448, 448);
+    set_train_params(sess, 1, 1, 1, 0.0001);
     SGDOptimizer_sess(sess, 0.9, 0, 0, 0, 0);
-    init_session(sess, "./data/VOC2012/train_classifier.txt", "./data/VOC2012/train_classifier_label.txt");
+    init_session(sess, "./data/VOC2012/classifier.txt", "./data/VOC2012/classifier_label.txt");
     train(sess);
 }
 

@@ -6,7 +6,7 @@
 #include "gemm.h"
 
 #include "yolo_layer_gpu.h"
-#include "softmax.h"
+#include "active.h"
 
 #ifdef __cplusplus
 extern "C" {
