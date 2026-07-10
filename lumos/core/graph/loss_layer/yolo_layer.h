@@ -12,7 +12,7 @@
 extern "C" {
 #endif
 
-Layer *make_yolo_layer();
+Layer *make_yolo_layer(int size, int stride);
 
 void init_yolo_layer(Layer *l, int w, int h, int c, int subdivision);
 void forward_yolo_layer(Layer l, int num);

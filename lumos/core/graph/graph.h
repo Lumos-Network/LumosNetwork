@@ -29,8 +29,9 @@ struct node{
 };
 
 Graph *create_graph();
-
 void append_layer2grpah(Graph *graph, Layer *l);
+void freeze_layer(Layer *l);
+
 void init_graph(Graph *g, int w, int h, int c, int truth_num, int class_num, int coretype, int subdivision, int optimizer, char *weights_path, float *input);
 void set_graph(Graph *g, float *space, float *truth, float *loss);
 void forward_graph(Graph *g, int coretype, int subdivision);

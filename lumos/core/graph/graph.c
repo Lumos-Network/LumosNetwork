@@ -21,6 +21,12 @@ void append_layer2grpah(Graph *graph, Layer *l)
     layer->head = graph->tail;
     graph->tail = layer;
     if (graph->head == NULL) graph->head = layer;
+    l->lock = 0;
+}
+
+void freeze_layer(Layer *l)
+{
+    l->lock = 1;
 }
 
 void init_graph(Graph *g, int w, int h, int c, int truth_num, int class_num, int coretype, int subdivision, int optimizer, char *weights_path, float *input)
@@ -129,8 +135,8 @@ void refresh_graph(Graph *g, int coretype)
     for (;;){
         if (layer){
             l = layer->l;
-            if (coretype == GPU && l->refreshgpu) l->refreshgpu(*l);
-            if (coretype == CPU && l->refresh) l->refresh(*l);
+            if (coretype == GPU && l->refreshgpu && l->lock == 0) l->refreshgpu(*l);
+            if (coretype == CPU && l->refresh && l->lock == 0) l->refresh(*l);
         } else {
             break;
         }

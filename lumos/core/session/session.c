@@ -312,6 +312,42 @@ void detect_segmentation(Session *sess)
     fprintf(stderr, "Segmentation: MIOU %.2f%%\n", ious*100);
 }
 
+void detect_object(Session *sess)
+{
+    fprintf(stderr, "\nSession Start To Running\n");
+    float *truth = NULL;
+    float *detect = NULL;
+    int *trans = calloc(sess->truth_num, sizeof(int));
+    float *loss = calloc(1, sizeof(float));
+    float ious = 0;
+    char savepath[200];
+    Graph *g = sess->graph;
+    g->status = 0;
+    Node *layer = g->tail;
+    Layer *l = layer->l;
+    if (sess->coretype == GPU){
+        truth = calloc(sess->truth_num, sizeof(float));
+        detect = calloc(sess->truth_num*sess->class_num, sizeof(float));
+    }
+    for (int i = 0; i < sess->train_data_num; ++i){
+        load_train_data_binary(sess, i);
+        load_train_label(sess, i);
+        forward_graph(sess->graph, sess->coretype, sess->subdivision);
+        if (sess->coretype == GPU){
+            cudaMemcpy(truth, l->truth, sess->truth_num*sizeof(float), cudaMemcpyDeviceToHost);
+            cudaMemcpy(detect, l->input, l->inputs*sizeof(float), cudaMemcpyDeviceToHost);
+            cudaMemcpy(loss, sess->loss, sizeof(float), cudaMemcpyDeviceToHost);
+        } else {
+            truth = l->truth;
+            detect = l->input;
+            loss[0] = sess->loss[0];
+        }
+        FILE *fp = fopen("./backup/detect/o_1", "wb");
+        fwrite(detect, l->inputs, sizeof(float), fp);
+        fclose(fp);
+    }
+}
+
 void lr_scheduler_step(Session *sess, int step_size, float gamma)
 {
     LrScheduler *lrscheduler = make_lrscheduler(SLR, 0, step_size, NULL, 0, 0, gamma);

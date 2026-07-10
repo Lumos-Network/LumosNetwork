@@ -134,8 +134,7 @@ struct layer{
     int ignore;
 
     int *maxpool_index;
-    //为社么是指针
-    int *dropout_rand;
+    float *dropout_rand;
 
     int filters;
     int ksize;

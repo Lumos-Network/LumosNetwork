@@ -81,6 +81,7 @@ void create_workspace(Session *sess);
 void train(Session *sess);
 void detect_classification(Session *sess);
 void detect_segmentation(Session *sess);
+void detect_object(Session *sess);
 
 void load_train_data(Session *sess, int index);
 void load_train_data_binary(Session *sess, int index);

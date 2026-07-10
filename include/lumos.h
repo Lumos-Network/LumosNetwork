@@ -28,12 +28,14 @@ void set_detect_params(Session *sess);
 void train(Session *sess);
 void detect_classification(Session *sess);
 void detect_segmentation(Session *sess);
+void detect_object(Session *sess);
 void SGDOptimizer_sess(Session *sess, float momentum, float dampening, float decay, int nesterov, int maximize);
 void transform_resize_sess(Session *sess, int height, int width);
 void transform_normalize_sess(Session *sess, float *mean, float *std);
 
 Graph *create_graph();
 void append_layer2grpah(Graph *graph, Layer *l);
+void freeze_layer(Layer *l);
 
 Layer *make_avgpool_layer(int ksize, int stride, int pad);
 Layer *make_connect_layer(int output, int bias, char *active);
@@ -48,7 +50,7 @@ Layer *make_interpolate_layer(int height, int width);
 Layer *make_local_layer(int filters, int ksize, int stride, int pad, int dilation, int bias, char *active);
 
 Layer *make_crossentropy_layer(float *scale, int ignore);
-Layer *make_yolo_layer();
+Layer *make_yolo_layer(int size, int stride);
 
 void init_constant_kernel(Layer *l, float x);
 void init_normal_kernel(Layer *l, float mean, float std);

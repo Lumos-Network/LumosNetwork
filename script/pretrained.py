@@ -6,17 +6,17 @@ from torchvision import models
 class DeepLabv2(nn.Module):
     def __init__(self, num_classes=21):
         super().__init__()
-        vgg16 = models.vgg16(pretrained=True)
-        features = list(vgg16.features.children())
-        self.features = nn.Sequential(*features[:31])
-
+        resnet18 = models.resnet18(pretrained=True)
+        self.resnet = resnet18
 
 # 加载预训练 ResNet50
 model = DeepLabv2(num_classes=21)
-fp = open("./backup/LW_deeplabv2", "wb")
+fp = open("./backup/resnet18", "wb")
 data_f = []
 for name, param in model.named_parameters():
     print(f"Layer: {name}, Parameter Shape: {param.shape}") #param.shape [filters, channels, ksize, ksize]  [outputs, inputs]
+    if "fc" in name:
+        continue
     if ("weight" in name and len(param.shape) == 4):
         data = param.tolist()
         for i in range(param.shape[0]):

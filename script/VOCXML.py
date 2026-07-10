@@ -32,102 +32,43 @@ def parse_voc_xml(xml_path):
         cy = (y1 + y2) / 2.0
         w = x2 - x1
         h = y2 - y1
+        cx /= img_w
+        cy /= img_h
+        w /= img_w
+        h /= img_h
+        cx *= 448
+        cy *= 448
         objects.append([cx, cy, w, h, cls_id])
-    return objects, img_w, img_h
+    return objects
 
-def voc_to_yolo_target(objects, orig_w, orig_h, img_size=448, S=7, B=2, C=20):
-    # 初始化全0标签
-    target = torch.zeros((S, S, B * 5 + C))
-    cell_size = img_size / S
-
-    for (cx, cy, w, h, cls_id) in objects:
-        # 1. 坐标映射到448尺寸（原图拉伸到448）
-        scale_x = img_size / orig_w
-        scale_y = img_size / orig_h
-        cx_scaled = cx * scale_x
-        cy_scaled = cy * scale_y
-        w_scaled = w * scale_x
-        h_scaled = h * scale_y
-
-        # 2. 计算网格坐标 i(col), j(row)
-        grid_i = int(cx_scaled / cell_size)
-        grid_j = int(cy_scaled / cell_size)
-        # 防止越界
-        grid_i = torch.clamp(torch.tensor(grid_i), 0, S-1).item()
-        grid_j = torch.clamp(torch.tensor(grid_j), 0, S-1).item()
-
-        # 同一网格已有物体则跳过（YOLOv1原生限制：一格一物）
-        if target[grid_j, grid_i, 4] == 1.0:
+# [x, y, w, h, conf, cls]
+root = "./data/VOC2012/Annotations"
+names = os.listdir(root)
+for name in  names:
+    path = root + "/" + name
+    objects = parse_voc_xml(path)
+    target = [0 for _ in range(7*7*6)]
+    for obj in objects:
+        cx = obj[0]
+        cy = obj[1]
+        w = obj[2]
+        h = obj[3]
+        cls_id = obj[4]
+        scale = 448 / 7
+        box_id = int((cy // scale)*7 + (cx // scale))
+        print(box_id)
+        if target[box_id*6+4] == 1.0:
             continue
-
-        # 3. 填充相对网格的 x,y
-        x_cell = (cx_scaled / cell_size) - grid_i
-        y_cell = (cy_scaled / cell_size) - grid_j
-        # 4. 填充相对整张图的 w,h
-        w_norm = w_scaled / img_size
-        h_norm = h_scaled / img_size
-
-        # 写入第一个框的 x,y,w,h,conf
-        target[grid_j, grid_i, 0] = x_cell
-        target[grid_j, grid_i, 1] = y_cell
-        target[grid_j, grid_i, 2] = w_norm
-        target[grid_j, grid_i, 3] = h_norm
-        target[grid_j, grid_i, 4] = 1.0  # obj置信度=1
-
-        # one-hot类别
-        target[grid_j, grid_i, 10 + cls_id] = 1.0
-    return target
-
-class VOCDataset(Dataset):
-    def __init__(self, root, img_size=448, S=7, B=2, C=20):
-        self.root = root
-        self.img_dir = os.path.join(root, "JPEGImages")
-        self.ann_dir = os.path.join(root, "Annotations")
-        split_path = os.path.join(root, "ImageSets/Main/trainval.txt")
-        with open(split_path, "r", encoding="utf-8") as f:
-            self.img_ids = [line.strip() for line in f.readlines()]
-        
-        self.img_size = img_size
-        self.S = S
-        self.B = B
-        self.C = C
-        # YOLOv1 原图转448预处理
-        self.transform = T.Compose([
-            T.Resize((img_size, img_size)),
-            T.ToTensor(),
-            T.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225])
-        ])
-
-    def __len__(self):
-        return len(self.img_ids)
-
-    def __getitem__(self, idx):
-        img_id = self.img_ids[idx]
-        # 读取图片
-        # img_path = os.path.join(self.img_dir, f"{img_id}.jpg")
-        # img = Image.open(img_path).convert("RGB")
-        # 读取标注
-        xml_path = os.path.join(self.ann_dir, f"{img_id}.xml")
-        print(xml_path)
-        objects, orig_w, orig_h = parse_voc_xml(xml_path)
-        # 生成7x7x30标签
-        target = voc_to_yolo_target(objects, orig_w, orig_h, self.img_size, self.S, self.B, self.C)
-        # 图像预处理
-        # img = self.transform(img)
-        data = []
-        target = target.tolist()
-        for j in range(7):
-            for k in range(7):
-                data += target[j][k]
-        with open("./data/VOC2012/label_object/"+img_id+".txt", "w") as f:
-            for i in range(len(data)-1):
-                f.write(f"{data[i]} ")
-            f.write(f"{data[-1]}")
-            f.write("\n")
-            f.close()
-        return target
-
-dataset = VOCDataset(root = "./data/VOC2012")
-for i in range(dataset.__len__()):
-    target = dataset.__getitem__(i)
-    # break
+        else:
+            target[box_id*6] = cx / 448
+            target[box_id*6+1] = cy / 448
+            target[box_id*6+2] = w
+            target[box_id*6+3] = h
+            target[box_id*6+4] = 1.0
+            target[box_id*6+5] = cls_id
+    fp = open("./data/VOC2012/object/"+name.split(".")[0], "w")
+    for i in target:
+        item = str(i)
+        fp.write(item+" ")
+    fp.write("\n")
+    fp.close()

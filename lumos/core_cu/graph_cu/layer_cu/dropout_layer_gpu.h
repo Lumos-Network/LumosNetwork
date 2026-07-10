@@ -17,7 +17,7 @@
 #include "gemm_gpu.h"
 #include "im2col_gpu.h"
 #include "bias_gpu.h"
-#include "random.h"
+#include "random_gpu.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -17,11 +17,7 @@ void init_dropout_layer_gpu(Layer *l, int w, int h, int c, int subdivision)
     cudaMalloc((void**)&l->output, subdivision*l->outputs*sizeof(float));
     cudaMalloc((void**)&l->delta, subdivision*l->inputs*sizeof(float));
     cudaMalloc((void**)&l->dropout_rand, subdivision*l->inputs*sizeof(float));
-    float *rand_l = (float*)calloc(l->outputs, sizeof(float));
-    for (int i = 0; i < l->outputs; ++i){
-        rand_l[i] = rand_uniform(0, 1);
-    }
-    cudaMemcpy(l->dropout_rand, rand_l, l->outputs*sizeof(float), cudaMemcpyHostToDevice);
+
     fprintf(stderr, "Dropout         Layer\n");
 }
 
@@ -31,13 +27,8 @@ void forward_dropout_layer_gpu(Layer l, int num)
         cudaMemcpy(l.output, l.input, num*l.inputs*sizeof(float), cudaMemcpyDeviceToDevice);
         return;
     }
-    float *dropout_rand = (float*)calloc(num*l.inputs, sizeof(float));
-    for (int i = 0; i < num*l.inputs; ++i){
-        dropout_rand[i] = rand_uniform(0, 1);
-    }
-    cudaMemcpy(l.dropout_rand, dropout_rand, num*l.inputs*sizeof(float), cudaMemcpyHostToDevice);
+    cuda_random(l.dropout_rand, num*l.inputs);
     dropout_gpu(l, num);
-    free(dropout_rand);
 }
 
 void backward_dropout_layer_gpu(Layer l, int num, float *n_delta)
