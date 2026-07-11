@@ -37,7 +37,7 @@ void init_session(Session *sess, char *data_path, char *label_path)
     init_graph(sess->graph, sess->width, sess->height, sess->channel, sess->truth_num, sess->class_num, sess->coretype, sess->subdivision, sess->optimizer, sess->weights_path, sess->input);
     create_workspace(sess);
     set_graph(sess->graph, sess->workspace, sess->truth, sess->loss);
-    // transforms_sess(sess);
+    transforms_sess(sess);
     bind_train_data(sess, "./backup/train.txt");
 }
 
@@ -315,35 +315,23 @@ void detect_segmentation(Session *sess)
 void detect_object(Session *sess)
 {
     fprintf(stderr, "\nSession Start To Running\n");
-    float *truth = NULL;
-    float *detect = NULL;
-    int *trans = calloc(sess->truth_num, sizeof(int));
-    float *loss = calloc(1, sizeof(float));
+    float *detect = malloc(169*25*sizeof(float));
     float ious = 0;
     char savepath[200];
     Graph *g = sess->graph;
     g->status = 0;
     Node *layer = g->tail;
     Layer *l = layer->l;
-    if (sess->coretype == GPU){
-        truth = calloc(sess->truth_num, sizeof(float));
-        detect = calloc(sess->truth_num*sess->class_num, sizeof(float));
-    }
     for (int i = 0; i < sess->train_data_num; ++i){
         load_train_data_binary(sess, i);
-        load_train_label(sess, i);
         forward_graph(sess->graph, sess->coretype, sess->subdivision);
         if (sess->coretype == GPU){
-            cudaMemcpy(truth, l->truth, sess->truth_num*sizeof(float), cudaMemcpyDeviceToHost);
-            cudaMemcpy(detect, l->input, l->inputs*sizeof(float), cudaMemcpyDeviceToHost);
-            cudaMemcpy(loss, sess->loss, sizeof(float), cudaMemcpyDeviceToHost);
+            cudaMemcpy(detect, l->output, l->outputs*sizeof(float), cudaMemcpyDeviceToHost);
         } else {
-            truth = l->truth;
-            detect = l->input;
-            loss[0] = sess->loss[0];
+            detect = l->output;
         }
         FILE *fp = fopen("./backup/detect/o_1", "wb");
-        fwrite(detect, l->inputs, sizeof(float), fp);
+        fwrite(detect, sizeof(float), l->outputs, fp);
         fclose(fp);
     }
 }

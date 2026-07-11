@@ -84,8 +84,8 @@ void init_normalization_layer(Layer *l, int w, int h, int c, int subdivision)
 void weightinit_normalization_layer(Layer l, FILE *fp)
 {
     if (fp){
-        fread(l.rolling_mean, sizeof(float), l.filters, fp);
-        fread(l.rolling_variance, sizeof(float), l.filters, fp);
+        // fread(l.rolling_mean, sizeof(float), l.filters, fp);
+        // fread(l.rolling_variance, sizeof(float), l.filters, fp);
         if (l.affine){
             fread(l.kernel_weights, sizeof(float), l.filters, fp);
             fread(l.bias_weights, sizeof(float), l.filters, fp);

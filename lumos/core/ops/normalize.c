@@ -75,7 +75,7 @@ void gradient_normalize_cpu(float *input, float *mean, float *variance, float *m
         for(f = 0; f < features; ++f){
             for(k = 0; k < num; ++k){
                 int index = j*features*num + f*num + k;
-                l_delta[index] = n_delta[index] * 1./(sqrt(variance[f] + .00001f)) + variance_delta[f] * 2. * (input[index] - mean[f]) / (num*subdivision) + mean_delta[f]/(num*subdivision);
+                l_delta[index] = n_delta[index] * 1./(sqrt(variance[f] + .00001f)) + variance_delta[f] * 2. * (input[index] - mean[f]) / (subdivision*num) + mean_delta[f]/(subdivision*num);
             }
         }
     }

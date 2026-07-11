@@ -112,6 +112,7 @@ void backward_graph(Graph *g, int coretype, int subdivision)
     Node *layer = g->tail;
     Layer *l;
     float *n_delta;
+    int i = 0;
     for (;;){
         if (layer){
             l = layer->l;
@@ -125,6 +126,7 @@ void backward_graph(Graph *g, int coretype, int subdivision)
         }
         layer = layer->head;
         n_delta = l->delta;
+        i += 1;
     }
 }
 

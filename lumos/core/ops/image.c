@@ -39,7 +39,7 @@ float *load_image_data(char *img_path, int *w, int *h, int *c)
             {
                 int dst_index = i + w[0] * j + w[0] * h[0] * k;
                 int src_index = k + c[0] * i + c[0] * w[0] * j;
-                im_new[dst_index] = (float)data[src_index] / 255.;
+                im_new[dst_index] = (float)data[src_index];
             }
         }
     }
@@ -125,7 +125,7 @@ void normalize_im(float *img, int height, int width, int channel, float *mean, f
     for (int k = 0; k < channel; ++k){
         for (int i = 0; i < height; ++i){
             for (int j = 0; j < width; ++j){
-                space[k*height*width + i*width + j] = (img[k*height*width + i*width + j] - mean[k]) / std[k];
+                space[k*height*width + i*width + j] = (img[k*height*width + i*width + j]  / 255. - mean[k]) / std[k];
             }
         }
     }

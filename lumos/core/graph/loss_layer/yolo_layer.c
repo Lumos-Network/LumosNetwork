@@ -31,7 +31,7 @@ void conf_msewithlogitsloss_gradient(float pred, float target, float *space)
 
     float conf_delta = 5.0*pos_delta + 1.0*neg_delta;
     conf_delta *= (1-input)*input;
-    space[0] = conf_delta;
+    space[0] = conf_delta/8;
 }
 
 float xy_bcewithlogitsloss(float px, float py, float tx, float ty, float box_scale_weight)
@@ -50,8 +50,8 @@ void xy_bcewithlogitsloss_gradient(float px, float py, float tx, float ty, float
     float y_delta = 0;
     x_delta = 1 / (1 + exp(-px)) - tx;
     y_delta = 1 / (1 + exp(-py)) - ty;
-    spacex[0] = x_delta*box_scale_weight;
-    spacey[0] = y_delta*box_scale_weight;
+    spacex[0] = x_delta*box_scale_weight/8;
+    spacey[0] = y_delta*box_scale_weight/8;
 }
 
 float wh_mseloss(float pw, float ph, float tw, float th, float box_scale_weight)
@@ -66,8 +66,8 @@ void wh_mseloss_gradient(float pw, float ph, float tw, float th, float box_scale
 {
     float w_delta = 2*(pw-tw);
     float h_delta = 2*(ph-th);
-    spacew[0] = w_delta*box_scale_weight;
-    spaceh[0] = h_delta*box_scale_weight;
+    spacew[0] = w_delta*box_scale_weight/8;
+    spaceh[0] = h_delta*box_scale_weight/8;
 }
 
 float class_crossentropy(float *data, float truth, int w, int h, int c, int index)
@@ -98,8 +98,8 @@ void class_crossentropy_gradient(float *data, float truth, int w, int h, int c, 
         sum_exp += space[i*w*h+index];
     }
     for (int i = 0; i < c; ++i){
-        if (i == target) space[i*w*h+index] = (space[i*w*h+index]/sum_exp-1);
-        else space[i*w*h+index] = (space[i*w*h+index]/sum_exp);
+        if (i == target) space[i*w*h+index] = (space[i*w*h+index]/sum_exp-1)/8;
+        else space[i*w*h+index] = (space[i*w*h+index]/sum_exp)/8;
     }
 }
 
